@@ -8,7 +8,7 @@ Just as ukiyo-e prints brought art to everyone in Edo-period Japan, Hyakkei aims
 
 ## Status
 
-Early design phase. Nothing to run yet.
+Early design phase. Nothing to run yet. Design documents — PRD, roadmap, architecture, and decision records — live in [`docs/`](./docs/README.md).
 
 ## Vision
 
