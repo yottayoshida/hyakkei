@@ -1,5 +1,7 @@
 # Hyakkei（百景）
 
+![Ukiyo-e style illustration of Edo-period townspeople gathered in a public square, studying charts and dashboards displayed on wooden notice boards, with a bridge and Mount Fuji in the background](./docs/assets/hero.webp)
+
 > One hundred views of your data.
 
 Hyakkei is an open-source dashboard builder built on the [Japan Digital Agency Design System](https://design.digital.go.jp/). Load a CSV or Excel file and build a polished, guideline-compliant dashboard in minutes — entirely in your browser. No server, no account, no data leaving your machine.
@@ -29,3 +31,5 @@ Hyakkei is a community project. It is not affiliated with or endorsed by the Dig
 ## License
 
 [MIT](LICENSE)
+
+The hero illustration is AI-generated artwork created for this project.
