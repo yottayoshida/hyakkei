@@ -1,8 +1,12 @@
 # Hyakkei — Product Requirements Document
 
-- **Status**: Draft v1 (2026-07-04)
+- **Status**: Draft v1 (2026-07-04, amended 2026-07-05)
 - **Owner**: yotta (@yottayoshida)
 - **Related**: [ROADMAP.md](./ROADMAP.md) · [ARCHITECTURE.md](./ARCHITECTURE.md) · [ADRs](./adr/)
+
+## Amendment (2026-07-05)
+
+`/plan` investigation (Market Research + Codex proxy review) corrected two load-bearing claims in §2.1 below: Power BI Desktop is free to author in (the real blocker is sharing/data sovereignty, not license cost), and the guidebook's deliverables extend beyond the `.pbit` template. §2.1, §3, §6.1, and §8 are corrected in place — see inline notes.
 
 ---
 
@@ -16,16 +20,18 @@ Just as ukiyo-e woodblock prints democratized art in Edo-period Japan — mass-p
 
 ### 2.1 The gap
 
-The [Digital Agency of Japan publishes a Dashboard Design Guidebook](https://www.digital.go.jp/resources/dashboard-guidebook): design principles (Do's & Don'ts), a 7-color palette, a layout grid system, and chart samples. It is excellent — and its only ready-to-use deliverable is a **Power BI template (.pbit)**.
+The [Digital Agency of Japan publishes a Dashboard Design Guidebook](https://www.digital.go.jp/resources/dashboard-guidebook): design principles (Do's & Don'ts), a color palette (theme variants, not a single 7-hue categorical set — see §6.1 F6), a layout grid system, and chart samples. Its ready-to-use deliverables are Power BI-centric: a **Power BI template (.pbit)**, a chart/component library (beta), a requirements worksheet, a slide-deck kit, and administrative-boundary polygon data for maps — no OSS implementation exists.
 
-This creates a gap:
+The real blocker is not license cost — **Power BI Desktop is free to author in.** The actual gap is what happens *after* authoring:
 
 | Who | Blocker |
 |-----|---------|
-| Local-government staff | No Power BI license, or no budget approval path for one. Data lives in Excel. IT can't operate servers. |
-| Small businesses / NPOs | Same: no BI budget, data in spreadsheets, nobody to run Metabase. |
+| Local-government staff | Sharing a Power BI dashboard beyond a single desktop requires Power BI **Service**, which is a paid/procurement-gated product, and typically means data leaving to Microsoft's cloud — a data-sovereignty and budget-approval problem, not an authoring-cost one. IT can't operate a self-hosted BI server either. Data lives in Excel either way. |
+| Small businesses / NPOs | Same sharing/hosting gap: no budget for BI Service or the ops capacity to run Metabase themselves. |
 | Civic tech developers / vendors | Want to build guideline-compliant dashboards, but there is no OSS implementation of the guidebook — every project re-implements the palette and layout by hand. |
 | Individuals | Existing free tiers (Looker Studio etc.) require accounts and send data to third-party clouds. |
+
+This reframes Hyakkei's pitch: not "you can't afford to make one," but **"you can't share what you made without either paying for hosting or sending your data somewhere else."** Hyakkei's browser-complete, static-export model (§2.3) answers the sharing/sovereignty problem directly, which is the problem local-government staff actually have.
 
 ### 2.2 Why existing OSS doesn't close it
 
@@ -52,7 +58,12 @@ Ops person at a small company or NPO. Comfortable with spreadsheets, maybe light
 
 Builds dashboards for governments. Wants guideline compliance out of the box, dashboards as reviewable code (Git), and templates to hand to non-developer clients. Success = ships a compliant dashboard in a day instead of a week, and the client can edit it themselves afterwards.
 
-**Priority: P1 > P3 > P2.** P1 is the differentiated core. P3 is the amplifier (vendors and civic tech spread templates; templates acquire P1 users). P2 comes along for free.
+**P1 is the design target; P3 is the initial distribution channel.** These are different roles, not a ranking of one persona over another:
+
+- **Design target (the experience ceiling)**: every editor decision — no SQL exposure, "pivot" vocabulary for aggregation, the 5-minute test — is built for P1. If Hyakkei only serves P3 well, it has become "yet another dev tool" and lost its differentiation.
+- **Initial distribution (where real demand is observed)**: Market Research (`/plan`, 2026-07) found zero direct P1 demand signal and only P3 (vendor/civic-tech) signal in the wild. P3 is expected to be the actual first adopters — building templates and dashboards-as-code — who then hand finished dashboards to P1 users. Templates (UC3) are exactly this handoff mechanism.
+- **P1 demand is a hypothesis, not a fact, until validated.** A hearing plan (5 municipal-staff interviews, asking directly whether they'd use Hyakkei knowing Power BI Desktop is free) runs alongside M0 — see `docs/research/p1-interview-plan.md`. It carries an explicit **kill criterion**: if most interviewees wouldn't use a free tool and the sharing/data-sovereignty pain doesn't land either, P1-specific editor investment (the "pivot" vocabulary, guided Excel-fixing UX, etc.) is descoped in favor of a P3-first redesign (dashboard.json as code + CLI, ROADMAP v0.4). This gates the M1→M2 commitment, not M0.
+- P2 comes along for free either way — it needs nothing P1 and P3 don't already require.
 
 ### Non-users (v0.x)
 
@@ -64,7 +75,7 @@ Builds dashboards for governments. Wants guideline compliance out of the box, da
 
 1. **Monthly KPI report** — Sato-san drops `applications_2026-06.xlsx`, picks a bar chart + line chart + stat tiles, arranges them on the grid, exports static HTML, puts it on the intranet file share. Next month: drop the new file into the same dashboard definition, re-export.
 2. **Open data publication** — a city publishes population/budget dashboards on its website as static files; the underlying CSV is downloadable from the same page (open data by construction).
-3. **Template distribution** — a prefecture makes a "COVID-style situation dashboard" template; 40 municipalities load the JSON, swap in their own CSV, publish.
+3. **Template distribution** — a prefecture makes a "COVID-style situation dashboard" template (the *authoring* `dashboard.json`, ADR-0005); 40 municipalities load it in the editor, swap in their own CSV, and each exports (bakes) their own static site.
 4. **Dashboard as code** — Dev keeps `dashboard.json` in Git, reviews changes via PR, CI exports and deploys static files to GitHub Pages.
 5. **Live-data team dashboard (v1.0)** — a team connects PostgreSQL/BigQuery/HTTP APIs through a thin server, refreshes on schedule, and puts the whole thing behind their IdP via IAP/oauth2-proxy.
 
@@ -84,14 +95,14 @@ Builds dashboards for governments. Wants guideline compliance out of the box, da
 
 | # | Capability | Notes |
 |---|-----------|-------|
-| F1 | Load data: CSV / Excel (.xlsx) via drag & drop; Google Sheets via *published-CSV URL* paste | All parsed in-browser; DuckDB-WASM as the query engine |
-| F2 | Data preview + light shaping | Column types, filter, aggregate (group by + sum/count/avg) — GUI generating SQL, not a SQL editor |
+| F1 | Load data: CSV / Excel (.xlsx) via drag & drop; Google Sheets via *published-CSV URL* paste | All parsed in-browser (xlsx via ExcelJS, then registered into DuckDB-WASM as the editor's query engine, ADR-0004 Amendment). URL paste is subject to the target's CORS policy — coverage confirmed in M0 (issue: CORS reality check), not assumed |
+| F2 | Data preview + light shaping | Column types, filter, aggregate (group by + sum/count/avg) — GUI generating SQL, not a SQL editor. **Authoring-time only**: once a dashboard is exported, its data is already baked (ADR-0005) — there is no filter UI, live or otherwise, at view time |
 | F3 | Charts: bar, line, area, pie/donut, scatter, table, stat tile (big number) | The guidebook's core set; each maps to a guidebook sample |
 | F4 | Guideline nudges | e.g. pie with >6 categories → suggest bar; guideline-violating color use → warn (§6.3) |
 | F5 | Grid layout editor | Guidebook grid system; drag-resize-reorder; responsive breakpoints from the design tokens |
-| F6 | Theming | Digital Agency design tokens + guidebook 7-color palette as the default (and only, in v0.1) theme; light/dark |
-| F7 | Save/open `dashboard.json` | Download / file-open; the file embeds data-source *references*, optionally inlined data snapshots |
-| F8 | Export static site | Self-contained folder (HTML+JS+assets+data files) that renders the dashboard read-only; "put it anywhere" |
+| F6 | Theming | Digital Agency design tokens (typography/spacing) + a guidebook color theme (default: Blue) as the default (and only, in v0.1) theme; light/dark. Each guidebook theme is a **single-hue color ramp plus a red accent**, not a 7-color categorical palette — the "7-color" framing in earlier drafts was a misreading of the guidebook (ADR-0006); categorical color values are re-derived from the theme JSON, not from `@digital-go-jp/design-tokens` (which carries no chart-color tokens) |
+| F7 | Save/open `dashboard.json` | Download / file-open; the file contains data-source *references* and SQL, resolved by the editor. It never embeds pre-computed data — that's what the separate exported `BakedDashboard` is for (ADR-0005) |
+| F8 | Export | Produces a `BakedDashboard` (ADR-0005) via a shared bake step, then packages it as either a **single self-contained HTML file (default)** — double-click, done — or a **folder** (advanced: separate renderer/data files, for embedding or very large charts). Either way: no DuckDB-WASM, no SQL, no Worker in the output; "put it anywhere," including `file://` |
 | F9 | Japanese + English UI | Japanese first-class, not an afterthought |
 
 **Out (deliberately):** server anything, auth anything, DB/API connectors, scheduled refresh, collaboration/comments, custom themes, plugin system, non-tabular data (geo/maps deferred — see Open Questions), custom SQL editor.
@@ -110,9 +121,11 @@ The guidebook's Do's & Don'ts are encoded as **data**: a rules file (`guideline-
 | `line-too-many-series` | line chart with > 4 series | "Consider small multiples or highlight one series" |
 | `truncated-axis` | bar chart with non-zero y-axis baseline | "Truncated axes exaggerate differences" |
 | `3d-anything` | (not offered at all) | 3D charts simply don't exist in Hyakkei |
-| `palette-order` | manual colors deviating from palette sequence | "Use palette order for categorical data" |
+| `palette-order` | manual colors deviating from palette sequence | "Use palette order for categorical data" *(provisional — see caveat below)* |
 
 Rules are warnings with explanations, never hard blocks (except by omission, like 3D). This file is independently useful and may become its own artifact for the community.
+
+**Caveat on `palette-order`**: this rule assumed the guidebook palette is a multi-hue categorical set. It is actually a single-hue ramp plus a red accent per theme (§6.1 F6, ADR-0006) — a shape better suited to sequential/ordinal data than to arbitrary categorical series. Whether `palette-order` survives, changes, or is replaced is confirmed against the actual guidebook PDF in M0 (time-permitting item, issue #4) before M1 locks the rule set.
 
 ### 6.4 v1.0 — "a team, live data, behind your IdP"
 
@@ -135,7 +148,7 @@ Honest constraint: no telemetry (Principle 4) means no usage analytics. We measu
 | Risk | Sev | Mitigation |
 |------|-----|-----------|
 | **Maintenance load**: a dashboard builder is a large surface for one maintainer | High | Ruthless v0.1 scope; JSON spec as the stable contract; "boring tech"; say no by default |
-| **Sherlocking**: Digital Agency ships its own OSS tool | Med | Their current deliverable is Power BI-based; if it happens, celebrate — pivot Hyakkei to the community/extension layer, or archive with pride (mission accomplished) |
+| **Sherlocking**: Digital Agency ships its own OSS tool | **Med-High** (raised 2026-07-05: the Digital Agency already shipped an OSS municipal app, "Gennai" (源内), in April 2026 — this is a live pattern, not a hypothetical) | If it happens, celebrate — pivot Hyakkei to the community/extension layer, or archive with pride (mission accomplished). No architectural hedge is worth taking against this; see Product principle 5 (small surface, no speculative generality) |
 | **Design-system churn**: tokens/guidebook change | Med | Pin token versions; theming isolated in one layer; treat token upgrades as releases |
 | **Trademark/affiliation confusion** | Med | Name contains no official terms; visible disclaimer in README and app footer; comply immediately if contacted |
 | **DuckDB-WASM constraints** (bundle size ~ tens of MB, memory ceiling, Safari quirks) | Med | Architecture spike is the first v0.1 task (ROADMAP M0); fallback path documented in ADR-0004 |
@@ -151,7 +164,7 @@ Honest constraint: no telemetry (Principle 4) means no usage analytics. We measu
 
 ## 10. Open questions (to resolve in /plan and M0 spike)
 
-1. **Excel parsing library**: SheetJS CE vs ExcelJS vs DuckDB excel extension in WASM — fidelity, bundle size, license check. → M0
+1. **Excel parsing library**: resolved pre-M0 by `/plan` investigation — DuckDB's WASM excel extension cannot read `.xlsx` (confirmed unavailable), and ExcelJS is the default candidate over SheetJS CE (npm-withdrawn, unpatched CVEs — ADR-0004 Amendment). M0 confirms **fidelity** on the messy-Japanese-workbook corpus; the choice itself is not open.
 2. **Chart library final check**: ECharts (assumed; see ADR-0004) vs Vega-Lite — bundle size and a11y of rendered output. → M0
 3. **`dashboard.json` schema versioning policy** — forward-compat strategy from day one. → design in M1, ship with `"version": 1`
 4. **Map charts**: guidebook includes maps; standard Japanese municipal boundary GeoJSON exists (国土数値情報). In v0.x — which milestone?
