@@ -1,7 +1,11 @@
 # ADR-0001: Browser-complete architecture for v0.x
 
-- **Status**: Accepted (2026-07-04)
+- **Status**: Accepted (2026-07-04, amended 2026-07-05)
 - **Deciders**: yotta
+
+## Amendment (2026-07-05)
+
+**ADR-0005 narrows this decision's scope.** "The entire v0.x pipeline... runs in the browser" (below) remains true for the *editor* and for the export step itself. It is no longer true that an *exported/viewed* dashboard runs SQL or DuckDB-WASM — the viewer only ever renders pre-computed data (ADR-0005). Read "the browser" in the Decision below as "the editor's browser session," not "every browser that ever opens a dashboard."
 
 ## Context
 
@@ -9,7 +13,7 @@ Hyakkei targets users (municipal staff, small orgs) who have no servers, no ops 
 
 ## Decision
 
-The entire v0.x pipeline — file parsing, SQL queries, rendering, export — runs in the browser. DuckDB-WASM is the query engine. Deployment of both the app and exported dashboards is static files. No server-side compute exists until v1.0, and even then it is additive, never required.
+The entire v0.x pipeline — file parsing, SQL queries, rendering, export — runs in the browser, **during editing and at export time**. DuckDB-WASM is the query engine for that editing/export session (never for a viewer opening the resulting export — ADR-0005). Deployment of both the app and exported dashboards is static files. No server-side compute exists until v1.0, and even then it is additive, never required.
 
 **One forward-provision is allowed**: the DataSource layer is an interface from day one (File, Url in v0.1) so that v1.0's ProxySource is an addition, not a redesign. No other v1.0 preparation may be built in v0.x.
 

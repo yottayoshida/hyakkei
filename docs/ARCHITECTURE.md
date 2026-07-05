@@ -1,73 +1,104 @@
 # Hyakkei — Architecture
 
-- **Status**: Draft v1 (2026-07-04). Component boundaries here are design intent; M0/M1 implementation may adjust details but not the boundaries themselves without an ADR.
+- **Status**: Draft v1 (2026-07-04, amended 2026-07-05). Component boundaries here are design intent; M0/M1 implementation may adjust details but not the boundaries themselves without an ADR.
 - **Related**: [PRD.md](./PRD.md) · [ROADMAP.md](./ROADMAP.md) · [ADRs](./adr/)
+
+## Amendment (2026-07-05)
+
+`/plan` investigation settled that the viewer (exported/shared sites) never runs DuckDB-WASM or SQL — see **ADR-0005**. §2, §4, §5, and §6 below are rewritten to reflect this; the original "viewer resolves sources live via DuckDB" design is retired, not merely deprecated. If you're looking for the old "snapshot vs URL-ref source embedding" design, it no longer exists — see ADR-0005 for why and what replaced it.
 
 ---
 
 ## 1. Design constraints (from the PRD, in priority order)
 
 1. **Browser-complete**: v0.x must run with zero server-side compute and deploy as static files (ADR-0001).
-2. **One JSON file is the product**: everything renderable must round-trip through `dashboard.json` (ADR-0002).
+2. **One JSON file is the product**: everything renderable must round-trip through `dashboard.json` (ADR-0002). Note: this is the *authoring* document. The exported/viewed artifact is a separate, simpler `BakedDashboard` (ADR-0005) — both are "the product" for their respective audience (editor vs. viewer).
 3. **No accounts, no telemetry**: the app never phones home; auth is the platform's job (ADR-0003).
 4. **Design-system native**: theming and guideline rules are data consumed by the engine, not hardcoded styling.
 5. **One maintainer**: minimize surface; boring, mainstream, well-documented dependencies (ADR-0004).
+6. **The viewer never executes SQL**: query execution is bounded to the editor and the export-time `bake()` step (ADR-0005). No exported or shared dashboard is a live SQL-execution surface.
 
 ## 2. System overview (v0.x)
 
+Two lifecycles share the same Renderer but touch entirely different components. **Editing** (and export) has a query engine; **viewing** never does.
+
 ```
-┌─────────────────────────────── Browser ───────────────────────────────┐
-│                                                                        │
-│  ┌──────────┐   ┌───────────────┐   ┌──────────────┐   ┌───────────┐  │
-│  │  Editor   │──▶│ dashboard.json │◀──│   Renderer   │──▶│  Charts   │  │
-│  │  (React)  │   │  (in-memory    │   │ (layout +    │   │ (ECharts) │  │
-│  └──────────┘   │   document)    │   │  binding)    │   └───────────┘  │
-│        │        └───────────────┘   └──────┬───────┘                  │
-│        │                                    │ SQL                      │
-│        ▼                                    ▼                          │
-│  ┌──────────────────┐            ┌────────────────────┐               │
-│  │ Guideline engine  │            │   Query engine      │               │
-│  │ (rules.json eval) │            │   (DuckDB-WASM)     │               │
-│  └──────────────────┘            └─────────┬──────────┘               │
-│                                             │                          │
-│                              ┌──────────────┴──────────────┐          │
-│                              │     DataSource interface     │          │
-│                              ├──────────────┬──────────────┤          │
-│                              │  FileSource  │  UrlSource   │  (v0.1)  │
-│                              │ (drag&drop)  │ (fetch CSV)  │          │
-│                              └──────────────┴──────────────┘          │
-│                                    [ ProxySource ]  (v1.0, ADR-0001)  │
-└────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────── Editing (browser) ───────────────────────────────┐
+│                                                                                 │
+│  ┌──────────┐   ┌───────────────┐   ┌──────────────┐   ┌───────────┐          │
+│  │  Editor   │──▶│ dashboard.json │◀──│   Renderer   │──▶│  Charts   │  ← preview
+│  │  (React)  │   │  (authoring,   │   │ (layout +    │   │ (ECharts) │          │
+│  └──────────┘   │   ADR-0002)    │   │  binding)    │   └───────────┘          │
+│        │        └───────────────┘   └──────┬───────┘                          │
+│        │                                    │ SQL                              │
+│        ▼                                    ▼                                  │
+│  ┌──────────────────┐            ┌────────────────────┐                       │
+│  │ Guideline engine  │            │   Query engine      │                       │
+│  │ (rules.json eval) │            │   (DuckDB-WASM,     │                       │
+│  └──────────────────┘            │   editor/export only,│                      │
+│                                   │   ADR-0005)          │                      │
+│                                   └─────────┬────────────┘                      │
+│                                             │                                  │
+│                              ┌──────────────┴──────────────┐                  │
+│                              │     DataSource interface     │                  │
+│                              ├──────────────┬──────────────┤                  │
+│                              │  FileSource  │  UrlSource   │  (v0.1)          │
+│                              │ (drag&drop)  │ (fetch CSV)  │                  │
+│                              └──────────────┴──────────────┘                  │
+│                                    [ ProxySource ]  (v1.0, ADR-0001)          │
+│                                             │                                  │
+│                                    ── export ──▶  bake(document, tables)      │
+│                                                       → BakedDashboard (ADR-0005)│
+└─────────────────────────────────────────────────────┬───────────────────────────┘
+                                                        │ ships as static output
+                                                        ▼
+┌────────────────────────────── Viewing (browser, no query engine) ─────────────┐
+│                                                                                 │
+│  ┌───────────────────┐        ┌──────────────┐        ┌───────────┐          │
+│  │  BakedDashboard    │───────▶│   Renderer   │───────▶│  Charts   │          │
+│  │  (rows already     │        │ (same code   │        │ (ECharts) │          │
+│  │   computed)        │        │  as editing) │        └───────────┘          │
+│  └───────────────────┘        └──────────────┘                                │
+│  No DuckDB-WASM. No SQL. No Worker. Single-file: zero network requests.        │
+│  Folder: only its own two same-origin files, never a third-party origin       │
+│  — a BakedDashboard carries no source URLs to fetch (ADR-0005).                │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Five components, five responsibilities:
+Six components, six responsibilities:
 
 | Component | Responsibility | Explicitly NOT its job |
 |-----------|---------------|------------------------|
-| **Editor** | Mutate the dashboard document via UI; file I/O for open/save | Rendering charts (delegates to Renderer for preview) |
-| **Renderer** | dashboard.json + query results → laid-out, themed DOM. Pure function of (document, data, theme) | Fetching data; knowing where data came from |
-| **Query engine** | Execute the SQL stored in the document against registered tables (DuckDB-WASM) | Parsing files (DataSources register tables) |
-| **DataSource layer** | Uniform interface: bytes/rows in, DuckDB table registered. Implementations: File, Url (v0.1), Proxy (v1.0) | Query logic, caching policy beyond its own source |
+| **Editor** | Mutate the authoring dashboard document via UI; file I/O for open/save | Rendering charts (delegates to Renderer for preview) |
+| **Renderer** | (Authoring document \| BakedDashboard) + data → laid-out, themed DOM. Pure function of (document-or-baked, data, theme) | Fetching data; knowing where data came from; running queries |
+| **Query engine** | Execute the SQL stored in the authoring document against registered tables (DuckDB-WASM). **Lives only in the editor and at export time — never in a viewer** (ADR-0005) | Anything at view time |
+| **DataSource layer** | Uniform interface: bytes/rows in, DuckDB table registered. Implementations: File, Url (v0.1), Proxy (v1.0). **Editor/export-time only** | Query logic beyond its own source; anything at view time |
+| **Bake function** | `bake(document, resolvedTables) → BakedDashboard`: runs every query once, at export, producing pre-computed chart rows (ADR-0005) | Editing, interactivity, anything beyond a pure transform |
 | **Guideline engine** | Evaluate `guideline-rules.json` against chart specs; emit nudges with guidebook citations | Blocking the user; styling |
 
-The **Renderer is shared verbatim** between the editor preview, the exported static site, and the future CLI (v0.4). This is the key reuse decision: export and CLI are thin shells around the same rendering core, so preview-vs-published divergence is structurally impossible.
+The **Renderer is shared verbatim** across the editor preview, the exported static site, and the future CLI (v0.4) — it accepts either the authoring document (editor preview) or a `BakedDashboard` (viewer, CLI output) through the same layout/theme code path. This is the key reuse decision: export and CLI are thin shells around the same rendering core, and because `bake()` is the *only* thing standing between them, preview-vs-published divergence is structurally impossible — not because the two paths happen to agree, but because there is only one path after baking.
 
 ## 3. The `dashboard.json` document (schema v1 sketch)
 
-Finalized in M1 with a published JSON Schema. Shape:
+This is the **authoring** format — what the editor reads and writes, and what templates distribute (ADR-0005's "two artifact kinds" table). The exported/viewed artifact is the separate, simpler `BakedDashboard` sketched in ADR-0005 — both are finalized in M1 with published JSON Schemas (issue #6 covers both as co-deliverables, not just this one).
+
+Shape:
 
 ```jsonc
 {
   "version": 1,
   "meta": { "title": "月次KPIダッシュボード", "description": "...", "locale": "ja" },
-  "theme": { "tokens": "@digital-go-jp/design-tokens@x.y.z", "palette": "guidebook-7" },
+  "theme": { "tokens": "@digital-go-jp/design-tokens@x.y.z", "palette": "guidebook-blue" },
   "sources": [
     {
       "id": "apps",
       "kind": "file",                      // "file" | "url" | "proxy" (v1.0)
       "format": "xlsx",
-      "ref": { "name": "applications_2026-06.xlsx", "sheet": "data" },
-      "snapshot": "data/apps.parquet"      // optional embedded copy, set at export
+      "ref": { "name": "applications_2026-06.xlsx", "sheet": "data" }
+      // no "snapshot" field: sources are resolved by the editor and never
+      // travel into an export — bake() produces a separate BakedDashboard
+      // artifact instead (ADR-0005). This authoring file only ever holds
+      // a reference to where the editor should (re-)load the data from.
     }
   ],
   "queries": [
@@ -88,17 +119,17 @@ Finalized in M1 with a published JSON Schema. Shape:
 
 Design notes:
 
-- **Queries are SQL strings** even though v0.1's UI is GUI-only: the GUI *generates* SQL. This keeps the document expressive beyond what the GUI can build, gives P3 developers an escape hatch, and means the renderer needs exactly one execution path.
-- **Sources are references, snapshots are optional**: a dashboard can point at a file by name (re-dropped each session), a URL (fetched live), or carry an embedded snapshot (chosen at export). Privacy implication of each is surfaced in the export UI.
+- **Queries are SQL strings** even though v0.1's UI is GUI-only: the GUI *generates* SQL. This keeps the document expressive beyond what the GUI can build, gives P3 developers an escape hatch, and means the editor's query engine needs exactly one execution path. These SQL strings never travel into a viewer (ADR-0005) — they are consumed only by the editor's DuckDB-WASM instance and by `bake()` at export time.
+- **Sources are references, resolved during editing**: a dashboard can point at a file by name (re-dropped each session) or a URL (fetched by the editor). There is no "embed a live source for the viewer to re-fetch" option — that design was retired by ADR-0005. `bake()` resolves sources once, at export, and the result is what ships; F2-style filtering/shaping is authoring-time only (PRD §6.1) and has no equivalent at view time.
 - **Schema evolution**: additive-only within `version: 1`; unknown fields are preserved on round-trip (forward compatibility for older editors opening newer files).
 
 ## 4. Data flow examples
 
-**Editing (v0.1)**: drop .xlsx → FileSource parses (SheetJS or per-M0 decision) → registers DuckDB table → user builds chart in GUI → GUI emits SQL into `queries[]` → Renderer runs query, draws ECharts with theme → Guideline engine evaluates the chart spec → nudges shown.
+**Editing (v0.1)**: drop .xlsx → ExcelJS parses it into rows (DuckDB-WASM cannot read `.xlsx` directly, ADR-0004 Amendment) → FileSource registers the rows as a DuckDB table → user builds chart in GUI → GUI emits SQL into `queries[]` → Renderer runs the query against the editor's DuckDB-WASM instance, draws ECharts with theme → Guideline engine evaluates the chart spec → nudges shown.
 
-**Export (M3)**: user picks per-source embedding (snapshot vs URL ref) → app writes `dist/`: `index.html`, JS bundle (renderer only, no editor), `dashboard.json`, optional `data/*.parquet` → folder works from `file://`, GitHub Pages, GCS, S3, intranet share. Zero network requests when fully snapshotted.
+**Export (M3)**: `bake(document, resolvedTables)` runs every query once, producing a `BakedDashboard` (ADR-0005) → user picks packaging: **single HTML file (default)** — `BakedDashboard` inlined as an inert JSON data island, renderer bundle inlined and CSP-allow-listed by hash (ADR-0005), one file, double-click, done, **literally zero network requests to open it** — or **folder (advanced)** — `index.html` + `renderer.js` + `dashboard.json` (the baked artifact) as separate files, for embedding or when inlining would be impractically large; opening it makes exactly two same-origin relative-path requests (for `renderer.js` and `dashboard.json`) and never a third-party one, because a `BakedDashboard` carries no source URLs to fetch. Either way, the exported output contains **no DuckDB-WASM, no SQL, no Worker** — just the renderer and already-computed data.
 
-**Viewing an exported site**: static page boots renderer → loads dashboard.json → DataSources resolve (snapshot files or URL fetch) → DuckDB-WASM query → charts. Same pipeline, minus editor.
+**Viewing an exported site**: static page boots the renderer → loads the `BakedDashboard` (inlined `<script>` blob or a fetched JSON/Parquet file, per packaging choice) → renders charts directly from the pre-computed rows. No query engine is ever loaded. This is why `file://` double-click and any static host work unconditionally (ADR-0005) — the COOP/COEP and null-origin-fetch constraints that would otherwise confine DuckDB-WASM (QA V-001/V-002) simply don't apply, because there is no DuckDB-WASM in a viewer to confine.
 
 ## 5. Technology choices (details in ADR-0004)
 
@@ -107,20 +138,25 @@ Design notes:
 | Language | TypeScript | Ecosystem fit with design tokens + one language across app/CLI |
 | UI | React 18 | Digital Agency publishes React example components; largest hiring/contribution pool |
 | Charts | Apache ECharts | Covers all guidebook chart types incl. maps later; canvas perf; strong CJK text handling; Apache-2.0 |
-| Query | DuckDB-WASM | SQL over CSV/XLSX/Parquet fully client-side; the enabling technology for ADR-0001 |
+| Query | DuckDB-WASM 1.32.0 (pinned) | SQL over CSV/Parquet, editor/export-time only (ADR-0005); the enabling technology for ADR-0001. Cannot read `.xlsx` directly (ADR-0004 Amendment) |
+| Excel parsing | ExcelJS | Parses `.xlsx` into rows before DuckDB table registration; MIT, npm-standard, dependabot-covered (ADR-0004 Amendment) |
 | Build | Vite | Boring, fast, default choice |
 | Styling | Digital Agency design tokens + tailwind-theme-plugin (both MIT, official) | The point of the product |
 | State | Zustand or equivalent small store | The document is the state; no heavy state framework |
 | Grid | Evaluate `react-grid-layout` vs thin custom in M2 | Must express the guidebook grid exactly; decide against real requirements |
 
-Known DuckDB-WASM constraints to validate in M0: bundle adds tens of MB (mitigate: lazy-load worker, cache aggressively), memory ceiling for very large files (mitigate: document limits honestly, e.g. "hundreds of MB, not GB"), Safari worker/threads quirks (test matrix from day one).
+Known DuckDB-WASM constraints to validate in M0 (**editor only** — a viewer never loads DuckDB-WASM at all, ADR-0005): bundle adds tens of MB (mitigate: lazy-load worker, cache aggressively), memory ceiling for very large files (mitigate: document limits honestly, e.g. "hundreds of MB, not GB"), and — because `file://`/static hosts can't set COOP/COEP — the editor itself may need to run the single-threaded build unless self-hosted with isolation headers; measure both configurations in M0.
 
 ## 6. Security & privacy model (v0.x)
 
-- **No data egress**: file processing is in-browser; UrlSource fetches only URLs the user typed. No analytics, no error reporting to third parties, no CDN-loaded code in exported output (fully self-contained bundles).
-- **Exported sites**: contain exactly what the user chose to embed — the export dialog states plainly *"this folder contains your data; anyone who can read the files can read the data."* Secrecy of a published dashboard is the host's access control, not ours.
-- **Supply chain**: lockfile committed, dependabot on, dependency budget rule (ROADMAP §maintenance). CI builds exported-site goldens so a compromised dependency changing output is visible.
-- **CSP**: exported sites ship with a restrictive Content-Security-Policy meta tag by default (no remote script/connect except user-declared data URLs).
+The precise, honest claim is not "data never leaves your machine" — it's **"data leaves only to origins you explicitly approved."** That claim is enforced mechanically, not by policy:
+
+- **CSP `connect-src` is the primary containment mechanism**, in both the editor and exported output: in the **editor**, network access is restricted to `'self'` plus origins the user has explicitly approved for a given `UrlSource`. In the **viewer**, `connect-src` is `'self'` only, full stop — a `BakedDashboard` carries no source references or URLs to fetch (ADR-0005), so there is no "origins the data references" case to approve. This is enforced by the browser and cannot be bypassed from SQL — unlike a DuckDB configuration flag, a CSP directive holds even if the query engine itself is compromised.
+- **DuckDB-WASM configuration (`enable_external_access=false`, `autoload_known_extensions=false`, `allow_community_extensions=false`, `lock_configuration=true`) is defense-in-depth, not the primary control.** These flags' effectiveness inside a WASM build specifically is not confirmed by DuckDB's own documentation (only native-build behavior is documented) — M0 must verify empirically that a crafted `SELECT ... FROM 'https://...'` and `INSTALL`/`LOAD` actually fail under the chosen configuration, in the actual WASM build, before relying on them. **The viewer needs none of this — it never loads DuckDB-WASM at all (ADR-0005)**, so this entire control surface is scoped to the editor and to `bake()` at export time.
+- **No data egress by default**: file processing is in-browser; a `UrlSource` fetches only origins the user has approved. No analytics, no error reporting to third parties, no CDN-loaded code anywhere (fully self-contained bundles, editor and viewer alike).
+- **Exported sites**: contain exactly what the user chose to embed — the export dialog states plainly *"this folder contains your data; anyone who can read the files can read the data."* Secrecy of a published dashboard is the host's access control, not ours. Because the viewer never executes SQL (ADR-0005), an exported/shared dashboard carries no query-injection or extension-loading risk regardless of who opens it — the corresponding risk (a malicious *authoring* file's SQL running when opened in the editor) is a separate, editor-side concern, tracked as V-050 in the implementation plan.
+- **Supply chain**: lockfile committed, dependabot on, dependency budget rule (ROADMAP §maintenance). CI builds exported-site goldens so a compromised dependency changing output is visible. ExcelJS (not SheetJS CE — ADR-0004 Amendment) keeps the Excel parser inside this supply-chain net.
+- **CSP**: the **editor** ships with `default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'` plus origins the user has approved this session; `object-src 'none'` — `'wasm-unsafe-eval'` is needed there because the editor loads DuckDB-WASM. The **exported viewer never loads DuckDB-WASM** (ADR-0005), so it does not need `'wasm-unsafe-eval'` at all: single-file exports ship `default-src 'none'; script-src 'self' 'sha256-<renderer-bundle-hash>'; connect-src 'self'; object-src 'none'` (the baked data is an inert `type="application/json"` data island, unaffected by `script-src`; the inlined renderer bundle is allow-listed by its per-release hash, not `'unsafe-inline'`); folder exports can use plain `script-src 'self'` since `renderer.js` loads via `<script src>`. See ADR-0005 for the full mechanism and its build-time obligations (determinism, exact-bytes hashing).
 
 ## 7. v1.0 server extension (design intent — build only when ROADMAP entry criteria pass)
 
@@ -153,7 +189,8 @@ One container, three jobs, still no identity:
 | Renderer | Golden-image tests on the 3+ sample dashboards, both themes, ja/en |
 | Guideline engine | Table-driven: every rule has trigger + non-trigger fixtures; gallery templates must pass all rules in CI |
 | Query/data layer | Fixture files (messy real-world CSV/XLSX corpus from M0) → expected tables |
-| Export | Build export in CI, serve statically, Playwright asserts identical render vs editor preview and zero unexpected network requests |
+| Bake function | Round-trip/property tests: `bake()` output matches editor-preview query results exactly, for both packaging modes |
+| Export | Build export in CI, serve statically (and open via `file://`), Playwright asserts identical render vs editor preview; single-file mode asserts literally zero network requests, folder mode asserts only its two same-origin requests |
 | The 5-minute test | Manual, scripted protocol, every release (ROADMAP M2/M4 acceptance) |
 
 ## 9. Repository layout (target, v0.1)
@@ -162,10 +199,10 @@ One container, three jobs, still no identity:
 hyakkei/
 ├── docs/                  # you are here (PRD, ROADMAP, this file, adr/)
 ├── packages/
-│   ├── schema/            # dashboard.json JSON Schema + TS types (zero-dep)
-│   ├── core/              # renderer, query engine glue, DataSource layer, guideline engine
+│   ├── schema/            # dashboard.json + BakedDashboard JSON Schemas, TS types (zero-dep)
+│   ├── core/              # renderer, query engine glue, DataSource layer, guideline engine, bake()
 │   ├── app/               # editor (React) — imports core
-│   └── export/            # static-site export (M3); later reused by CLI (v0.4)
+│   └── export/            # single-file/folder packaging (M3); later reused by CLI (v0.4)
 ├── templates/             # gallery dashboard.json files (v0.2, seeded in M4)
 ├── rules/                 # guideline-rules.json + guidebook citations
 └── e2e/                   # Playwright

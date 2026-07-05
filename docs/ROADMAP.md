@@ -1,7 +1,11 @@
 # Hyakkei — Roadmap
 
-- **Status**: Draft v1 (2026-07-04)
+- **Status**: Draft v1 (2026-07-04, amended 2026-07-05)
 - **Rule**: every version is defined by a **user outcome**, not a feature list. A feature ships in a version only if it serves that version's outcome. This is the scope-creep firewall.
+
+## Amendment (2026-07-05)
+
+Following ADR-0005 (pre-computed export), the M0 checklist below is restructured into **must-complete** (go/no-go for the architecture) vs. **time-permitting** (can slip into M1's first days) items — the original flat list under-scoped a 1-week timebox once SQL-containment and export-artifact verification were added. M1 gains the `BakedDashboard` schema as a co-deliverable alongside the authoring schema. M3's "snapshot vs URL ref" framing is retired — see ADR-0005 for why and its replacement (single-file vs folder packaging).
 
 ---
 
@@ -32,22 +36,33 @@ Each milestone has an acceptance check. Do not start milestone N+1 with mileston
 
 #### M0 — Feasibility spike (timeboxed: 1 week)
 
-De-risk the two biggest unknowns before committing to the architecture.
+De-risk the biggest unknowns before committing to the architecture. **Must-complete** items gate the M0 go/no-go decision; **time-permitting** items may slip into M1's first days without blocking the gate.
 
-- [ ] DuckDB-WASM: load a 100 MB CSV and a 50k-row .xlsx in Chrome/Firefox/Safari; measure load time, memory, bundle size impact
-- [ ] Excel parsing: pick the library (SheetJS CE / ExcelJS / other) via a fidelity test on 10 realistic messy Japanese workbooks (merged headers, 和暦, full-width digits)
-- [ ] Chart library: render the guidebook's sample charts pixel-faithfully in ECharts; if blocked, evaluate Vega-Lite; record decision in ADR-0004 (amend if needed)
-- [ ] **Acceptance**: a throwaway page that loads an .xlsx, runs `SELECT category, SUM(v) GROUP BY 1` in DuckDB-WASM, and renders a guideline-styled bar chart — in all three browsers
+**Must-complete:**
+
+- [ ] DuckDB-WASM (**single-threaded build** — `file://`/static hosts can't set COOP/COEP, so this is the build that actually ships in the editor unless self-hosted with isolation headers): load a 100 MB CSV in Chrome/Firefox/Safari; measure load time, memory, bundle size impact; confirm OOM produces a user-facing error, not a silent crash
+- [ ] Excel parsing: fidelity test for **ExcelJS** (default candidate, ADR-0004 Amendment) on 10 realistic messy Japanese workbooks (merged headers, 和暦, full-width digits, Shift_JIS/BOM CSVs); fall back to SheetJS CE only with a vendoring plan if ExcelJS fails
+- [ ] **SQL/network containment proof**: with the chosen CSP (`connect-src`) and DuckDB configuration flags in place, confirm a crafted `SELECT ... FROM 'https://...'` and `INSTALL`/`LOAD` actually fail in the WASM build, and produce zero network requests — do not trust documented flag behavior without an empirical check (Security SR-1)
+- [ ] **Export artifact verification**: build a throwaway single-file HTML export (baked data inlined, no DuckDB) and confirm it opens via `file://` double-click and from an SMB/shared-folder path, in Chrome, Firefox, and Safari
+- [ ] **Acceptance (must-complete gate)**: the four items above pass. Recorded as a go/no-go decision in `docs/spikes/m0-summary.md`, which also re-baselines the implementation plan.
+
+**Time-permitting** (may continue into M1 without blocking the gate):
+
+- [ ] Chart library: render the guidebook's sample charts pixel-faithfully in ECharts, including a contrast check on the red accent color; confirm the actual palette semantics (single-hue ramp + red per theme, not multi-hue categorical — PRD F6) against the guidebook PDF before M1 locks the `palette-order` nudge rule; if ECharts is blocked, evaluate Vega-Lite and amend ADR-0004
+- [ ] CORS reality check: attempt a browser `fetch` against real Google published-CSV URLs and a few Japanese open-data CSV endpoints; if most fail, downgrade `UrlSource`'s F1 framing to "CORS-permitting" rather than a reliable path
+- [ ] Test infrastructure decision: DuckDB-WASM does not run under jsdom — decide how the query layer is tested (Playwright / Vitest browser mode) before M1's test suite is built
 
 #### M1 — Dashboard spec + rendering core
 
-The contract everything else builds on.
+The contract everything else builds on — **two schemas now, not one** (ADR-0005): the authoring `dashboard.json` and the exported `BakedDashboard`. Both are first-class, both pinned with published JSON Schemas and round-trip tests; neither is an implementation detail decided later.
 
-- [ ] `dashboard.json` schema v1: metadata, data-source refs, queries, chart specs, grid layout (JSON Schema published in-repo)
-- [ ] Data-access abstraction: one interface, two implementations (local file, fetched URL). **This is the only v1.0 forward-provision allowed in v0.1** — see ADR-0001
-- [ ] Renderer: `dashboard.json` + data → laid-out themed dashboard (read-only, no editor yet)
-- [ ] Theme layer consuming Digital Agency design tokens + guidebook palette
-- [ ] **Acceptance**: a hand-written dashboard.json renders correctly; schema validates in CI; goldens for 3 sample dashboards
+- [ ] `dashboard.json` schema v1 (authoring): metadata, data-source refs, queries, chart specs, grid layout (JSON Schema published in-repo)
+- [ ] `BakedDashboard` schema v1 (export/view): metadata incl. `sourceDataAsOf`, theme, charts with pre-computed rows, grid layout — no sources, no queries (ADR-0005)
+- [ ] `bake(document, resolvedTables) → BakedDashboard`: the pure function that produces the latter from the former; lives in `packages/core`
+- [ ] Data-access abstraction: one interface, two implementations (local file, fetched URL), **editor/export-time only — never present in a viewer**. This is the only v1.0 forward-provision allowed in v0.1 — see ADR-0001
+- [ ] Renderer: accepts either the authoring document (editor preview, with live query results) or a `BakedDashboard` (viewer, CLI output) → laid-out themed dashboard through the same layout/theme code path
+- [ ] Theme layer consuming Digital Agency design tokens + a guidebook color theme (re-derived values, not the source theme JSON verbatim — ADR-0006)
+- [ ] **Acceptance**: a hand-written `dashboard.json` renders correctly in the editor preview; `bake()` on that same document produces a `BakedDashboard` that the Renderer renders identically; both schemas validate in CI; goldens for 3 sample dashboards. This is also where the M0-throwaway component pipeline (issue #5) gets its full, production-quality re-confirmation (issue #10) — the M0 demo was deliberately partial.
 
 #### M2 — Editor
 
@@ -60,10 +75,10 @@ The contract everything else builds on.
 
 #### M3 — Export + publish path
 
-- [ ] Static-site export: self-contained folder, works from `file://` and any static host (F8)
-- [ ] Data embedding options: snapshot-inline vs reference-by-URL, chosen per source at export time
-- [ ] "How to publish" docs: GitHub Pages, GCS, S3, plain file server — copy-paste level
-- [ ] **Acceptance**: exported site renders identically to the editor preview on GitHub Pages and from a local folder, with zero network requests when data is inlined
+- [ ] Bake-then-package pipeline: `bake()` (M1) → package as **single self-contained HTML file (default)** or **folder (advanced)** (F8, ADR-0005). No per-source snapshot/URL-ref choice — that axis no longer exists once sources stop traveling into the viewer
+- [ ] Size-triggered fallback: if a `BakedDashboard` (e.g. a large `table`/`scatter` chart) would make a single-file export impractically large, fall back to folder packaging automatically or prompt the user (tracked as a risk in the implementation plan)
+- [ ] "How to publish" docs: GitHub Pages, GCS, S3, plain file server, and "just double-click it" — copy-paste level
+- [ ] **Acceptance**: exported output (either packaging mode) renders identically to the editor preview; single-file export opens via `file://` double-click in Chrome/Firefox/Safari making **literally zero network requests**; folder export makes only its two same-origin relative-path requests (`renderer.js`, `dashboard.json`), never a third-party one
 
 #### M4 — Polish + release
 
