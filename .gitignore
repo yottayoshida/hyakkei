@@ -4,6 +4,17 @@ node_modules/
 # Build output
 dist/
 build/
+*.tsbuildinfo
+
+# Test artifacts
+test-results/
+playwright-report/
+coverage/
+
+# M0 spike scratch code (throwaway, not product code — ROADMAP M0).
+# Written reports (docs/spikes/*.md) are NOT covered by this and stay tracked.
+spikes/*
+!spikes/README.md
 
 # Environment / secrets
 .env

@@ -1,0 +1,9 @@
+dist/
+node_modules/
+spikes/
+pnpm-lock.yaml
+
+# Hand-formatted long-form prose (git.md: no hard-wrap paragraphs). Reformatting
+# these is out of scope for this change; revisit deliberately, not incidentally.
+docs/
+
