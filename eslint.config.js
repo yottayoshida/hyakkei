@@ -21,6 +21,11 @@ export default [
       // undefined globals with full type information; no-undef is redundant
       // and produces false positives on DOM globals in .tsx files.
       "no-undef": "off",
+      // Same rationale: the base rule doesn't understand TS declaration
+      // merging and false-positives on the `export const Foo = ...; export
+      // type Foo = Static<typeof Foo>` pattern (TypeBox et al.) — a real
+      // duplicate identifier is already a tsc build error.
+      "no-redeclare": "off",
     },
   },
   {
