@@ -6,6 +6,7 @@ import {
   Layout,
   NonEmptyString,
   SafeObject,
+  SqlIdentifier,
   Theme,
   Version,
 } from "./common.js";
@@ -35,7 +36,7 @@ function fileSource<Format extends string, Ref extends TProperties>(
   refProperties: Ref,
 ) {
   return SafeObject({
-    id: NonEmptyString,
+    id: SqlIdentifier,
     kind: Type.Literal("file"),
     format: Type.Literal(format),
     ref: SafeObject(refProperties),
@@ -53,13 +54,26 @@ const FileSourceCsv = fileSource("csv", {
 const FileSourceParquet = fileSource("parquet", { name: NonEmptyString });
 
 const UrlSource = SafeObject({
-  id: NonEmptyString,
+  id: SqlIdentifier,
   kind: Type.Literal("url"),
   format: Type.Union([Type.Literal("csv"), Type.Literal("parquet")]),
   ref: SafeObject({
     // Scheme allowlist (shape enumeration AA-11): a bare `format: "uri"` check
     // alone accepts `file://` and other non-http(s) schemes, which is an SSRF
     // adjacent local-read vector once resolved by the editor's fetch layer.
+    //
+    // Deliberately case-sensitive-lowercase-only (`^https://`, not
+    // `^[Hh][Tt]...`): this is the *authoring* shape, and a hand-written
+    // `HTTPS://` is worth bouncing back to the author to fix, not silently
+    // accepting. `EgressPolicy` (packages/core/src/datasource/egress-
+    // policy.ts) — the network chokepoint that actually resolves this URL —
+    // is deliberately more lenient (parses with `new URL()`, so a
+    // mixed-case scheme normalizes and is not rejected on that basis alone):
+    // it must not trust that this schema already ran, so it re-derives
+    // safety from the parsed URL rather than from this pattern having
+    // matched. The two layers disagreeing on `HTTPS://` is intentional, not
+    // a bug — reject early and precisely at authoring time; re-verify from
+    // first principles at the network chokepoint (Codex review, PR-A1).
     url: Type.String({ format: "uri", pattern: "^https://" }),
   }),
 });
@@ -69,7 +83,15 @@ export type Source = Static<typeof Source>;
 
 export const Query = SafeObject({
   id: NonEmptyString,
-  source: NonEmptyString,
+  // `source` is a `Source.id` FK an author's own SQL text also references
+  // verbatim (e.g. `FROM apps`) — same SQL-identifier constraint as
+  // `Source.id` itself (common.ts's `SqlIdentifier` doc comment). `Query.id`
+  // is left unrestricted: unlike `source`, it is never embedded in generated
+  // or user-authored SQL text, only used as an opaque cross-reference key
+  // (`Chart.query`), so restricting it would add authoring friction (e.g.
+  // rejecting a Japanese or reserved-word-shaped query id) without a
+  // corresponding injection surface to close.
+  source: SqlIdentifier,
   // Intentionally opaque: schema does not parse or validate SQL semantics.
   // A malicious query (e.g. reaching for httpfs) is a real risk but is
   // contained at the network layer (CSP connect-src, verified in

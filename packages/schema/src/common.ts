@@ -78,6 +78,32 @@ export function ForbidFields(...fields: string[]) {
 export const NonEmptyString = Type.String({ minLength: 1 });
 
 /**
+ * Restricts `Source.id`/`Query.source` (dashboard.ts) to strings that are
+ * always safe to embed as an unquoted DuckDB identifier: ASCII
+ * letter-or-underscore start, then letters/digits/underscores, bounded
+ * length. These two fields are the one place a schema string becomes a table
+ * name an *author's own SQL text* references verbatim (e.g. `FROM apps`), so
+ * unlike the rest of this schema's free-string fields, injection syntax
+ * (spaces, quotes, semicolons, pipes — none are in the character class) must
+ * be structurally unrepresentable rather than merely discouraged. This does
+ * NOT apply to CSV/xlsx column names or cell values (data, not author-typed
+ * identifiers) — those stay unrestricted and are quoted downstream by DuckDB.
+ *
+ * What this pattern alone cannot catch: SQL reserved words (`select`,
+ * `from`, ...) — every letter of a keyword is itself a valid identifier
+ * character, so no character-class regex can exclude keyword membership.
+ * That check lives in validate.ts (`checkReservedWord`), scoped to
+ * `Source.id` only, not `Query.source` — see that file for why (in short:
+ * `Query.source` never introduces a *new* reserved-word risk beyond what
+ * checking `Source.id` at declaration time already covers) and for why
+ * quoting generated SQL, not this list, is the primary defense.
+ */
+export const SqlIdentifier = Type.String({
+  pattern: "^[A-Za-z_][A-Za-z0-9_]*$",
+  maxLength: 64,
+});
+
+/**
  * Additive-only within version 1: unknown fields must survive round-trips, so
  * nothing in this module sets `additionalProperties: false` (`ChartOptions`
  * below is the one deliberate exception — see its own comment). A future
