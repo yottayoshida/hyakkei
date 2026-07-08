@@ -126,6 +126,31 @@ describe("dashboard.json — valid shapes", () => {
     expect(result.ok).toBe(true);
     if (result.ok) expect(validateDashboardReferences(result.value)).toEqual([]);
   });
+
+  it.each([
+    ["SI-1 lowercase ascii", "apps"],
+    ["SI-2 snake_case with digits", "budget_2026"],
+    ["SI-3 leading underscore", "_tmp"],
+    ["SI-4 mixed case", "BySales"],
+    ["SI-5 single char", "x"],
+    ["SI-B2 at max length (64 chars)", "a".repeat(64)],
+  ])("%s is accepted as a Source.id / Query.source", (_label, id) => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], id }],
+      queries: [{ ...minimal.queries[0], source: id }],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+
+  it("SI-A5: '__proto__' is accepted as a Source.id *value* (SQL-safe; AA-12 guards property names, not values)", () => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], id: "__proto__" }],
+      queries: [{ ...minimal.queries[0], source: "__proto__" }],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
 });
 
 describe("dashboard.json — adversarial shapes rejected", () => {
@@ -346,6 +371,109 @@ describe("dashboard.json — adversarial shapes rejected", () => {
     if (result.ok) {
       const issues = validateDashboardReferences(result.value);
       expect(issues.some((i) => i.kind === "out-of-bounds")).toBe(true);
+    }
+  });
+
+  // Shared across every SqlIdentifier-typed field (Source.id on both the
+  // file and url variants, Query.source) so a wiring regression on any one
+  // of them — e.g. UrlSource.id silently reverting to NonEmptyString — is
+  // caught the same way as on the others (Phase 6-B test-adversarial-review
+  // finding: the file-source id and Query.source had asymmetric coverage).
+  const INVALID_SQL_IDENTIFIER_SHAPES: Array<[string, string]> = [
+    ["SI-B1 empty string", ""],
+    ["SI-B3 leading digit", "1st_source"],
+    ["SI-B5 Japanese id", "売上"],
+    ["SI-B6 leading whitespace", " apps"],
+    ["SI-B6 trailing whitespace", "apps "],
+    ["SI-A1 classic SQL injection", "t; DROP TABLE x--"],
+    ["SI-A2 quote-break attempt", 'a" ; DROP --'],
+    ["SI-A7 embedded newline", "apps\nDROP"],
+    ["SI-B2 over max length (65 chars)", "a".repeat(65)],
+  ];
+
+  // Looked up by kind/id, not by array position (/code-review Phase 9): a
+  // positional index into `full` (defined ~350 lines above) has no runtime
+  // link to "the url-kind source" — a future edit reordering or inserting
+  // into `full.sources` would silently retarget this test at the wrong
+  // source variant while it kept passing (the invalid shapes below are
+  // rejected regardless of which source they land on), quietly losing
+  // UrlSource.id's independent coverage.
+  const fileSource = full.sources.find((s) => s.kind === "file")!;
+  const urlSource = full.sources.find((s) => s.kind === "url")!;
+  const firstQuery = full.queries.find((q) => q.id === "q_cat")!;
+
+  // One loop generating three independently-named it.each blocks, not one
+  // block covering all three fields at once: each field still fails on its
+  // own if it regresses (the original bug this array closed — see the
+  // comment above it), the loop only removes the copy-pasted assertion body
+  // (/simplify simplification pass).
+  const SQL_IDENTIFIER_TARGETS: Array<[string, (id: string) => unknown]> = [
+    ["file Source.id", (id) => ({ ...full, sources: [{ ...fileSource, id }] })],
+    [
+      "url Source.id (checked independently of the file variant)",
+      (id) => ({ ...full, sources: [{ ...urlSource, id }] }),
+    ],
+    [
+      "Query.source (same type as Source.id, checked independently)",
+      (source) => ({ ...full, queries: [{ ...firstQuery, source }] }),
+    ],
+  ];
+  for (const [target, buildDoc] of SQL_IDENTIFIER_TARGETS) {
+    it.each(INVALID_SQL_IDENTIFIER_SHAPES)(`%s is rejected as a ${target}`, (_label, value) => {
+      expect(parseDashboard(buildDoc(value)).ok).toBe(false);
+    });
+  }
+
+  it.each([
+    ["SI-A3 reserved word (lowercase)", "select"],
+    ["SI-A3 reserved word (from)", "from"],
+    ["SI-A4 reserved word (mixed case)", "Select"],
+    ["SI-A4 reserved word (uppercase)", "FROM"],
+  ])(
+    "%s passes SqlIdentifier's pattern but is flagged by validateDashboardReferences (reserved-word)",
+    (_label, id) => {
+      const doc = { ...minimal, sources: [{ ...minimal.sources[0], id }] };
+      const result = parseDashboard(doc);
+      expect(result.ok).toBe(true); // pattern alone can't see keyword membership
+      if (result.ok) {
+        const issues = validateDashboardReferences(result.value);
+        expect(issues.some((i) => i.kind === "reserved-word")).toBe(true);
+      }
+    },
+  );
+
+  it("SI-B4: source ids differing only by case are flagged as a duplicate (DuckDB identifiers are case-insensitive)", () => {
+    const doc = {
+      ...full,
+      sources: [
+        { ...full.sources[0], id: "Apps" },
+        { ...full.sources[0], id: "apps" },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateDashboardReferences(result.value);
+      expect(issues.some((i) => i.kind === "duplicate")).toBe(true);
+    }
+  });
+
+  // /simplify (altitude pass) caught this: fixing SI-B4's duplicate
+  // detection alone left the *dangling-reference* check doing an
+  // exact-case lookup — a single-source doc with `Source.id: "Apps"` and
+  // `Query.source: "apps"` (a valid reference; DuckDB resolves both to the
+  // same table) was wrongly flagged as dangling.
+  it("SI-B4 (FK side): a Query.source differing only by case from its declared Source.id is NOT flagged as dangling", () => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], id: "Apps" }],
+      queries: [{ ...minimal.queries[0], source: "apps" }],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateDashboardReferences(result.value);
+      expect(issues.some((i) => i.kind === "dangling")).toBe(false);
     }
   });
 });

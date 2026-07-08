@@ -59,24 +59,174 @@ export function parseBakedDashboard(doc: unknown): ParseResult<BakedDashboardT> 
 }
 
 export type ReferenceIssue = {
-  kind: "dangling" | "duplicate" | "overlap" | "out-of-bounds";
+  kind: "dangling" | "duplicate" | "overlap" | "out-of-bounds" | "reserved-word";
   message: string;
 };
 
-/** Records each item's id into `ids`, pushing a "duplicate" issue for repeats. */
+/**
+ * DuckDB reserved keywords — snapshotted from `duckdb/src/parser/peg/
+ * keyword_map.cpp`'s `reserved_keyword_map` (main branch, checked
+ * 2026-07-08). DuckDB's core engine version is independent of the
+ * `@duckdb/duckdb-wasm` npm package version this project pins (1.32.0 is the
+ * npm package's own version number, not a core-engine release) — re-sync
+ * this list against a DuckDB *engine* upgrade, not an `@duckdb/duckdb-wasm`
+ * bump. `SqlIdentifier`'s pattern (common.ts) cannot express keyword
+ * membership — every letter of a keyword is itself a valid identifier
+ * character — so this list exists purely to give an author a clear rejection
+ * reason at authoring time. It is defense-in-depth, not the primary defense:
+ * generated SQL always double-quotes identifiers (`CREATE TABLE "<id>"`),
+ * which makes a reserved word syntactically safe regardless of this list —
+ * DuckDB's own `KeywordHelper::RequiresQuotes` follows the same
+ * quote-when-needed principle rather than reject-when-keyword.
+ */
+const DUCKDB_RESERVED_WORDS = new Set([
+  "all",
+  "analyse",
+  "analyze",
+  "and",
+  "any",
+  "array",
+  "as",
+  "asc",
+  "asymmetric",
+  "both",
+  "case",
+  "cast",
+  "check",
+  "collate",
+  "column",
+  "constraint",
+  "create",
+  "default",
+  "deferrable",
+  "desc",
+  "describe",
+  "distinct",
+  "do",
+  "else",
+  "end",
+  "except",
+  "false",
+  "fetch",
+  "for",
+  "foreign",
+  "from",
+  "group",
+  "having",
+  "in",
+  "initially",
+  "intersect",
+  "into",
+  "lambda",
+  "lateral",
+  "leading",
+  "limit",
+  "not",
+  "null",
+  "offset",
+  "on",
+  "only",
+  "or",
+  "order",
+  "pivot",
+  "pivot_longer",
+  "pivot_wider",
+  "placing",
+  "primary",
+  "qualify",
+  "references",
+  "returning",
+  "select",
+  "show",
+  "some",
+  "summarize",
+  "symmetric",
+  "table",
+  "then",
+  "to",
+  "trailing",
+  "true",
+  "union",
+  "unique",
+  "unpivot",
+  "using",
+  "variadic",
+  "when",
+  "where",
+  "window",
+  "with",
+]);
+
+/**
+ * Only applied to `Source.id` — not `Query.id`/`Chart.id` (never become a
+ * table name) and not `Query.source` either, despite `Query.source` sharing
+ * `Source.id`'s `SqlIdentifier` type: `Query.source` introduces no reserved-
+ * word risk `Source.id` doesn't already cover. If a `Query.source` value
+ * matches a declared `Source.id`, that source was already checked when it
+ * was declared. If it doesn't match any declared source, that's a dangling
+ * reference (a different, already-reported issue) — a reserved-word FK
+ * value that resolves to nothing is not, on its own, a new SQL-identifier
+ * hazard. Case-insensitive because DuckDB identifier lookups are always
+ * case-insensitive, quoted or not (confirmed against DuckDB's own docs —
+ * "DuckDB also treats quoted identifiers as case-insensitive"), so
+ * `select`/`Select`/`SELECT` are equally unsafe as an unquoted identifier.
+ */
+function checkReservedWord(id: string, label: string, issues: ReferenceIssue[]): void {
+  if (DUCKDB_RESERVED_WORDS.has(id.toLowerCase())) {
+    issues.push({
+      kind: "reserved-word",
+      message: `${label} id '${id}' is a SQL reserved word; choose a different id`,
+    });
+  }
+}
+
+/** What every `collectIds` caller actually needs — "does this id refer to something declared?" — without exposing how (or whether) the lookup key was folded. */
+type IdLookup = { has(id: string): boolean };
+
+/**
+ * Records each item's id, pushing a "duplicate" issue for repeats (naming
+ * *which* earlier id it collides with — see below). `caseInsensitive` folds
+ * the comparison key to lowercase — for `Source.id`, where DuckDB's
+ * case-insensitive identifier lookup means `Apps` and `apps` would silently
+ * clobber the same table despite passing an exact-match check (shape
+ * enumeration SI-B4). `Query`/`Chart` ids have no such consequence and keep
+ * exact-match-only comparison.
+ *
+ * Returns an `IdLookup`, not a raw `Set`, so folding is applied *inside*
+ * `.has()` and every caller passes the id as-authored — no caller can get
+ * the fold wrong or forget it. An earlier version returned the folded `Set`
+ * directly: it fixed SI-B4's duplicate-detection case but left every
+ * *caller* responsible for re-deriving the same fold before its own
+ * `.has()` call, so `Source.id: "Apps"` / `Query.source: "apps"` (a valid
+ * reference; DuckDB resolves both to the same table) was flagged as a
+ * false-positive dangling reference until the one caller that existed at
+ * the time was patched by hand — a fix that only holds until the next new
+ * caller forgets it too. Folding once, behind the returned lookup's own
+ * `.has()`, removes the caller's chance to get it wrong at all.
+ */
 function collectIds<T>(
   items: T[],
   getId: (item: T) => string,
   label: string,
   issues: ReferenceIssue[],
-): Set<string> {
-  const ids = new Set<string>();
+  options?: { caseInsensitive?: boolean },
+): IdLookup {
+  const fold = options?.caseInsensitive ? (id: string) => id.toLowerCase() : (id: string) => id;
+  const declared = new Map<string, string>(); // folded key -> first-declared original id
   for (const item of items) {
     const id = getId(item);
-    if (ids.has(id)) issues.push({ kind: "duplicate", message: `duplicate ${label} id '${id}'` });
-    ids.add(id);
+    const key = fold(id);
+    const original = declared.get(key);
+    if (original !== undefined) {
+      issues.push({
+        kind: "duplicate",
+        message: `duplicate ${label} id '${id}' (already declared as '${original}')`,
+      });
+    } else {
+      declared.set(key, id);
+    }
   }
-  return ids;
+  return { has: (id: string) => declared.has(fold(id)) };
 }
 
 /**
@@ -88,7 +238,10 @@ function collectIds<T>(
  */
 export function validateDashboardReferences(doc: DashboardT): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
-  const sourceIds = collectIds(doc.sources, (s) => s.id, "source", issues);
+  const sourceIds = collectIds(doc.sources, (s) => s.id, "source", issues, {
+    caseInsensitive: true,
+  });
+  for (const s of doc.sources) checkReservedWord(s.id, "source", issues);
 
   const queryIds = collectIds(doc.queries, (q) => q.id, "query", issues);
   for (const q of doc.queries) {
@@ -131,7 +284,7 @@ export function validateBakedDashboardReferences(doc: BakedDashboardT): Referenc
 function validateLayoutReferences(
   grid: Grid,
   items: LayoutItem[],
-  chartIds: Set<string>,
+  chartIds: IdLookup,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const gridWidth = GRID_WIDTHS[grid];
