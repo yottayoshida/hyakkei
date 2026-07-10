@@ -137,7 +137,7 @@ Design notes:
 |-------|--------|--------------|
 | Language | TypeScript | Ecosystem fit with design tokens + one language across app/CLI |
 | UI | React 18 | Digital Agency publishes React example components; largest hiring/contribution pool |
-| Charts | Apache ECharts | Covers all guidebook chart types incl. maps later; canvas perf; strong CJK text handling; Apache-2.0 |
+| Charts | Apache ECharts 6.1.0, **SVG renderer** | Covers all guidebook chart types incl. maps later; SVG chosen over canvas for golden-test determinism and a screen-reader-readable DOM (M0 spike, ADR-0004 amended 2026-07-10); strong CJK text handling (with an explicit `axisLabel.interval` override — see spike); Apache-2.0 |
 | Query | DuckDB-WASM 1.32.0 (pinned) | SQL over CSV/Parquet, editor/export-time only (ADR-0005); the enabling technology for ADR-0001. Cannot read `.xlsx` directly (ADR-0004 Amendment) |
 | Excel parsing | ExcelJS | Parses `.xlsx` into rows before DuckDB table registration; MIT, npm-standard, dependabot-covered (ADR-0004 Amendment) |
 | Build | Vite | Boring, fast, default choice |

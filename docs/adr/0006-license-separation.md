@@ -1,7 +1,22 @@
 # ADR-0006: Separate license tracks for code (MIT) and Digital Agency design reference assets (PDL 1.0)
 
-- **Status**: Accepted (2026-07-05)
+- **Status**: Accepted (2026-07-05, amended 2026-07-10)
 - **Deciders**: yotta
+
+## Amendment (2026-07-10)
+
+The M0 chart-fidelity spike (issue #4; `docs/spikes/m0-charts.md`) re-derived the palette's
+actual hex values directly from the Digital Agency's **public color-palette web pages**
+(`digital.go.jp/resources/dashboard-guidebook/color-palette` and its `/color-code` subpage),
+not from the `policy-dashboard-assets` repo referenced below — this ADR's PDL 1.0 licensing
+conclusion is unaffected either way (same Digital Agency-published design facts, same
+license), but the **shape** of what's re-derived was wrong in the Context section below: it is
+not simply "categorical color values." Each of the guidebook's 7 key-color templates (Solid
+Gray/Blue/Light Blue/Cyan/Green/Orange/Red) is a 6-step monochromatic chart ramp plus a shared
+Yellow accent ramp and Semantic Success/Error colors — see the spike report and PRD F6
+(corrected 2026-07-10) for the full structure. "8 hex values per theme" in the Alternatives
+section below is likewise superseded — it's closer to 9–11 values per key (6 ramp steps +
+shared accent + 1–2 semantic), across all 7 keys plus the shared Yellow ramp.
 
 ## Context
 
