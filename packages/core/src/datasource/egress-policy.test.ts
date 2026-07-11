@@ -181,7 +181,16 @@ describe("createEgressPolicy — network outcome mapping", () => {
     await policy.fetchBytes("https://gov.example.jp/x.csv");
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ redirect: "error" }),
+      // All three init keys are security-load-bearing (egress-policy.ts's own
+      // comments): `redirect` fails closed on 3xx, `mode` makes the browser
+      // re-enforce same-origin independently of the JS check, `credentials`
+      // keeps cookies off data fetches. Pinning only one of them would let a
+      // refactor silently drop the other two (issue #72).
+      expect.objectContaining({
+        redirect: "error",
+        mode: "same-origin",
+        credentials: "omit",
+      }),
     );
   });
 
@@ -277,5 +286,106 @@ describe("createEgressPolicy — network outcome mapping", () => {
     await expect(result).rejects.toMatchObject({ kind: "network-blocked" });
     await expect(result).rejects.toThrow(/not served over https/);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  // Issue #62: `selfOrigin: ""` is the documented deny-all configuration, not
+  // an http-served editor — the TLS hint used to fire for it anyway (the old
+  // condition was `!startsWith("https://")`, which "" also fails), blaming
+  // the editor's TLS setup for a block that is deny-all by configuration.
+  it("does not emit the https hint for the deny-all (empty selfOrigin) configuration", async () => {
+    const fetchSpy = vi.fn();
+    const policy = createEgressPolicy({
+      selfOrigin: "",
+      fetch: fetchSpy as unknown as typeof fetch,
+    });
+    const result = policy.fetchBytes("https://gov.example.jp/x.csv");
+    await expect(result).rejects.toMatchObject({ kind: "network-blocked" });
+    await expect(result).rejects.toThrow(/not in the allowed list$/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+// Issue #67: without a byte ceiling at this chokepoint, `arrayBuffer()`
+// buffers unboundedly and the `'too-large'` DataSourceErrorKind is
+// unreachable — a huge same-origin file OOMs the tab before the editor's
+// error UI (#44) sees any typed error.
+describe("createEgressPolicy — response-size ceiling (EG follow-up, issue #67)", () => {
+  const selfOrigin = "https://gov.example.jp";
+  const url = "https://gov.example.jp/x.csv";
+
+  function fakeStreamResponse(
+    chunks: Uint8Array[],
+    init: { contentLength?: string; onCancel?: () => void } = {},
+  ): Response {
+    let i = 0;
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {
+        get: (name: string) =>
+          name.toLowerCase() === "content-length" ? (init.contentLength ?? null) : null,
+      },
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < chunks.length
+              ? { done: false as const, value: chunks[i++] }
+              : { done: true as const, value: undefined },
+          cancel: async () => init.onCancel?.(),
+        }),
+      },
+      arrayBuffer: async () => {
+        throw new Error("arrayBuffer() must not be called when a body stream exists");
+      },
+    } as unknown as Response;
+  }
+
+  it("fails fast with 'too-large' on a content-length header over the limit, before reading the body", async () => {
+    const fetchSpy = vi.fn(async () =>
+      fakeStreamResponse([new Uint8Array(10)], { contentLength: "2048" }),
+    );
+    const policy = createEgressPolicy({
+      selfOrigin,
+      fetch: fetchSpy as unknown as typeof fetch,
+      maxBytes: 1024,
+    });
+    await expect(policy.fetchBytes(url)).rejects.toMatchObject({ kind: "too-large" });
+  });
+
+  it("enforces the limit by streamed count and cancels the reader — a missing content-length can't evade it", async () => {
+    const onCancel = vi.fn();
+    const fetchSpy = vi.fn(async () =>
+      fakeStreamResponse([new Uint8Array(600), new Uint8Array(600)], { onCancel }),
+    );
+    const policy = createEgressPolicy({
+      selfOrigin,
+      fetch: fetchSpy as unknown as typeof fetch,
+      maxBytes: 1000,
+    });
+    await expect(policy.fetchBytes(url)).rejects.toMatchObject({ kind: "too-large" });
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it("returns the concatenated bytes for a streamed body under the limit", async () => {
+    const fetchSpy = vi.fn(async () =>
+      fakeStreamResponse([new Uint8Array([1, 2]), new Uint8Array([3])]),
+    );
+    const policy = createEgressPolicy({
+      selfOrigin,
+      fetch: fetchSpy as unknown as typeof fetch,
+      maxBytes: 1000,
+    });
+    await expect(policy.fetchBytes(url)).resolves.toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("still bounds what it returns for a bodyless-stream response (arrayBuffer fallback)", async () => {
+    const fetchSpy = vi.fn(async () => fakeResponse({ body: "x".repeat(64) }));
+    const policy = createEgressPolicy({
+      selfOrigin,
+      fetch: fetchSpy as unknown as typeof fetch,
+      maxBytes: 16,
+    });
+    await expect(policy.fetchBytes(url)).rejects.toMatchObject({ kind: "too-large" });
   });
 });
