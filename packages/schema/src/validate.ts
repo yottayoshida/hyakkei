@@ -59,7 +59,7 @@ export function parseBakedDashboard(doc: unknown): ParseResult<BakedDashboardT> 
 }
 
 export type ReferenceIssue = {
-  kind: "dangling" | "duplicate" | "overlap" | "out-of-bounds" | "reserved-word";
+  kind: "dangling" | "duplicate" | "overlap" | "out-of-bounds" | "reserved-word" | "missing-column";
   message: string;
 };
 
@@ -270,8 +270,45 @@ export function validateDashboardReferences(doc: DashboardT): ReferenceIssue[] {
 export function validateBakedDashboardReferences(doc: BakedDashboardT): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const chartIds = collectIds(doc.charts, (c) => c.id, "chart", issues);
+  for (const chart of doc.charts) checkEncodingColumns(chart, issues);
   issues.push(...validateLayoutReferences(doc.layout.grid, doc.layout.items, chartIds));
   return issues;
+}
+
+/**
+ * Baked-only encoding-vs-rows cross-check (issue #73). On the authoring side
+ * this is unknowable — SQL output columns can't be derived statically — but a
+ * baked chart carries its rows inline, so "this encoding names a column
+ * present in none of the rows" is cheaply decidable and is exactly the
+ * "passes schema validation but still breaks the renderer" class this
+ * function's own doc comment exists for: every cell lookup resolves to
+ * `undefined` and the viewer draws a blank/NaN chart with no signal.
+ * Advisory like every other check here (the renderer's missing-column tile
+ * is the on-screen behavior; this gives authoring-time visibility).
+ *
+ * Empty `rows` are skipped: "query ran and returned nothing" is a legitimate
+ * baked state (bake() skips *unconfigured* charts entirely) and carries no
+ * column information to check against.
+ */
+function checkEncodingColumns(
+  chart: BakedDashboardT["charts"][number],
+  issues: ReferenceIssue[],
+): void {
+  if (chart.rows.length === 0) return;
+  const present = new Set<string>();
+  for (const row of chart.rows) for (const key of Object.keys(row)) present.add(key);
+  // Every encoding variant's values are column names (strings) or arrays of
+  // them (`table`'s `columns`); an absent optional (scatter's `size`) simply
+  // doesn't enumerate.
+  const encoded = Object.values(chart.encoding as Record<string, string | string[]>).flat();
+  for (const column of encoded) {
+    if (!present.has(column)) {
+      issues.push({
+        kind: "missing-column",
+        message: `baked chart '${chart.id}' encodes column '${column}', which is present in none of its ${chart.rows.length} rows`,
+      });
+    }
+  }
 }
 
 /**

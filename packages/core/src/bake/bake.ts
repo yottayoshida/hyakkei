@@ -19,7 +19,13 @@ function bakeChart(
   // -- `BakedChart` forbids it (schema `ForbidFields("query", "sql")`), and
   // a straight spread would silently carry it forward.
   const { query, ...rest } = chart;
-  const rows = query ? lookupRows(resolvedRows, query) : [];
+  // Rows are copied, not aliased: a BakedDashboard is a snapshot pinned to
+  // `meta.sourceDataAsOf`, and `lookupRows` returns the caller's own array --
+  // an editor that re-runs a query and mutates the same `resolvedRows` entry
+  // for live preview must not retroactively rewrite an already-baked
+  // artifact (issue #66). Rows are schema-constrained to flat primitive
+  // records, so a per-row spread is a full copy.
+  const rows = query ? lookupRows(resolvedRows, query).map((row) => ({ ...row })) : [];
   return { ...rest, rows } as unknown as BakedDashboard["charts"][number];
 }
 
@@ -51,12 +57,21 @@ export function bake(
   resolvedRows: Record<string, Row[]>,
   meta: BakeMeta,
 ): BakedDashboard {
+  // The chart filter is per-element (`chart.query` on the element itself),
+  // never id-based: duplicate ids are schema-parseable (validate* is
+  // advisory), and an id-keyed skip set would let one unconfigured
+  // `{id:'kpi'}` drag a configured `{id:'kpi', query}` -- and its layout
+  // item -- out of the baked artifact with it (issue #56). `skippedIds` is
+  // therefore only "ids with no surviving chart at all", which is the only
+  // id-shaped question the layout filter below actually needs answered.
+  const includedCharts = document.charts.filter((chart) => chart.query !== undefined);
+  const survivingIds = new Set(includedCharts.map((chart) => chart.id));
   const skippedIds = new Set(
-    document.charts.filter((chart) => !chart.query).map((chart) => chart.id),
+    document.charts
+      .filter((chart) => chart.query === undefined && !survivingIds.has(chart.id))
+      .map((chart) => chart.id),
   );
-  const charts = document.charts
-    .filter((chart) => !skippedIds.has(chart.id))
-    .map((chart) => bakeChart(chart, resolvedRows));
+  const charts = includedCharts.map((chart) => bakeChart(chart, resolvedRows));
 
   return {
     version: document.version,

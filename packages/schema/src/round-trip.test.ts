@@ -87,12 +87,19 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
 
   it("an arbitrary unknown field nested in meta is preserved after a successful parse", () => {
     fc.assert(
-      fc.property(unknownKey(new Set(["title", "locale"])), unknownValue, (key, value) => {
-        const doc = { ...baseDashboard(), meta: { title: "x", locale: "ja", [key]: value } };
-        const result = parseDashboard(doc);
-        expect(result.ok).toBe(true);
-        if (result.ok) expect((result.value.meta as Record<string, unknown>)[key]).toEqual(value);
-      }),
+      // Excludes every schema-typed meta key, not just the ones the fixture
+      // sets: a generated "description" with a non-string value would make a
+      // CORRECT implementation fail this property (issue #72).
+      fc.property(
+        unknownKey(new Set(["title", "description", "locale"])),
+        unknownValue,
+        (key, value) => {
+          const doc = { ...baseDashboard(), meta: { title: "x", locale: "ja", [key]: value } };
+          const result = parseDashboard(doc);
+          expect(result.ok).toBe(true);
+          if (result.ok) expect((result.value.meta as Record<string, unknown>)[key]).toEqual(value);
+        },
+      ),
     );
   });
 
@@ -116,7 +123,9 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
   it("an arbitrary unknown field nested in a chart is preserved after a successful parse", () => {
     fc.assert(
       fc.property(
-        unknownKey(new Set(["id", "type", "query", "encoding", "options"])),
+        // "sql" is chart-level ForbidFields — a generated collision would
+        // correctly be rejected, failing the property (issue #72).
+        unknownKey(new Set(["id", "type", "query", "sql", "encoding", "options"])),
         unknownValue,
         (key, value) => {
           const base = baseDashboard();
@@ -152,19 +161,37 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
 
   it("BakedDashboard: an arbitrary unknown top-level field is preserved after a successful parse", () => {
     fc.assert(
-      fc.property(unknownKey(new Set(Object.keys(baseBaked()))), unknownValue, (key, value) => {
-        const doc: Record<string, unknown> = { ...baseBaked(), [key]: value };
-        const result = parseBakedDashboard(doc);
-        expect(result.ok).toBe(true);
-        if (result.ok) expect((result.value as Record<string, unknown>)[key]).toEqual(value);
-      }),
+      // "sources"/"queries" are top-level ForbidFields on BakedDashboard —
+      // schema-known constrained keys, so they must be excluded even though
+      // the fixture never sets them (issue #72).
+      fc.property(
+        unknownKey(new Set([...Object.keys(baseBaked()), "sources", "queries"])),
+        unknownValue,
+        (key, value) => {
+          const doc: Record<string, unknown> = { ...baseBaked(), [key]: value };
+          const result = parseBakedDashboard(doc);
+          expect(result.ok).toBe(true);
+          if (result.ok) expect((result.value as Record<string, unknown>)[key]).toEqual(value);
+        },
+      ),
     );
   });
 
   it("BakedDashboard: an arbitrary unknown field nested in meta is preserved after a successful parse", () => {
     fc.assert(
       fc.property(
-        unknownKey(new Set(["title", "generatedAt", "sourceDataAsOf", "hyakkeiVersion"])),
+        // "description"/"locale" are schema-typed optional BaseMeta keys
+        // (issue #72) — see the authoring-meta property above.
+        unknownKey(
+          new Set([
+            "title",
+            "description",
+            "locale",
+            "generatedAt",
+            "sourceDataAsOf",
+            "hyakkeiVersion",
+          ]),
+        ),
         unknownValue,
         (key, value) => {
           const base = baseBaked();
@@ -180,7 +207,9 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
   it("BakedDashboard: an arbitrary unknown field nested in a chart is preserved after a successful parse", () => {
     fc.assert(
       fc.property(
-        unknownKey(new Set(["id", "type", "encoding", "options", "rows"])),
+        // "query"/"sql" are BakedChart ForbidFields — schema-known constrained
+        // keys a generated collision would correctly get rejected on (issue #72).
+        unknownKey(new Set(["id", "type", "query", "sql", "encoding", "options", "rows"])),
         unknownValue,
         (key, value) => {
           const base = baseBaked();

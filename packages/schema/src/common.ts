@@ -191,14 +191,34 @@ export const GRID_WIDTHS = { "guidebook-12col": 12 } as const;
  * cross-field bound is checked in validate.ts's referential validator
  * (shape enumeration AA-8), alongside item-vs-item overlap, since JSON Schema
  * has no keyword for "the sum of two sibling fields."
+ *
+ * The x/w maxima derive from the *widest* entry in `GRID_WIDTHS`, not from
+ * the 12-col literal (issue #59): the shared schema must accept any declared
+ * grid's coordinates — a future wider grid whose valid `x: 15` failed here
+ * with a generic Ajv error would defeat the "add the literal to GRID_WIDTHS
+ * and the guard rails follow" contract this file's own docs promise.
+ * Per-grid tightness stays in `validateLayoutReferences`, which knows which
+ * grid the document actually declares.
  */
-const GUIDEBOOK_12COL_WIDTH = GRID_WIDTHS["guidebook-12col"];
+export const MAX_GRID_WIDTH = Math.max(...Object.values(GRID_WIDTHS));
+
+/**
+ * Explicit ceilings for the unbounded axis (issue #59): without a `maximum`,
+ * `y`/`h` accept 2^53, where `rectsOverlap`'s float addition rounds
+ * `b.y + b.h` back to `b.y` (`2^53 + 1 === 2^53`) and two fully coincident
+ * tiles pass overlap detection. Any bound ≤ 2^52 closes the precision
+ * window; these values are simply "far beyond any real dashboard" while
+ * staying integer-exact under addition.
+ */
+export const MAX_LAYOUT_Y = 100_000;
+export const MAX_LAYOUT_H = 10_000;
+
 export const LayoutItem = SafeObject({
   chart: NonEmptyString,
-  x: Type.Integer({ minimum: 0, maximum: GUIDEBOOK_12COL_WIDTH - 1 }),
-  y: Type.Integer({ minimum: 0 }),
-  w: Type.Integer({ minimum: 1, maximum: GUIDEBOOK_12COL_WIDTH }),
-  h: Type.Integer({ minimum: 1 }),
+  x: Type.Integer({ minimum: 0, maximum: MAX_GRID_WIDTH - 1 }),
+  y: Type.Integer({ minimum: 0, maximum: MAX_LAYOUT_Y }),
+  w: Type.Integer({ minimum: 1, maximum: MAX_GRID_WIDTH }),
+  h: Type.Integer({ minimum: 1, maximum: MAX_LAYOUT_H }),
 });
 export type LayoutItem = Static<typeof LayoutItem>;
 
