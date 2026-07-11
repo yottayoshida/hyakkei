@@ -13,10 +13,20 @@ import { buildTableElement } from "./dom/table.js";
 import { encodingColumns } from "./encoding-columns.js";
 import type { RenderChart, RenderModel } from "./render-model.js";
 
+// A `LayoutItem.h` unit is an abstract grid row (schema); what one row is
+// worth on screen is a presentation decision, so it lives here. Without an
+// explicit row size CSS grid's implicit rows are content-sized (`auto`),
+// the chart canvas's `height: 100%` resolves against that auto-height
+// parent, and the two collapse together to a near-zero box — found on
+// first real-browser verification; jsdom does no layout, so no unit test
+// in this package can observe it.
+const GRID_ROW_SIZE = "4rem";
+
 function gridStyle(container: HTMLElement, layout: Layout) {
   const width = GRID_WIDTHS[layout.grid];
   container.style.display = "grid";
   container.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
+  container.style.gridAutoRows = GRID_ROW_SIZE;
   container.style.gap = "1rem";
 }
 
@@ -34,6 +44,18 @@ function tileStyle(el: HTMLElement, x: number, y: number, w: number, h: number) 
 function buildTile(...children: HTMLElement[]): HTMLElement {
   const tile = document.createElement("div");
   tile.className = "hyakkei-tile";
+  // Flex column so the chart canvas (`flex: 1`) takes the tile height the
+  // grid row span gives it, minus the accessible fallback's own height.
+  // `minWidth`/`minHeight: 0` override the flex/grid default of
+  // `min-*: auto`, which would otherwise let a wide table or an opened
+  // fallback dictate the tile's size instead of the layout item's w/h;
+  // `overflow: auto` is the escape hatch for content (an opened fallback
+  // table) that genuinely exceeds the now-fixed tile height.
+  tile.style.display = "flex";
+  tile.style.flexDirection = "column";
+  tile.style.minWidth = "0";
+  tile.style.minHeight = "0";
+  tile.style.overflow = "auto";
   for (const child of children) tile.appendChild(child);
   return tile;
 }
@@ -67,7 +89,12 @@ function renderChartBody(
   const canvas = document.createElement("div");
   canvas.className = "hyakkei-chart-canvas";
   canvas.style.width = "100%";
-  canvas.style.height = "100%";
+  // In the tile's flex column: fill whatever height the fallback
+  // `<details>` doesn't use (`height: 100%` would instead race the sibling
+  // for the same 100% and overflow). `minHeight: 0` again overrides
+  // `min-height: auto` so ECharts' own inner div can't prop the box open.
+  canvas.style.flex = "1 1 auto";
+  canvas.style.minHeight = "0";
   const instance = echarts.init(canvas, undefined, { renderer: "svg" });
   const option = echartsOptions[entry.id];
   if (option) instance.setOption(option);
@@ -160,5 +187,16 @@ export function mount(container: HTMLElement, model: RenderModel): void {
 
   if (model.layout.items.length === 0) {
     container.appendChild(buildMessageTile("配置されたチャートがありません", "info"));
+  }
+
+  // `echarts.init` above ran on a still-detached div (renderChartBody
+  // builds tiles before this loop appends them), so ECharts measured 0×0
+  // and rendered at its internal fallback size — the "Can't get DOM width
+  // or height" warning in every jsdom test run was this same condition.
+  // ECharts never re-measures on its own; one explicit resize() now that
+  // every tile is attached and the grid has sized it is what makes the
+  // chart fill its real box.
+  for (const canvas of container.querySelectorAll(".hyakkei-chart-canvas")) {
+    echarts.getInstanceByDom(canvas as HTMLElement)?.resize();
   }
 }

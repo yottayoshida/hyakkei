@@ -44,6 +44,43 @@ describe("mount()", () => {
     expect(el.querySelector(".hyakkei-error-tile")).toBeNull();
   });
 
+  it("sizes grid rows explicitly and lets the canvas flex inside the tile (real-browser collapse regression)", () => {
+    // jsdom does no layout, so this can only pin the style *contract*, not
+    // the rendered box: without an explicit `gridAutoRows` the grid's
+    // implicit rows are content-sized, a canvas `height: 100%` of that
+    // resolves to ~0, and the chart renders collapsed — invisible to every
+    // test in this file, found only on real-browser verification. The
+    // rendered-box counterpart of this pin belongs in the Playwright e2e
+    // suite once the app is served there (M1/M3, playwright.config.ts).
+    const model: RenderModel = normalizeBaked({
+      version: 1,
+      meta: { title: "t", generatedAt: "x", sourceDataAsOf: "x", hyakkeiVersion: "0.1.0" },
+      theme,
+      charts: [
+        {
+          id: "c1",
+          type: "bar",
+          encoding: { x: "cat", y: "val" },
+          options: {},
+          rows: [{ cat: "A", val: 1 }],
+        },
+      ],
+      layout: { grid: "guidebook-12col", items: [{ chart: "c1", x: 0, y: 0, w: 6, h: 4 }] },
+    });
+
+    const el = container();
+    mount(el, model);
+
+    expect(el.style.gridAutoRows).not.toBe("");
+    const tile = el.querySelector(".hyakkei-tile") as HTMLElement;
+    expect(tile.style.display).toBe("flex");
+    expect(tile.style.minHeight).toBe("0px");
+    const canvas = el.querySelector(".hyakkei-chart-canvas") as HTMLElement;
+    expect(canvas.style.flexGrow).toBe("1");
+    // The collapsed form this replaces: 100% of an auto-height parent.
+    expect(canvas.style.height).not.toBe("100%");
+  });
+
   it("V-105: shows an error tile when an encoding column is absent from every row", () => {
     const model: RenderModel = normalizeBaked({
       version: 1,
