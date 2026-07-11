@@ -39,6 +39,11 @@ describe("V-102: ECharts SVG renderer escapes malicious title/category text (SSR
     chart.setOption(option);
     const svg = chart.renderToSVGString();
 
+    // Positive sentinel first (issue #72): prove the payload text actually
+    // reached the SVG -- without this, a mutant that drops the title (or
+    // blanks all strings) passes the negative assertions while guarding
+    // nothing about escaping.
+    expect(svg).toContain("onerror");
     expect(svg).not.toContain("<img");
     expect(svg).not.toContain("<script");
   });
@@ -70,6 +75,9 @@ describe("V-102: ECharts SVG renderer escapes malicious title/category text (SSR
     chart.setOption(option);
     const svg = chart.renderToSVGString();
 
+    // Same positive-sentinel-then-negative pattern as the bar test above
+    // (issue #72).
+    expect(svg).toContain("onerror");
     expect(svg).not.toContain("<img");
     expect(svg).not.toContain("<script");
   });

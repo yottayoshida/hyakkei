@@ -14,15 +14,21 @@ export function DashboardPreview({ dashboard }: DashboardPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (containerRef.current) mount(containerRef.current, normalizeBaked(dashboard));
+    // The cleanup closes over the element, never re-reads the ref: React
+    // detaches host refs (sets `.current` to null) during the commit
+    // mutation phase BEFORE passive-effect cleanups run on unmount, so a
+    // `containerRef.current` read inside the cleanup skips disposal in
+    // exactly the case it exists for -- this component unmounting
+    // (tab/dashboard switch in a future M2 editor). The dep-change path
+    // happens to keep refs attached, which masked that gap (issue #55).
     // `mount()`'s own internal cleanup only covers *remounting the same
-    // container* (a new `dashboard` prop); it does not run when this
-    // component itself unmounts (tab/dashboard switch in a future M2
-    // editor) -- without this, every unmount leaks the ECharts instance's
-    // event listeners and zrender scheduling (/simplify Efficiency finding).
-    return () => {
-      if (containerRef.current) unmount(containerRef.current);
-    };
+    // container* (a new `dashboard` prop) -- without this cleanup, every
+    // unmount leaks the ECharts instance's event listeners and zrender
+    // scheduling (/simplify Efficiency finding).
+    const container = containerRef.current;
+    if (!container) return;
+    mount(container, normalizeBaked(dashboard));
+    return () => unmount(container);
   }, [dashboard]);
 
   return <div ref={containerRef} />;

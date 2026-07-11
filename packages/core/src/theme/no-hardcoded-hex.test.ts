@@ -6,7 +6,13 @@ import { describe, expect, it } from "vitest";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC_ROOT = join(__dirname, ".."); // this file is src/theme/*.test.ts -> src/
 
-const HEX_COLOR = /#[0-9a-fA-F]{6}\b/g;
+// 3-8 hex digits, not exactly 6 (issue #72): CSS also accepts #rgb, #rgba,
+// and #rrggbbaa, and the 8-digit alpha form evaded the old `{6}\b` entirely
+// (`\b` can't fall between two word characters, so "#1A1A1A80" simply never
+// matched). All-decimal matches are filtered below -- "#344" in a comment is
+// an issue reference, not a color, and no palette value is all-decimal.
+const HEX_COLOR = /#[0-9a-fA-F]{3,8}\b/g;
+const isColorLiteral = (match: string) => !/^#\d+$/.test(match);
 
 /** palette.ts is the one file allowed to name chart-color hex literals directly
  * (its own contrast-derivation constants and comments cite measured hex
@@ -55,8 +61,8 @@ describe("no hardcoded hex colors outside palette.ts (plan §PR-A CI assert)", (
     for (const relPath of scanned) {
       if (ALLOWED_FILES.has(relPath)) continue;
       const content = readFileSync(join(SRC_ROOT, relPath), "utf-8");
-      const matches = content.match(HEX_COLOR);
-      if (matches) offenders.push({ file: relPath, matches });
+      const matches = (content.match(HEX_COLOR) ?? []).filter(isColorLiteral);
+      if (matches.length > 0) offenders.push({ file: relPath, matches });
     }
 
     expect(

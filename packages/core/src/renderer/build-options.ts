@@ -52,15 +52,22 @@ function baseOptionFields(chart: Chart | BakedChart): Pick<EChartsOption, "title
   };
 }
 
+// `Number.isFinite`, not just `typeof` (issue #57): NaN/Infinity are
+// representable in live query results (`SELECT 1.0/0`) but JSON-serialize to
+// `null` -- letting them through here means the authoring preview (Infinity
+// reaches the value axis, breaking its extent) and the baked viewer (a normal
+// null gap after the artifact's JSON round-trip) render the SAME document
+// differently, violating the authoring==baked identity. Normalizing at this
+// boundary makes both paths see what JSON can carry.
 function numericCell(value: unknown): number | null {
-  return typeof value === "number" ? value : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 // Pie's `PieDataItemOption.value` doesn't accept `null` the way xy/scatter
 // series data does (a gap in a bar chart vs. a slice with no defined size
 // are different concepts) -- `undefined` is pie's own "no value" spelling.
 function numericCellOrUndefined(value: unknown): number | undefined {
-  return typeof value === "number" ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function xyOption(entry: RenderChart, seriesType: "bar" | "line" | "area"): EChartsOption {
@@ -151,7 +158,15 @@ function pieOption(entry: RenderChart): EChartsOption {
 }
 
 export function buildOptions(model: RenderModel): Record<string, EChartsOption> {
-  const options: Record<string, EChartsOption> = {};
+  // `Object.create(null)`, not `{}` (issue #57 sibling, issue #58):
+  // `Chart.id` is an unrestricted NonEmptyString, and on a plain object
+  // `options["__proto__"] = built` triggers the inherited setter instead of
+  // creating an own key -- the chart then renders only via accidental
+  // prototype lookup while every `Object.keys`/`entries`/`JSON.stringify`
+  // consumer (the xss dangerous-key scan, the golden deep-equal layer) is
+  // blind to its entire option tree. Same reachability argument, same fix
+  // family, as `lookupRows`'s `Object.hasOwn` guard.
+  const options: Record<string, EChartsOption> = Object.create(null);
 
   for (const entry of model.charts) {
     const built = ((): EChartsOption | undefined => {

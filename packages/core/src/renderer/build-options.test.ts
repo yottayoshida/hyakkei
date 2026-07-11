@@ -132,6 +132,55 @@ describe("buildOptions", () => {
     expect(() => JSON.stringify(option)).not.toThrow();
   });
 
+  it("issue #57: NaN/Infinity numeric cells normalize to null -- what their baked JSON round-trip yields", () => {
+    const chart = { id: "c1", type: "bar" as const, encoding: { x: "cat", y: "val" }, options: {} };
+    const option = buildOptions(
+      modelOf(chart, [
+        { cat: "A", val: Number.NaN },
+        { cat: "B", val: Number.POSITIVE_INFINITY },
+        { cat: "C", val: 1 },
+      ]),
+    ).c1!;
+    // Live query results can carry NaN/Infinity (SELECT 1.0/0); the baked
+    // artifact JSON-serializes them to null. Normalizing here keeps the
+    // authoring preview and the baked viewer rendering the same document
+    // identically -- the renderer's core contract.
+    expect((option.series as { data: unknown[] }[])[0]?.data).toEqual([null, null, 1]);
+    expect(JSON.parse(JSON.stringify(option))).toEqual(option);
+  });
+
+  it("issue #57: pie treats a non-finite value like a non-numeric one (undefined, not NaN)", () => {
+    const chart = {
+      id: "c1",
+      type: "pie" as const,
+      encoding: { category: "cat", value: "val" },
+      options: {},
+    };
+    const option = buildOptions(modelOf(chart, [{ cat: "A", val: Number.NaN }])).c1!;
+    const dataItem = (option.series as { data: { value: unknown }[] }[])[0]?.data[0];
+    expect(dataItem).toEqual({ name: "A", value: undefined });
+  });
+
+  it("issue #58: a chart id of '__proto__' creates an own, enumerable, serializable options entry", () => {
+    const chart = {
+      id: "__proto__",
+      type: "bar" as const,
+      encoding: { x: "cat", y: "val" },
+      options: {},
+    };
+    const model: RenderModel = {
+      charts: [{ id: "__proto__", chart, rows: [{ cat: "A", val: 1 }], state: "ok" }],
+      layout: { grid: "guidebook-12col", items: [] },
+      theme,
+    };
+    const options = buildOptions(model);
+    // On a plain-object accumulator these were [] and '{}' respectively --
+    // the chart rendered only via accidental prototype lookup while the xss
+    // dangerous-key scan and any JSON/deep-equal golden saw nothing.
+    expect(Object.keys(options)).toEqual(["__proto__"]);
+    expect(Object.keys(JSON.parse(JSON.stringify(options)))).toEqual(["__proto__"]);
+  });
+
   it("every produced EChartsOption is JSON-serializable (no function-valued fields, golden-test requirement)", () => {
     for (const [type, chart] of Object.entries({
       bar: { id: "c1", type: "bar" as const, encoding: { x: "x", y: "y" }, options: {} },

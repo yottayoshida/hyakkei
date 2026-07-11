@@ -62,6 +62,12 @@ describe("V-102: XSS containment", () => {
       rows: [{ cat: PAYLOAD, val: 1 }],
     });
     const options = buildOptions(normalizeBaked(baked));
+    // Non-empty sentinel first (issue #58/#72): `findDangerousKeys({})` is
+    // trivially [] -- if buildOptions ever stops emitting this chart's option
+    // tree (or emits it somewhere Object.entries can't see, the exact failure
+    // a plain-object accumulator had for a '__proto__' chart id), this scan
+    // must fail rather than silently walk nothing.
+    expect(options.c1).toBeDefined();
     expect(findDangerousKeys(options)).toEqual([]);
   });
 
