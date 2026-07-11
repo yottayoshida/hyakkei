@@ -1,6 +1,6 @@
 # Hyakkei — Product Requirements Document
 
-- **Status**: Draft v1 (2026-07-04, amended 2026-07-05)
+- **Status**: Draft v1 (2026-07-04, amended 2026-07-05, 2026-07-10)
 - **Owner**: yotta (@yottayoshida)
 - **Related**: [ROADMAP.md](./ROADMAP.md) · [ARCHITECTURE.md](./ARCHITECTURE.md) · [ADRs](./adr/)
 
@@ -100,7 +100,7 @@ Builds dashboards for governments. Wants guideline compliance out of the box, da
 | F3 | Charts: bar, line, area, pie/donut, scatter, table, stat tile (big number) | The guidebook's core set; each maps to a guidebook sample |
 | F4 | Guideline nudges | e.g. pie with >6 categories → suggest bar; guideline-violating color use → warn (§6.3) |
 | F5 | Grid layout editor | Guidebook grid system; drag-resize-reorder; responsive breakpoints from the design tokens |
-| F6 | Theming | Digital Agency design tokens (typography/spacing) + a guidebook color theme (default: Blue) as the default (and only, in v0.1) theme; light/dark. Each guidebook theme is a **single-hue color ramp plus a red accent**, not a 7-color categorical palette — the "7-color" framing in earlier drafts was a misreading of the guidebook (ADR-0006); categorical color values are re-derived from the theme JSON, not from `@digital-go-jp/design-tokens` (which carries no chart-color tokens) |
+| F6 | Theming | Digital Agency design tokens (typography/spacing) + all **7 guidebook key-color templates** (Solid Gray/Blue/Light Blue/Cyan/Green/Orange/Red — v0.1 target scope per yotta's plan decision, 2026-07-10; **not yet in `packages/schema`'s `Palette`/`Theme` types as of this PR** — schema/theme-layer implementation is PR-A/PR-B scope, this PR is docs+spike only) as selectable themes; light/dark (`appearance` field, a hyakkei extension — the guidebook itself defines no dark mode, confirmed by the M0 spike, `docs/spikes/m0-charts.md` — also PR-A scope, not yet in schema). **Corrected 2026-07-10** (M0 spike): each key color is neither a "7-color categorical palette" nor a "single-hue ramp plus a red accent" (both framings from earlier drafts were wrong) — it is a **6-step monochromatic chart ramp plus a shared Yellow accent ramp and Semantic Success/Error colors**; categorical color values are re-derived from the guidebook's public color-palette pages, not from `@digital-go-jp/design-tokens` (which carries no chart-color tokens). One structural point (Cyan/Green's actual accent source) is not yet confirmed — see §6.3 caveat |
 | F7 | Save/open `dashboard.json` | Download / file-open; the file contains data-source *references* and SQL, resolved by the editor. It never embeds pre-computed data — that's what the separate exported `BakedDashboard` is for (ADR-0005) |
 | F8 | Export | Produces a `BakedDashboard` (ADR-0005) via a shared bake step, then packages it as either a **single self-contained HTML file (default)** — double-click, done — or a **folder** (advanced: separate renderer/data files, for embedding or very large charts). Either way: no DuckDB-WASM, no SQL, no Worker in the output; "put it anywhere," including `file://` |
 | F9 | Japanese + English UI | Japanese first-class, not an afterthought |
@@ -118,14 +118,14 @@ The guidebook's Do's & Don'ts are encoded as **data**: a rules file (`guideline-
 | Rule | Trigger | Nudge |
 |------|---------|-------|
 | `pie-too-many-slices` | pie/donut with > 6 categories | "Consider a bar chart" + one-click convert |
-| `line-too-many-series` | line chart with > 4 series | "Consider small multiples or highlight one series" |
+| `line-too-many-series` | line chart with > 4 series | *(rule held for v0.2 — v0.1's schema is single-series-only, see caveat below; the rule cannot fire against anything v0.1 can express. Original v0.2 nudge text, preserved for when multi-series lands: "Consider small multiples or highlight one series")* |
 | `truncated-axis` | bar chart with non-zero y-axis baseline | "Truncated axes exaggerate differences" |
 | `3d-anything` | (not offered at all) | 3D charts simply don't exist in Hyakkei |
-| `palette-order` | manual colors deviating from palette sequence | "Use palette order for categorical data" *(provisional — see caveat below)* |
+| `palette-order` | primary/secondary ordering within one key's ramp deviates from ramp sequence | "Use ramp order (primary before secondary)" *(re-scoped — see caveat below)* |
 
 Rules are warnings with explanations, never hard blocks (except by omission, like 3D). This file is independently useful and may become its own artifact for the community.
 
-**Caveat on `palette-order`**: this rule assumed the guidebook palette is a multi-hue categorical set. It is actually a single-hue ramp plus a red accent per theme (§6.1 F6, ADR-0006) — a shape better suited to sequential/ordinal data than to arbitrary categorical series. Whether `palette-order` survives, changes, or is replaced is confirmed against the actual guidebook PDF in M0 (time-permitting item, issue #4) before M1 locks the rule set.
+**Caveat on `palette-order` and `line-too-many-series` (M0 spike, `docs/spikes/m0-charts.md`)**: neither of the two framings in earlier drafts was correct — the guidebook palette is not a multi-hue categorical set, nor a single-hue-ramp-plus-red-accent. Each key color is a 6-step monochromatic ramp plus a shared Yellow accent and Semantic Success/Error (see §6.1 F6). **This structure itself is confirmed with good confidence, but one point is not yet resolved**: whether Cyan and Green's categorical accent is the shared Yellow ramp or whether they accent each other — the spike's source-data fetches gave inconsistent answers on this specific point and it needs a human visual check of the live color-code page before it's treated as settled (see the spike report's confidence caveat). Separately, v0.1's `ChartVariant` schema (`packages/schema/src/common.ts`) expresses only single-series bar/line/area — `line-too-many-series` cannot fire against anything v0.1 can produce, so it's held pending v0.2 multi-series support (plan's user decision, 2026-07-10) rather than implemented against a shape that doesn't exist yet. `palette-order` is re-scoped from "categorical series ordering" (which the ramp shape doesn't suit) to "ramp-position ordering within one key's primary/secondary roles" — the spike additionally found that color alone is an insufficient categorical encoding for at least the orange theme under deuteranopia (a near-total simulated-color collision between its secondary ramp step and the shared Yellow accent), so any future categorical nudge work should require decal/pattern alongside hue, not hue alone.
 
 ### 6.4 v1.0 — "a team, live data, behind your IdP"
 

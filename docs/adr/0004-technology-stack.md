@@ -1,7 +1,11 @@
 # ADR-0004: Technology stack for v0.1
 
-- **Status**: Accepted (2026-07-04, amended 2026-07-05) — chart-library row is provisional pending the M0 spike; Excel-parser row was amended pre-M0 by `/plan` investigation (below) and remains open to a further M0 amendment
+- **Status**: Accepted (2026-07-04, amended 2026-07-05, 2026-07-10) — chart-library row confirmed Accepted by the M0 spike (see Amendment 2026-07-10 below); Excel-parser row was amended pre-M0 by `/plan` investigation (below) and separately confirmed by its own M0 spike (`docs/spikes/m0-excel.md`, GO, no further amendment needed) — both rows are now resolved, not just the chart-library one
 - **Deciders**: yotta
+
+## Amendment (2026-07-10)
+
+The M0 chart-fidelity spike (issue #4; results in `docs/spikes/m0-charts.md`) resolves the chart-library row's provisional status. ECharts 6.1.0 (SVG renderer) reproduces the guidebook's re-derived key-color hex values byte-for-byte across 70 rendered chart/key/appearance combinations, supports the required accessibility mechanisms (ARIA descriptions including correct CJK text; decal pattern fills, load-bearing for at least the orange theme under deuteranopia — see spike report finding 3), and renders a 5,000-point chart in 29.8–37.4ms (mean 32.1ms, 5 persisted runs). No Vega-Lite evaluation is triggered. **`packages/core`'s current `echarts: "^6.1.0"` dependency range is to be changed to an exact pin (`"6.1.0"`) in issue #8's PR (PR-B)** — the spike validated behavior against exactly this version; a caret range could silently drift onto an unvalidated minor/patch before that PR locks it. One real bug was found and fixed during the spike: ECharts' default `axisLabel.interval: 'auto'` silently drops overlapping category labels (not ellipsis, not rotation — omission) rather than wrapping or rotating them; `packages/core`'s renderer (issue #8) must always set `axisLabel.interval` explicitly rather than inheriting this default for any category axis carrying CJK text.
 
 ## Amendment (2026-07-05)
 
@@ -23,7 +27,7 @@ One maintainer, a product whose differentiators are (a) browser-complete executi
 |-------|--------|-----------|----------------------|
 | Language | TypeScript | One language across schema/core/app/CLI; typed schema generation | — |
 | UI framework | React 18 | The Digital Agency publishes React example components and a Tailwind theme plugin; adopting them directly is the whole point. Largest contributor pool | Vue/Svelte (smaller overlap with official assets); vanilla (editor complexity too high) |
-| Charts | Apache ECharts | Covers every guidebook chart type incl. maps (v0.5); canvas performance; mature CJK label/wrap handling; Apache-2.0; huge ja-community knowledge base | Vega-Lite (elegant grammar, but theming to pixel-match the guidebook and CJK layout control are harder); Chart.js (missing chart types); D3-direct (maintenance cost) |
+| Charts | Apache ECharts 6.1.0 (**to be exact-pinned in PR-B, currently `^6.1.0`**), **SVG renderer** (not canvas — golden-test determinism and SR-readable DOM, per M0 spike) | Covers every guidebook chart type incl. maps (v0.5); mature CJK label/wrap handling (with explicit `axisLabel.interval` override — ECharts' default silently drops overlapping labels, see M0 spike); Apache-2.0; huge ja-community knowledge base; M0 spike confirmed byte-exact hex fidelity (70/70), functional ARIA + decal, 0 residual WCAG contrast failures, 29.8–37.4ms at 5,000 points | Vega-Lite (elegant grammar, but theming to pixel-match the guidebook and CJK layout control are harder — not evaluated, M0 spike confirmed ECharts sufficient); Chart.js (missing chart types); D3-direct (maintenance cost); canvas renderer (golden-test pixel flakiness + no SR-readable DOM) |
 | Query engine | DuckDB-WASM **1.32.0 (explicit pin — `latest` resolves to a dev prerelease)** | SQL over CSV/Parquet entirely client-side, editor/export-time only (ADR-0005: never present in the viewer); Parquet snapshots for export; the enabling tech for ADR-0001. **Does not read `.xlsx` directly** — see Amendment above; `.xlsx` is parsed by the Excel-parsing library below and registered as a table | sql.js/SQLite-WASM (weaker file-format ingestion, no Parquet — kept as the ADR-0004 M0 escape hatch); Arquero/danfo (not SQL — SQL in dashboard.json is the developer escape hatch, ADR-0002); custom JS aggregation (reinventing a database, badly) |
 | Excel parsing | **ExcelJS (default candidate — promoted 2026-07-05, see Amendment above)** | MIT, npm-standard, dependabot-covered; M0 fidelity test (issue #3) confirms on messy Japanese workbooks | SheetJS CE (npm-withdrawn since 2022, frozen npm version carries unpatched CVEs — only viable with an explicit vendoring+SRI+manual-update plan); DuckDB excel extension in WASM (confirmed unavailable for `.xlsx`, see Amendment) |
 | Build | Vite | Boring default; WASM/worker support documented | — |
@@ -33,9 +37,13 @@ One maintainer, a product whose differentiators are (a) browser-complete executi
 
 ## M0 escape hatches
 
-- If ECharts cannot pixel-match guidebook samples or fails a11y needs → evaluate Vega-Lite before M1; amend this ADR.
-- If DuckDB-WASM bundle/memory cost is unacceptable on the M0 test matrix (single-threaded build — see ADR-0005) → fall back to SQLite-WASM + custom CSV ingestion, and drop Parquet snapshots. This weakens but does not break ADR-0001.
-- If ExcelJS fidelity disappoints on the Japanese-workbook corpus → evaluate SheetJS CE, but only with the vendoring+SRI+manual-update plan required by the Amendment above; a bare `npm install sheetjs` is not an option.
+- ~~If ECharts cannot pixel-match guidebook samples or fails a11y needs → evaluate Vega-Lite before M1; amend this ADR.~~ **Resolved 2026-07-10**: M0 spike confirmed ECharts meets both bars (see Amendment 2026-07-10 above). This escape hatch did not trigger.
+- ~~If DuckDB-WASM bundle/memory cost is unacceptable on the M0 test matrix (single-threaded build — see ADR-0005) → fall back to SQLite-WASM + custom CSV ingestion, and drop Parquet snapshots.~~ **Resolved** (`docs/spikes/m0-duckdb.md`, GO): bundle/memory cost was within the acceptable range on the M0 test matrix. This escape hatch did not trigger.
+- ~~If ExcelJS fidelity disappoints on the Japanese-workbook corpus → evaluate SheetJS CE, but only with the vendoring+SRI+manual-update plan required by the Amendment above.~~ **Resolved** (`docs/spikes/m0-excel.md`, GO): ExcelJS parsed all 10 messiness-corpus fixtures and a realistic 50,000-row workbook without crash or data corruption. This escape hatch did not trigger.
+
+*(All three M0 escape hatches for this ADR are now resolved; none triggered. Marked
+consistently after `/code-review` flagged that only the ECharts entry had been struck through
+despite DuckDB/Excel being equally settled by their own M0 spikes.)*
 
 ## Consequences
 
