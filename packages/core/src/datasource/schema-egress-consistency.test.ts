@@ -20,7 +20,7 @@ describe("schema vs. EgressPolicy: intentional HTTPS:// scheme-case divergence",
     const doc = {
       version: 1,
       meta: { title: "t" },
-      theme: { tokens: "@digital-go-jp/design-tokens@2.0.0", palette: "guidebook-blue" },
+      theme: { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "guidebook-blue" },
       sources: [{ id: "s", kind: "url", format: "csv", ref: { url: mixedCaseUrl } }],
       queries: [],
       charts: [],

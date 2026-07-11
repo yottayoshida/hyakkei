@@ -120,19 +120,50 @@ export const Version = Type.Literal(CURRENT_VERSION);
  * token/palette value that ever gets resolved as a module specifier or file
  * path is an RCE vector. Extending either list is a pure additive change.
  */
-export const TokenPackage = Type.Union([Type.Literal("@digital-go-jp/design-tokens@2.0.0")]);
+/**
+ * 2.0.1 (PR-A, 2026-07-11): bumped from 2.0.0 after installing the package and
+ * confirming 2.0.1 is npm's actual `latest` (`npm view` — never trust a stale
+ * pin, ADR-0004's own rule for this exact package). Replaced, not appended:
+ * this schema predates any real-world dashboard.json, so there is no
+ * already-authored file whose round-trip this could break.
+ */
+export const TokenPackage = Type.Union([Type.Literal("@digital-go-jp/design-tokens@2.0.1")]);
 export type TokenPackage = Static<typeof TokenPackage>;
 
+/**
+ * 7 guidebook key-color templates (Solid Gray/Blue/Light Blue/Cyan/Green/
+ * Orange/Red — M0 spike, docs/spikes/m0-charts.md), all in scope for v0.1
+ * (plan decision, 2026-07-10). Literal names mirror
+ * `@digital-go-jp/design-tokens`'s own `Color.Primitive` family names
+ * (`packages/core/src/theme/palette.ts` resolves each literal to its
+ * matching token family) rather than inventing a parallel naming scheme.
+ */
 export const Palette = Type.Union([
   Type.Literal("guidebook-blue"),
+  Type.Literal("guidebook-light-blue"),
+  Type.Literal("guidebook-cyan"),
   Type.Literal("guidebook-green"),
+  Type.Literal("guidebook-orange"),
+  Type.Literal("guidebook-red"),
   Type.Literal("guidebook-neutral"),
 ]);
 export type Palette = Static<typeof Palette>;
 
+/**
+ * `appearance` (PR-A, additive): light/dark. Optional, defaults to light at
+ * the renderer/theme-resolution layer (not defaulted here in schema — an
+ * absent field round-trips as absent, per this file's additive-only rule).
+ * The guidebook itself defines no dark-mode values at all (confirmed absent,
+ * M0 spike) — dark is a hyakkei extension (`packages/core/src/theme/
+ * palette.ts`'s ramp-mirroring rule), not a guidebook re-derivation.
+ */
+export const Appearance = Type.Union([Type.Literal("light"), Type.Literal("dark")]);
+export type Appearance = Static<typeof Appearance>;
+
 export const Theme = SafeObject({
   tokens: TokenPackage,
   palette: Palette,
+  appearance: Type.Optional(Appearance),
 });
 export type Theme = Static<typeof Theme>;
 

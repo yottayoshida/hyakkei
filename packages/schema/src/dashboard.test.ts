@@ -5,7 +5,7 @@ import { parseDashboard, validateDashboardReferences } from "./validate.js";
 const empty = {
   version: 1,
   meta: { title: "無題のダッシュボード", locale: "ja" },
-  theme: { tokens: "@digital-go-jp/design-tokens@2.0.0", palette: "guidebook-blue" },
+  theme: { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "guidebook-blue" },
   sources: [],
   queries: [],
   charts: [],
@@ -15,7 +15,7 @@ const empty = {
 const minimal = {
   version: 1,
   meta: { title: "月次KPIダッシュボード", locale: "ja" },
-  theme: { tokens: "@digital-go-jp/design-tokens@2.0.0", palette: "guidebook-blue" },
+  theme: { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "guidebook-blue" },
   sources: [
     {
       id: "apps",
@@ -46,7 +46,7 @@ const minimal = {
 const full = {
   version: 1,
   meta: { title: "県内自治体横断ダッシュボード", description: "月次+累計", locale: "ja" },
-  theme: { tokens: "@digital-go-jp/design-tokens@2.0.0", palette: "guidebook-blue" },
+  theme: { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "guidebook-blue" },
   sources: [
     { id: "apps", kind: "file", format: "xlsx", ref: { name: "apps.xlsx", sheet: "2026" } },
     {
@@ -176,8 +176,39 @@ describe("dashboard.json — adversarial shapes rejected", () => {
     expect(
       parseDashboard({
         ...minimal,
-        theme: { tokens: "@digital-go-jp/design-tokens@2.0.0", palette: "evil" },
+        theme: { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "evil" },
       }).ok,
+    ).toBe(false);
+  });
+
+  it("AA-15: all 7 guidebook key-color Palette values validate (PR-A, M0 spike palette set)", () => {
+    const palettes = [
+      "guidebook-blue",
+      "guidebook-light-blue",
+      "guidebook-cyan",
+      "guidebook-green",
+      "guidebook-orange",
+      "guidebook-red",
+      "guidebook-neutral",
+    ];
+    for (const palette of palettes) {
+      const result = parseDashboard({ ...minimal, theme: { ...minimal.theme, palette } });
+      expect(result.ok, `palette '${palette}' should validate`).toBe(true);
+    }
+  });
+
+  it("AA-16: theme.appearance is optional and accepts light/dark; other values are rejected", () => {
+    expect(parseDashboard(minimal).ok).toBe(true); // no appearance field at all
+    for (const appearance of ["light", "dark"]) {
+      const result = parseDashboard({
+        ...minimal,
+        theme: { ...minimal.theme, appearance },
+      });
+      expect(result.ok, `appearance '${appearance}' should validate`).toBe(true);
+      if (result.ok) expect(result.value.theme.appearance).toBe(appearance);
+    }
+    expect(
+      parseDashboard({ ...minimal, theme: { ...minimal.theme, appearance: "sepia" } }).ok,
     ).toBe(false);
   });
 

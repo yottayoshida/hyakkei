@@ -1,7 +1,49 @@
 # ADR-0006: Separate license tracks for code (MIT) and Digital Agency design reference assets (PDL 1.0)
 
-- **Status**: Accepted (2026-07-05, amended 2026-07-10)
+- **Status**: Accepted (2026-07-05, amended 2026-07-10, 2026-07-11 — chart-color re-derivation superseded, see below)
 - **Deciders**: yotta
+
+## Amendment (2026-07-11) — chart colors are consumed from design-tokens directly, not re-derived
+
+PR-A (issue #9) installed `@digital-go-jp/design-tokens@2.0.1` and inspected its contents
+directly (`node_modules/.../dist/tokens.d.ts` and `tokens.js`), rather than relying on the
+2026-07-05 `/plan`-time research this ADR's Context section cites. **That research's central
+factual claim — "that package has no categorical/chart color tokens, confirmed by inspecting
+its contents: 177 color tokens are UI tokens, not chart palettes" — is wrong.** The installed
+package contains:
+
+- `Color.Primitive.{Blue, LightBlue, Cyan, Green, Lime, Yellow, Orange, Red, Magenta, Purple}`
+  — full 13-step ramps (50–1200) per hue
+- `Color.Neutral.SolidGray` — 12 steps, **including the "536" step** the M0 spike (issue #4)
+  found on the guidebook's public color-palette pages and flagged as an "oddly-placed" value
+  possibly specific to that page's own presentation — confirmed here as a real design-tokens
+  value (`#767676`), not a transcription artifact
+- `Color.Semantic.{Success, Error}` — 2 steps each, shared across every key color (no
+  per-key variant exists — the M0 spike's `#850000` "orange/red-specific error" appears to
+  have been a transcription artifact of that spike's WebFetch-sourced data; it does not
+  correspond to anything in the authoritative package)
+
+Every hex value spot-checked against the M0 spike's independently-transcribed table matched
+exactly (Blue.900=#0017c1, Blue.600=#3460fb, Cyan.900=#006f83, SolidGray.536=#767676) — the
+spike's manual transcription was accurate, but the underlying premise that transcription was
+*necessary* was not.
+
+**Consequence for this ADR**: `packages/core/src/theme/palette.ts` (PR-A) imports
+`@digital-go-jp/design-tokens` and resolves `Color.Primitive`/`Color.Neutral`/`Color.Semantic`
+values at runtime — there is no hand-transcribed hex table, and no re-derivation from
+`policy-dashboard-assets`. This ADR's central question (is re-deriving PDL-1.0-sourced facts
+into an MIT-licensed file legally sound?) **does not arise for chart colors in the actual
+implementation** — design-tokens is unambiguously MIT (verified in its own repo and
+`package.json`), with no PDL-covered source involved at any point. Decision §3's licensing
+risk treatment, and Consequences' "(−) manual re-transcription" cost, are both **moot for
+chart colors** as of PR-A; they may still apply to a genuinely PDL-sourced asset in the future
+(e.g. the v1.0 administrative-boundary GeoJSON this ADR's Decision §2 already flags), which is
+why this ADR is amended rather than superseded outright.
+
+*(This is the third dated amendment on this ADR — a future documentation pass should consider
+consolidating Context/Decision into the corrected state directly rather than accreting a
+fourth; not done here since PR-A's thesis is the schema/theme implementation, not an ADR
+rewrite.)*
 
 ## Amendment (2026-07-10)
 

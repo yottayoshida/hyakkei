@@ -231,6 +231,14 @@ live color-code page before `palette.ts` locks in its accent-color source of tru
 docs (ROADMAP, PRD, ADR-0006) must not describe this point as settled until that check happens
 — an earlier draft of those three did exactly that and was corrected in `/code-review`.
 
+**Update (PR-A, 2026-07-11)**: this point is resolved as moot, not confirmed either way. PR-A
+switched `palette.ts` from hand-transcribed hex values (this spike's approach) to consuming
+`@digital-go-jp/design-tokens` directly (ADR-0006 amended) — that package has no data
+structure encoding a per-key accent relationship at all; every palette shares the single
+`Color.Primitive.Yellow` ramp as its categorical accent. The visual check this report asked
+for was checking whether the guidebook intends a "Cyan/Green mutual accent" structure that
+turned out not to exist in the authoritative source hyakkei actually consumes.
+
 ## Required document corrections (this PR's scope)
 
 - **ADR-0004**: chart-library row → Accepted (SVG renderer, ECharts 6.1.0; findings 1–9 above

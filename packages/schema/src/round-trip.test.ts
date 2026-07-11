@@ -26,7 +26,7 @@ const baseDashboard = () => ({
   version: 1 as const,
   meta: { title: "x", locale: "ja" },
   theme: {
-    tokens: "@digital-go-jp/design-tokens@2.0.0" as const,
+    tokens: "@digital-go-jp/design-tokens@2.0.1" as const,
     palette: "guidebook-blue" as const,
   },
   sources: [{ id: "s1", kind: "file" as const, format: "xlsx" as const, ref: { name: "a.xlsx" } }],
@@ -46,11 +46,31 @@ const baseBaked = () => ({
     hyakkeiVersion: "0.1.0",
   },
   theme: {
-    tokens: "@digital-go-jp/design-tokens@2.0.0" as const,
+    tokens: "@digital-go-jp/design-tokens@2.0.1" as const,
     palette: "guidebook-blue" as const,
   },
   charts: [{ id: "c1", type: "bar" as const, encoding: { x: "a", y: "b" }, options: {}, rows: [] }],
   layout: { grid: "guidebook-12col" as const, items: [{ chart: "c1", x: 0, y: 0, w: 6, h: 4 }] },
+});
+
+describe("round-trip: theme.appearance is additive and shared (PR-A)", () => {
+  it("appearance survives on both Dashboard and BakedDashboard, absent stays absent", () => {
+    for (const appearance of ["light", "dark"] as const) {
+      const dashDoc = { ...baseDashboard(), theme: { ...baseDashboard().theme, appearance } };
+      const dashResult = parseDashboard(dashDoc);
+      expect(dashResult.ok).toBe(true);
+      if (dashResult.ok) expect(dashResult.value.theme.appearance).toBe(appearance);
+
+      const bakedDoc = { ...baseBaked(), theme: { ...baseBaked().theme, appearance } };
+      const bakedResult = parseBakedDashboard(bakedDoc);
+      expect(bakedResult.ok).toBe(true);
+      if (bakedResult.ok) expect(bakedResult.value.theme.appearance).toBe(appearance);
+    }
+
+    const withoutAppearance = parseDashboard(baseDashboard());
+    expect(withoutAppearance.ok).toBe(true);
+    if (withoutAppearance.ok) expect(withoutAppearance.value.theme.appearance).toBeUndefined();
+  });
 });
 
 describe("round-trip: unknown fields survive validation (additive-only, S4/B4)", () => {
