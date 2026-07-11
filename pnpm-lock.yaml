@@ -78,6 +78,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@digital-go-jp/design-tokens':
+        specifier: 2.0.1
+        version: 2.0.1
       '@duckdb/duckdb-wasm':
         specifier: 1.32.0
         version: 1.32.0
@@ -220,6 +223,9 @@ packages:
   '@babel/types@7.29.7':
     resolution: {integrity: sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA==}
     engines: {node: '>=6.9.0'}
+
+  '@digital-go-jp/design-tokens@2.0.1':
+    resolution: {integrity: sha512-F0SWlZDghgWuD6AzD4IawL9PlO+GD2Ns8s72g9FvBSKcgDX3hxzB8fjW64PqqonHocEpLj7Lj+LGbkh6eSgZ0g==}
 
   '@duckdb/duckdb-wasm@1.32.0':
     resolution: {integrity: sha512-IewXTNYEjsZCPE9weUWgtjGxUlMRo7qhX0GF6tq/KjK8bnY+RAl4cyUdYUfcdzbyb4b9ZxPC+FOsCcxgaKFWMg==}
@@ -1803,6 +1809,8 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
+
+  '@digital-go-jp/design-tokens@2.0.1': {}
 
   '@duckdb/duckdb-wasm@1.32.0':
     dependencies:

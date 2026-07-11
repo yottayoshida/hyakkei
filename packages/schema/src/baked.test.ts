@@ -11,7 +11,7 @@ const emptyBaked = {
     hyakkeiVersion: "0.1.0",
     locale: "ja",
   },
-  theme: { tokens: "@digital-go-jp/design-tokens@2.0.0", palette: "guidebook-blue" },
+  theme: { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "guidebook-blue" },
   charts: [],
   layout: { grid: "guidebook-12col", items: [] },
 };
@@ -24,7 +24,7 @@ const minimalBaked = {
     sourceDataAsOf: "2026-06-30",
     hyakkeiVersion: "0.1.0",
   },
-  theme: { tokens: "@digital-go-jp/design-tokens@2.0.0", palette: "guidebook-blue" },
+  theme: { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "guidebook-blue" },
   charts: [
     {
       id: "c1",
@@ -48,7 +48,7 @@ const fullBaked = {
     sourceDataAsOf: "2026-06-30",
     hyakkeiVersion: "0.1.0",
   },
-  theme: { tokens: "@digital-go-jp/design-tokens@2.0.0", palette: "guidebook-blue" },
+  theme: { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "guidebook-blue" },
   charts: [
     {
       id: "c1",
@@ -138,6 +138,45 @@ describe("BakedDashboard — adversarial shapes rejected", () => {
   it("AB-3: theme.tokens/palette reject arbitrary strings, sharing the authoring enum", () => {
     const doc = { ...minimalBaked, theme: { tokens: "evil-package", palette: "guidebook-blue" } };
     expect(parseBakedDashboard(doc).ok).toBe(false);
+  });
+
+  it("AB-9: all 7 guidebook key-color Palette values validate on a baked artifact (Theme is shared)", () => {
+    const palettes = [
+      "guidebook-blue",
+      "guidebook-light-blue",
+      "guidebook-cyan",
+      "guidebook-green",
+      "guidebook-orange",
+      "guidebook-red",
+      "guidebook-neutral",
+    ];
+    for (const palette of palettes) {
+      const result = parseBakedDashboard({
+        ...minimalBaked,
+        theme: { ...minimalBaked.theme, palette },
+      });
+      expect(result.ok, `palette '${palette}' should validate`).toBe(true);
+    }
+  });
+
+  it("AB-10: theme.appearance round-trips onto BakedDashboard (Theme shared with authoring, PR-A)", () => {
+    for (const appearance of ["light", "dark"] as const) {
+      const result = parseBakedDashboard({
+        ...minimalBaked,
+        theme: { ...minimalBaked.theme, appearance },
+      });
+      expect(result.ok, `appearance '${appearance}' should validate`).toBe(true);
+      if (result.ok) expect(result.value.theme.appearance).toBe(appearance);
+    }
+
+    const withoutAppearance = parseBakedDashboard(minimalBaked);
+    expect(withoutAppearance.ok).toBe(true);
+    if (withoutAppearance.ok) expect(withoutAppearance.value.theme.appearance).toBeUndefined();
+
+    expect(
+      parseBakedDashboard({ ...minimalBaked, theme: { ...minimalBaked.theme, appearance: "sepia" } })
+        .ok,
+    ).toBe(false);
   });
 
   it("AB-4: authoring fields (sources/queries) are explicitly forbidden on a baked artifact", () => {
