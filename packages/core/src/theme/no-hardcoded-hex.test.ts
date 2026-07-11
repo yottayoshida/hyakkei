@@ -38,7 +38,12 @@ describe("no hardcoded hex colors outside palette.ts (plan §PR-A CI assert)", (
   const scanned = collectTsFiles(SRC_ROOT, "");
 
   it("scanned at least the known theme/ and datasource/ source files (sentinel -- a path-computation bug that scans zero files must not silently pass)", () => {
-    for (const expected of ["theme/palette.ts", "theme/echarts-theme.ts", "datasource/types.ts", "index.ts"]) {
+    for (const expected of [
+      "theme/palette.ts",
+      "theme/echarts-theme.ts",
+      "datasource/types.ts",
+      "index.ts",
+    ]) {
       expect(scanned, `expected ${expected} among scanned files`).toContain(expected);
     }
     expect(scanned.length).toBeGreaterThan(5);

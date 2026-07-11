@@ -166,7 +166,10 @@ export function resolveChartColors(palette: Palette, appearance: Appearance): Ch
         }
       : {
           primary: nearestStep(family, DARK_PRIMARY_STEP),
-          secondary: nearestStep(family, SECONDARY_STEP_OVERRIDE.dark?.[palette] ?? DARK_SECONDARY_STEP),
+          secondary: nearestStep(
+            family,
+            SECONDARY_STEP_OVERRIDE.dark?.[palette] ?? DARK_SECONDARY_STEP,
+          ),
           accent: nearestStep(YELLOW_ACCENT_FAMILY, ACCENT_STEP.dark),
           // design-tokens' Semantic.Error/Success have no dark-mode values
           // (none exist anywhere in the package, confirmed) and its own two
@@ -207,7 +210,11 @@ export function meetsGraphicContrastFloor(ratio: number): boolean {
 // reintroduces a sub-3:1 combination, this throws instead of silently
 // shipping it (the gap `/code-review` found in PR-0's spike code, where the
 // "fix" was a hardcoded constant nothing re-checked at call time).
-export function assertGraphicContrast(palette: Palette, appearance: Appearance, colors: ChartColors): void {
+export function assertGraphicContrast(
+  palette: Palette,
+  appearance: Appearance,
+  colors: ChartColors,
+): void {
   for (const role of ["primary", "secondary", "accent", "success", "error"] as const) {
     const ratio = contrastRatio(colors[role], colors.background);
     if (!meetsGraphicContrastFloor(ratio)) {

@@ -174,8 +174,10 @@ describe("BakedDashboard — adversarial shapes rejected", () => {
     if (withoutAppearance.ok) expect(withoutAppearance.value.theme.appearance).toBeUndefined();
 
     expect(
-      parseBakedDashboard({ ...minimalBaked, theme: { ...minimalBaked.theme, appearance: "sepia" } })
-        .ok,
+      parseBakedDashboard({
+        ...minimalBaked,
+        theme: { ...minimalBaked.theme, appearance: "sepia" },
+      }).ok,
     ).toBe(false);
   });
 
