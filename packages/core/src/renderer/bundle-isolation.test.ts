@@ -33,7 +33,7 @@ function assertNoForbiddenContent(result: esbuild.BuildResult<{ metafile: true }
   );
   expect(offendingPathSegments, `bundle graph: ${inputPaths.join(", ")}`).toEqual([]);
 
-  const bundleText = result.outputFiles[0]?.text ?? "";
+  const bundleText = result.outputFiles?.[0]?.text ?? "";
   const offendingMarkers = FORBIDDEN_MARKERS.filter((marker) => bundleText.includes(marker));
   expect(offendingMarkers, "forbidden markers found in bundled output text").toEqual([]);
 }
