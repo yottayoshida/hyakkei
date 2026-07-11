@@ -53,10 +53,10 @@ that finding 2 below describes fixing. The 70/70 result reported here is from th
 wiring — `chartOption()` now takes its primary/secondary/accent directly as parameters from
 `buildThemeColors()`'s output, with no independent fallback logic of its own.)*
 
-### 2. Contrast — 2 corrections made during the spike, 1 residual finding
+### 2. Contrast — 3 corrections made during the spike, 0 residual failures
 
 Initial pass (naive theme derivation) found **11/70 checks below the 3:1 graphic-object
-minimum** (WCAG SC1.4.11). Root-caused and fixed two of them structurally, not as one-off
+minimum** (WCAG SC1.4.11). Root-caused and fixed three of them structurally, not as one-off
 color swaps:
 
 - **Yellow accent step 600 (#D2A400) fails 3:1 against light background universally
@@ -81,19 +81,31 @@ color swaps:
   distance rather than insertion-order fallback (this is exactly the class of bug a shared
   `palette.ts` needs to be immune to for every future ramp that omits an expected step).
 
-**After fixes: 69/70 pass.** Residual: **cyan/light secondary (#00A3BF vs #F8F8FB) = 2.83:1**,
-just under 3:1 — cyan's 600-step is inherently mid-saturation and marginally low-contrast
-against near-white. Recommendation for PR-A: promote cyan's "secondary" role to its 900-step
-(darker, comfortably clears 3:1) rather than 600-step, or pair 600-step use with a decal/pattern
-whenever it stands alone as a graphic mark.
+**After the first two fixes: 69/70 pass.** The one residual was cyan's own: its 600-step
+secondary (#00A3BF vs #F8F8FB = 2.83:1) is inherently mid-saturation and marginally
+low-contrast against near-white.
+
+**Fixed during `/code-review` (2026-07-10), not left as a PR-A recommendation**: the first
+instinct — promote cyan's secondary to its 900-step, "darker, comfortably clears 3:1" — was
+measured before landing and found to be a worse regression than the failure it fixed: cyan's
+900-step is *exactly* what `nearestStep(ramp, 900)` already picks as **primary**, so promoting
+secondary to 900 would make primary and secondary the literal same color for every viewer, not
+merely close under simulated color-blindness. Cyan's 1200-step (#003741) measures **12.21:1**
+against the light background — clears 3:1 with wide margin and is a distinct color from
+primary — and is what `derive-theme.mjs`'s `SECONDARY_STEP_OVERRIDE` now uses. **After all
+three fixes: 70/70 pass, 0 residual WCAG failures.** `buildThemeColors()` also now asserts
+(throws, not just documents) that every derived primary/secondary/accent clears 3:1 against
+its background at the point of use — a future key, ramp, or background change that
+reintroduces a sub-3:1 combination fails loudly instead of shipping silently.
 
 Full 70-row contrast table and 126-row dichromacy table: `spikes/charts/output/measurements.json`.
 
 ### 3. Dichromacy (color-blindness) — decal is load-bearing, not decorative
 
-7 of 126 checked pairs (primary/secondary/accent trio, 3 CVD types, 7 keys × 2 appearances)
+6 of 126 checked pairs (primary/secondary/accent trio, 3 CVD types, 7 keys × 2 appearances)
 flagged as likely indistinguishable (simulated-RGB distance < 40, a coarse spike-level
-threshold — not a validated psychophysical cutoff):
+threshold — not a validated psychophysical cutoff; table re-measured after the cyan secondary
+fix in finding 2 — full data: `spikes/charts/output/measurements.json`):
 
 | Key | Appearance | CVD type | Pair | Distance |
 |-----|-----------|----------|------|----------|
@@ -103,7 +115,6 @@ threshold — not a validated psychophysical cutoff):
 | orange | dark | tritanopia | primary vs secondary | 38 |
 | red | light | tritanopia | secondary vs accent | 11 |
 | lightBlue | light | tritanopia | primary vs secondary | 38 |
-| cyan | light | tritanopia | primary vs secondary | 38 |
 
 **Orange under deuteranopia (the most common color-vision deficiency) is a near-total
 collision** — its 600-step orange and the shared yellow accent become almost the same
@@ -130,8 +141,11 @@ precautionary.
 `aria: {enabled: true}` produces a real, readable `aria-label` on the chart's DOM element,
 including Japanese category names and values correctly:
 
-> "This is a chart with type Pie chart. The data is as follows: the data for 申請受理 is 120,
+> "This is a chart with type Pie chart.The data is as follows: the data for 申請受理 is 120,
 > the data for 審査中 is 45, the data for 却下 is 12."
+>
+> (verbatim, including the missing space after "chart." — that's ECharts' own AriaComponent
+> output, not a transcription artifact; persisted in `spikes/charts/output/aria-perf.json`)
 
 No mangling of CJK text observed. This is ECharts' built-in `AriaComponent` (not custom code) —
 free to use, needs to be turned on explicitly (`aria.enabled` defaults to off).
@@ -144,11 +158,14 @@ needs to enable it unconditionally per finding 3/4, not leave it opt-in.
 
 ### 7. SVG performance — fast at typical chart scale
 
-5,000-point scatter chart: **~37–39ms** across repeated local runs (persisted:
-`spikes/charts/output/aria-perf.json`) from `setOption()` call to ECharts' own `finished` event
-(actual render-complete signal, not just the synchronous call returning). Well within an
-interactive budget; the small run-to-run variance is expected for real-browser timing and
-doesn't change the conclusion. This was sampled at 5,000 points as representative of a plausible
+5,000-point scatter chart: **29.8–37.4ms (mean 32.1ms) across 5 repeated local runs** —
+persisted as actual samples, not a single number (`spikes/charts/output/aria-perf.json`,
+written by `run-aria-perf.mjs`, which now runs the measurement 5× per invocation after
+`/code-review` found the original "~37-39ms across repeated runs" claim was backed by only one
+persisted sample) — from `setOption()` call to ECharts' own `finished` event (actual
+render-complete signal, not just the synchronous call returning). Well within an interactive
+budget; the run-to-run variance is expected for real-browser timing and doesn't change the
+conclusion. This was sampled at 5,000 points as representative of a plausible
 single-chart row count, not as an exhaustive stress test — full large-data behavior (closer to
 the M0 DuckDB spike's 100MB-CSV scale) is a production-perf question for M3, out of this
 spike's scope.
@@ -165,10 +182,20 @@ only 2 of the 3 labels in the SVG's `<text>` elements — the middle one vanishe
 `ChartOptions.xAxisLabelRotate`, common.ts) restores all 3 labels. `render-svg.mjs` now applies
 this for every category-axis chart type; all 70 fidelity checks still pass with it applied.
 
+**Regression-guarded, not just documented (added in `/code-review`, 2026-07-10)**: the initial
+version of this spike verified only that requested *hex colors* appeared in the rendered SVG
+— it never checked that expected *label text* appeared, so a regression that silently dropped
+the `interval: 0` fix would still have reported "70/70 pass." `render-svg.mjs` now also asserts
+every expected category-label string is present in the SVG's `<text>` content for every
+category-axis chart. Verified this actually catches the bug it's meant to catch: reverting the
+fix locally reproduced 42/70 label failures (exactly the bar/line/area category-axis variants,
+exactly the silently-dropped-label bug), confirming the guard is load-bearing, not decorative.
+
 **Requirement for PR-B**: `buildOptions` must always set `axisLabel.interval` explicitly
 (never inherit ECharts' `'auto'` default) for any category axis that can carry CJK text — this
 is not a cosmetic preference, it's the difference between "long labels wrap or rotate" and
-"long labels silently disappear with no error."
+"long labels silently disappear with no error." PR-B's own golden/unit tests should carry
+forward an equivalent label-presence assertion, not just a config-value assertion.
 
 ### 9. Font — system stack for product, bundled font for CI only
 
@@ -188,16 +215,21 @@ PR-C doesn't rediscover this as a golden-flake mystery.
 
 ## GO / NO-GO
 
-**(a) ECharts capability — GO.** Exact hex fidelity 70/70, contrast 69/70 (1 residual noted,
-not blocking), CJK labels correctly render without clipping *given the config fix in finding
-8* (documented as a PR-B requirement, not an ECharts limitation). ADR-0004's chart-library row
-moves from provisional to **Accepted**, no Vega-Lite evaluation triggered.
+**(a) ECharts capability — GO.** Exact hex fidelity 70/70, contrast 70/70 (0 residual — the
+cyan finding in §2 was fixed, not just documented), CJK labels correctly render without
+clipping *given the config fix in finding 8*, which is now itself regression-guarded — see
+finding 8's update — not just a PR-B reminder. ADR-0004's chart-library row moves from
+provisional to **Accepted**, no Vega-Lite evaluation triggered.
 
 **(b) Palette semantics — CONDITIONAL GO.** The 7-key-template structure (not "7-color
 categorical", not "single-hue ramp + red accent" — see amendments below) is confirmed with
-good source-data confidence, sufficient to unblock PR-A. One open point (Cyan/Green mutual
-accent vs shared-Yellow accent) needs a two-minute human visual check before `palette.ts`
-locks in its accent-color source of truth — flagged above, not blocking PR-A's start.
+good source-data confidence, sufficient to unblock PR-A. **One point remains genuinely open,
+not yet resolved by anything in this report or its `/code-review` follow-up**: whether Cyan
+and Green's categorical accent is a shared Yellow ramp or whether they accent each other (§
+"Source-data confidence caveat" above) — this needs a two-minute human visual check of the
+live color-code page before `palette.ts` locks in its accent-color source of truth. Downstream
+docs (ROADMAP, PRD, ADR-0006) must not describe this point as settled until that check happens
+— an earlier draft of those three did exactly that and was corrected in `/code-review`.
 
 ## Required document corrections (this PR's scope)
 
