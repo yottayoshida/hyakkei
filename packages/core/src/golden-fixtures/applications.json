@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "行政手続き申請状況（令和8年度）",
+    "locale": "ja",
+    "description": "行政手続きの申請件数を区分別・月次に集計し、当月の総数と合わせて示すダッシュボード。"
+  },
+  "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-blue" },
+  "sources": [
+    {
+      "id": "apps",
+      "kind": "file",
+      "format": "xlsx",
+      "ref": { "name": "applications_r8.xlsx", "sheet": "申請状況" }
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-category",
+      "source": "apps",
+      "sql": "SELECT category, COUNT(*) AS count FROM apps GROUP BY category"
+    },
+    {
+      "id": "q-monthly",
+      "source": "apps",
+      "sql": "SELECT month, COUNT(*) AS count FROM apps GROUP BY month ORDER BY month"
+    },
+    { "id": "q-total", "source": "apps", "sql": "SELECT COUNT(*) AS count FROM apps" }
+  ],
+  "charts": [
+    {
+      "id": "app-category",
+      "type": "bar",
+      "encoding": { "x": "category", "y": "count" },
+      "query": "q-category",
+      "options": { "title": "区分別申請件数" }
+    },
+    {
+      "id": "app-monthly",
+      "type": "line",
+      "encoding": { "x": "month", "y": "count" },
+      "query": "q-monthly",
+      "options": { "title": "月次申請件数推移" }
+    },
+    {
+      "id": "app-total",
+      "type": "stat",
+      "encoding": { "value": "count" },
+      "query": "q-total",
+      "options": { "title": "今月の申請総数" }
+    }
+  ],
+  "layout": {
+    "grid": "guidebook-12col",
+    "items": [
+      { "chart": "app-category", "x": 0, "y": 0, "w": 6, "h": 4 },
+      { "chart": "app-monthly", "x": 6, "y": 0, "w": 6, "h": 4 },
+      { "chart": "app-total", "x": 0, "y": 4, "w": 4, "h": 2 }
+    ]
+  }
+}

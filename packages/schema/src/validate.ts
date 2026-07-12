@@ -16,6 +16,24 @@ const validateBakedDashboardSchema: ValidateFunction<BakedDashboardT> = ajv.comp
 export type ParseResult<T> =
   { ok: true; value: T } | { ok: false; reason: string; errors?: ErrorObject[] };
 
+/**
+ * `result.reason` alone is a single generic line ("schema validation
+ * failed") for most Ajv failures -- the per-field detail lives in
+ * `result.errors`. Uses Ajv's own `errorsText` (not a hand-rolled
+ * map/join) so every caller formats failures identically (/simplify,
+ * reuse finding).
+ *
+ * The parameter is `Extract<ParseResult<unknown>, { ok: false }>`, not an
+ * independently hand-typed `{ok:false, reason, errors?}` literal (/code-
+ * review finding) -- if `ParseResult`'s false branch ever gains a field,
+ * this signature tracks it automatically instead of silently accepting any
+ * object that merely happens to have the same shape today.
+ */
+export function formatParseFailure(result: Extract<ParseResult<unknown>, { ok: false }>): string {
+  const detail = result.errors?.length ? ajv.errorsText(result.errors) : undefined;
+  return `${result.reason}${detail ? ` (${detail})` : ""}`;
+}
+
 function checkVersion(doc: unknown): string | undefined {
   if (typeof doc !== "object" || doc === null || !("version" in doc)) {
     return "missing required field 'version'";

@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "地域データ分析（人口動態）",
+    "locale": "ja",
+    "description": "地域別の人口密度・高齢化率と人口規模を示すダッシュボード。"
+  },
+  "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-neutral" },
+  "sources": [
+    {
+      "id": "regions",
+      "kind": "file",
+      "format": "csv",
+      "ref": { "name": "regions_population.csv" }
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-density",
+      "source": "regions",
+      "sql": "SELECT density, aging_rate AS agingRate, population / 5000 AS markerSize FROM regions"
+    },
+    { "id": "q-population", "source": "regions", "sql": "SELECT name, population FROM regions" }
+  ],
+  "charts": [
+    {
+      "id": "regional-density",
+      "type": "scatter",
+      "encoding": { "x": "density", "y": "agingRate", "size": "markerSize" },
+      "query": "q-density",
+      "options": { "title": "人口密度と高齢化率" }
+    },
+    {
+      "id": "regional-population",
+      "type": "bar",
+      "encoding": { "x": "name", "y": "population" },
+      "query": "q-population",
+      "options": { "title": "地域別人口" }
+    }
+  ],
+  "layout": {
+    "grid": "guidebook-12col",
+    "items": [
+      { "chart": "regional-density", "x": 0, "y": 0, "w": 7, "h": 5 },
+      { "chart": "regional-population", "x": 7, "y": 0, "w": 5, "h": 5 }
+    ]
+  }
+}
