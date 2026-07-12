@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "予算執行実績（第１四半期）",
+    "locale": "ja",
+    "description": "第１四半期の予算執行率・費目別内訳・明細を示すダッシュボード。"
+  },
+  "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-orange" },
+  "sources": [
+    {
+      "id": "budget",
+      "kind": "file",
+      "format": "csv",
+      "ref": { "name": "budget_2026_q1.csv", "encoding": "shift_jis" }
+    }
+  ],
+  "queries": [
+    { "id": "q-rate", "source": "budget", "sql": "SELECT month, rate FROM budget ORDER BY month" },
+    { "id": "q-breakdown", "source": "budget", "sql": "SELECT item, amount FROM budget" },
+    { "id": "q-detail", "source": "budget", "sql": "SELECT item, budget, actual FROM budget" }
+  ],
+  "charts": [
+    {
+      "id": "budget-rate",
+      "type": "area",
+      "encoding": { "x": "month", "y": "rate" },
+      "query": "q-rate",
+      "options": { "title": "執行率推移（％）" }
+    },
+    {
+      "id": "budget-breakdown",
+      "type": "pie",
+      "encoding": { "category": "item", "value": "amount" },
+      "query": "q-breakdown",
+      "options": { "title": "費目別内訳", "legend": { "show": true, "position": "right" } }
+    },
+    {
+      "id": "budget-detail",
+      "type": "table",
+      "encoding": { "columns": ["item", "budget", "actual"] },
+      "query": "q-detail",
+      "options": { "title": "第１四半期 明細" }
+    }
+  ],
+  "layout": {
+    "grid": "guidebook-12col",
+    "items": [
+      { "chart": "budget-rate", "x": 0, "y": 0, "w": 6, "h": 4 },
+      { "chart": "budget-breakdown", "x": 6, "y": 0, "w": 6, "h": 4 },
+      { "chart": "budget-detail", "x": 0, "y": 4, "w": 12, "h": 3 }
+    ]
+  }
+}
