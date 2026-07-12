@@ -10,6 +10,7 @@
     "build": "pnpm -r run build",
     "test": "pnpm run build && pnpm -r run test",
     "test:e2e": "playwright test",
+    "test:e2e:pixel-golden": "docker run --rm --platform linux/amd64 -v \"$(pwd)\":/work -w /work/e2e $(node -p \"'mcr.microsoft.com/playwright:v'+require('@playwright/test/package.json').version+'-noble'\") npx playwright test --config=pixel-golden.config.ts",
     "typecheck": "tsc --build && tsc -p tsconfig.tools.json",
     "lint": "eslint .",
     "format": "prettier --check .",
@@ -24,6 +25,7 @@
     "eslint": "^9.17.0",
     "eslint-plugin-react": "^7.37.5",
     "prettier": "^3.4.0",
+    "serve": "14.2.6",
     "typescript": "catalog:"
   }
 }

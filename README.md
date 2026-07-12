@@ -24,6 +24,26 @@ Early design phase. Nothing to run yet. Design documents — PRD, roadmap, archi
 - **v0.x** — Template gallery, embed tags, print layouts — growing while staying browser-complete.
 - **v1.0** — Teams can operate dashboards connected to live data sources (databases, APIs, scheduled refresh) behind their own identity provider. Authentication stays outside the app (IAP, oauth2-proxy, etc.).
 
+## Development
+
+```bash
+pnpm install
+pnpm run build
+pnpm run test        # unit tests (schema/core/app)
+pnpm run test:e2e    # browser matrix (chromium/firefox/webkit)
+```
+
+The renderer's regression suite is golden-based: SVG-snapshot tests (`packages/core/src/renderer/__golden__/`) pin the rendered output of 3 sample dashboards across all 7 chart types, both light/dark appearance, and all 7 guidebook palettes. A Docker-based pixel-diff layer (`pnpm run test:e2e:pixel-golden`) additionally checks 2 representative palettes as a final visual smoke test.
+
+**Updating a golden after an intentional rendering change:**
+
+```bash
+pnpm --filter @hyakkei/core test -- -u   # SVG snapshots (packages/core/src/renderer/__golden__/__snapshots__/)
+pnpm run test:e2e:pixel-golden -- --update-snapshots   # pixel baselines (e2e/pixel-golden/__screenshots__/)
+```
+
+**Never regenerate the pixel baseline outside `pnpm run test:e2e:pixel-golden`.** The comparison (`maxDiffPixelRatio: 0`) tolerates zero already-different pixels — it is not a literal byte-for-byte file comparison, but for a fixed renderer/font environment it behaves just as strictly, so the baseline must come from the same CPU architecture CI runs on (linux/amd64) and the same pinned `mcr.microsoft.com/playwright` image — the script always passes `--platform linux/amd64` to Docker for this reason (a no-op on an amd64 CI runner, real QEMU emulation on e.g. an Apple Silicon dev machine, but either way the exact same instruction path CI uses). A baseline generated any other way (a bare `docker run` without that flag, `vite preview` + a host browser, etc.) can silently commit a PNG that fails CI's comparison.
+
 ## Disclaimer
 
 Hyakkei is a community project. It is not affiliated with or endorsed by the Digital Agency of Japan.

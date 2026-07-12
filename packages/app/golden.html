@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hyakkei golden harness</title>
+  </head>
+  <body>
+    <!--
+      PR-C pixel-golden/narrow-viewport harness entry -- a SEPARATE Vite
+      build input from index.html (see vite.config.ts), so this page's
+      bake()/golden-fixtures imports never reach index.html's real-app
+      bundle (/simplify Altitude finding). Never linked from index.html;
+      reached only via e2e/pixel-golden and e2e/golden-narrow-viewport.spec.ts.
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/golden-main.tsx"></script>
+  </body>
+</html>
