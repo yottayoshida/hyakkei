@@ -15,9 +15,19 @@ export interface EgressPolicyOptions {
   fetch?: typeof fetch;
   /** Aborts a hung request. Default 30s — generous for a same-origin CSV/Parquet fetch, short enough that a stalled connection surfaces as a catchable error rather than a silently-spinning UI (plan's OOM/hang-catchability requirement). */
   timeoutMs?: number;
+  /**
+   * Response-size ceiling in bytes. Default 256 MiB — over twice the 100 MB
+   * CSV envelope M0 measured as practical, so it never blocks a legitimate
+   * load; its job is turning "multi-GB same-origin file" into a catchable
+   * `DataSourceError('too-large')` instead of an unbounded `arrayBuffer()`
+   * allocation that kills the tab before any error UI (#44) can run
+   * (issue #67).
+   */
+  maxBytes?: number;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_MAX_BYTES = 256 * 1024 * 1024;
 
 /**
  * Resolves `url` against `base` (when given) and re-validates the *result's*
@@ -47,6 +57,57 @@ function parseAgainst(url: string, base: string | undefined): URL {
 }
 
 /**
+ * Reads a response body under a byte ceiling. A `content-length` header
+ * (when the server sends one) fails fast before any allocation, but the
+ * streaming count is the enforcement that actually holds — the header is
+ * optional and unauthenticated (chunked encoding, or a lying server, simply
+ * omits or fakes it). Without this cap the `'too-large'`
+ * `DataSourceErrorKind` was unreachable from the egress layer:
+ * `arrayBuffer()` buffers unboundedly, so a multi-GB same-origin file killed
+ * the tab with a browser OOM before any typed error the editor's error UI
+ * (#44) could catch (issue #67).
+ */
+async function readBodyCapped(response: Response, maxBytes: number): Promise<Uint8Array> {
+  const tooLarge = () =>
+    new DataSourceError("too-large", `response body exceeds the ${maxBytes}-byte limit`);
+
+  const declared = Number(response.headers?.get("content-length") ?? Number.NaN);
+  if (Number.isFinite(declared) && declared > maxBytes) throw tooLarge();
+
+  // A `Response` with no body stream (some fetch test doubles, or a bodyless
+  // status) can't stream-count; the post-read check still bounds what this
+  // function *returns*, and real `fetch` responses always expose the stream.
+  const reader = response.body?.getReader();
+  if (!reader) {
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > maxBytes) throw tooLarge();
+    return bytes;
+  }
+
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.byteLength;
+    if (received > maxBytes) {
+      // Stop pulling bytes off the wire before throwing — the point of the
+      // cap is bounding allocation, not just reporting after the fact.
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+/**
  * The one place a `UrlSource` (or a future snapshot `ProxySource`) is
  * allowed to touch the network (plan D3, ARCHITECTURE §6). Every check here
  * runs on the *parsed* `URL`, never the raw string — `startsWith` matching
@@ -55,7 +116,12 @@ function parseAgainst(url: string, base: string | undefined): URL {
  * verified against Node's `URL` implementation in this PR's PoC).
  */
 export function createEgressPolicy(options: EgressPolicyOptions = {}): EgressPolicy {
-  const { selfOrigin, fetch: fetchImpl = fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+  const {
+    selfOrigin,
+    fetch: fetchImpl = fetch,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    maxBytes = DEFAULT_MAX_BYTES,
+  } = options;
 
   return {
     async fetchBytes(url: string): Promise<Uint8Array> {
@@ -98,9 +164,14 @@ export function createEgressPolicy(options: EgressPolicyOptions = {}): EgressPol
         // confidentiality/integrity regression, not a fix. Name the actual
         // cause in the error rather than leaving it looking like a generic
         // config mistake.
+        // `startsWith("http://")`, not `!startsWith("https://")`: the hint is
+        // about one specific deployment (an editor actually served over plain
+        // http). The deny-all configuration (`selfOrigin: ""`, EG-A11) also
+        // fails the negated check, which used to mis-blame the editor's TLS
+        // setup for a block that is deny-all by configuration (issue #62).
         const schemeMismatch =
           selfOrigin !== undefined &&
-          !selfOrigin.startsWith("https://") &&
+          selfOrigin.startsWith("http://") &&
           parsed.protocol === "https:";
         const hint = schemeMismatch
           ? ` (this editor is not served over https — UrlSource requires both the editor and the target to be https, so no same-host URL can pass; see ADR-0007)`
@@ -154,7 +225,7 @@ export function createEgressPolicy(options: EgressPolicyOptions = {}): EgressPol
             `fetch failed: ${response.status} ${response.statusText}`,
           );
         }
-        return new Uint8Array(await response.arrayBuffer());
+        return await readBodyCapped(response, maxBytes);
       } catch (cause) {
         if (cause instanceof DataSourceError) throw cause;
         if (controller.signal.aborted) {
