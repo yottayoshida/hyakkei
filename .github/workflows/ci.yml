@@ -8,6 +8,34 @@ on:
 permissions:
   contents: read
 
+# #71 (audit round 2, refined by Codex round-2 review P1-1): PR pushes
+# (force-push amend, or successive commits on the same branch) cancel their
+# own in-flight run so CI capacity isn't spent on a superseded diff. `main`
+# pushes never cancel or supersede each other -- this repo's squash-merge
+# workflow means every `main` push is a distinct, intentional merge commit
+# whose CI result we always want to keep.
+#
+# `cancel-in-progress: false` alone is NOT sufficient for that guarantee: it
+# only protects a *currently running* job. GitHub's concurrency queuing also
+# keeps at most one *pending* run per group and silently replaces an older
+# pending run with a newer one in the same group, regardless of
+# `cancel-in-progress` (https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
+# With a single `ci-${{ github.ref }}` group shared by every `main` push,
+# rapid successive pushes could still leave an intermediate merge commit's
+# run queued-then-replaced, unverified.
+#
+# Fix: give every `push` event (main) its own group via `github.sha`, which
+# is unique per commit -- so no two `main` runs ever share a group and there
+# is nothing for GitHub to replace. `pull_request` events keep sharing a
+# group per branch (`github.head_ref`) so that superseded PR commits still
+# cancel each other as intended.
+# `github.head_ref` is empty on `push` events (that's specifically why the
+# original version fell back to `github.ref` for those events) -- so this
+# expression only uses `head_ref` when the event actually provides it.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -45,8 +73,23 @@ jobs:
           path: packages/app/dist
           retention-days: 1
 
+      # #71 (audit round 2): call `pnpm -r run test` directly rather than
+      # the root `test` script (`pnpm run build && pnpm -r run test`) --
+      # the "Build" step above already ran `pnpm run build` for this same
+      # commit, so re-running it inside this step was a third, redundant
+      # full build (confirmed empirically: "Typecheck"'s `tsc --build`
+      # above is itself a composite-project build that emits `dist/`, not
+      # a `--noEmit` check, so before this fix a single CI run built
+      # every package three times over -- Typecheck, Build, and again
+      # inside the old `pnpm run test`). The root `test` script itself is
+      # intentionally left as-is (package.json) for local
+      # self-containedness: `pnpm test` from a clean checkout must build
+      # first because `packages/app`'s test suite imports
+      # `packages/core`'s built `dist/` output, not its `src/`. Do NOT
+      # reorder this step to run before "Build" above -- app tests depend
+      # on the core dist/ that Build produces.
       - name: Unit tests
-        run: pnpm run test
+        run: pnpm -r run test
 
       - name: Get Playwright version
         id: playwright-version
