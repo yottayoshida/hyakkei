@@ -130,4 +130,39 @@ describe("bake()", () => {
       expect(baked.charts[0]?.rows, query).toEqual([]);
     }
   });
+
+  it("issue #56: a configured chart sharing an id with an unconfigured one survives, with its layout item", () => {
+    // Duplicate ids are schema-parseable (validate* is advisory) — an
+    // id-keyed skip set used to drop BOTH charts and the layout item,
+    // silently emptying the baked artifact where the editor showed a tile.
+    const docWithDuplicateId: Dashboard = {
+      ...doc,
+      charts: [
+        {
+          id: "kpi",
+          type: "bar",
+          encoding: { x: "category", y: "total" },
+          query: "q1",
+          options: {},
+        },
+        { id: "kpi", type: "bar", encoding: { x: "category", y: "total" }, options: {} },
+      ],
+      layout: { grid: "guidebook-12col", items: [{ chart: "kpi", x: 0, y: 0, w: 6, h: 4 }] },
+    };
+    const baked = bake(docWithDuplicateId, resolvedRows, meta);
+    expect(baked.charts.map((c) => c.id)).toEqual(["kpi"]);
+    expect(baked.charts[0]?.rows).toEqual([{ category: "A", total: 120 }]);
+    expect(baked.layout.items.map((i) => i.chart)).toEqual(["kpi"]);
+  });
+
+  it("issue #66: post-bake mutation of resolvedRows does not rewrite the baked snapshot", () => {
+    // A BakedDashboard is pinned to meta.sourceDataAsOf; the M2 editor
+    // re-running queries into the same resolvedRows entry must not
+    // retroactively change an already-baked artifact.
+    const liveRows = { q1: [{ category: "A", total: 120 }] };
+    const baked = bake(doc, liveRows, meta);
+    liveRows.q1.push({ category: "B", total: 999 }); // array mutation
+    liveRows.q1[0]!.total = -1; // row-object mutation
+    expect(baked.charts[0]?.rows).toEqual([{ category: "A", total: 120 }]);
+  });
 });

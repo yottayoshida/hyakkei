@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MAX_LAYOUT_Y } from "./common.js";
 import { parseBakedDashboard, validateBakedDashboardReferences } from "./validate.js";
 
 // Samples B1/B2/B3 from .claude/plans/2026-07-04-hyakkei-v0.1-pr-issue6-shapes.md
@@ -226,6 +227,113 @@ describe("BakedDashboard — adversarial shapes rejected", () => {
         items: [
           { chart: "c1", x: 0, y: 0, w: 6, h: 4 },
           { chart: "c3", x: 3, y: 2, w: 6, h: 4 }, // overlaps c1
+        ],
+      },
+    };
+    const result = parseBakedDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateBakedDashboardReferences(result.value);
+      expect(issues.some((i) => i.kind === "overlap")).toBe(true);
+    }
+  });
+
+  // Issue #73: on the baked side the data is inline, so "encoding names a
+  // column no row carries" is decidable — the exact "passes schema validation
+  // but renders blank/NaN" class validateBakedDashboardReferences exists for.
+  it("issue #73: an encoding column present in none of the rows is flagged as 'missing-column'", () => {
+    const doc = {
+      ...minimalBaked,
+      charts: [{ ...minimalBaked.charts[0], rows: [{ cat: "A", tot: 1 }] }],
+    };
+    const result = parseBakedDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateBakedDashboardReferences(result.value);
+      // encoding is {x:'category', y:'total'} — both miss
+      expect(issues.filter((i) => i.kind === "missing-column")).toHaveLength(2);
+      expect(issues.map((i) => i.message).join("\n")).toMatch(/'category'/);
+    }
+  });
+
+  it("issue #73: empty rows carry no column information and are not flagged", () => {
+    const doc = { ...minimalBaked, charts: [{ ...minimalBaked.charts[0], rows: [] }] };
+    const result = parseBakedDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateBakedDashboardReferences(result.value);
+      expect(issues.some((i) => i.kind === "missing-column")).toBe(false);
+    }
+  });
+
+  it("issue #73: a column present in only some rows is not flagged (union across rows, sparse data is legal)", () => {
+    const doc = {
+      ...minimalBaked,
+      charts: [
+        { ...minimalBaked.charts[0], rows: [{ category: "A" }, { category: "B", total: 90 }] },
+      ],
+    };
+    const result = parseBakedDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateBakedDashboardReferences(result.value);
+      expect(issues.some((i) => i.kind === "missing-column")).toBe(false);
+    }
+  });
+
+  it("issue #73: table 'columns' encoding is checked per column name", () => {
+    const doc = {
+      ...fullBaked,
+      charts: [
+        fullBaked.charts[0],
+        {
+          ...fullBaked.charts[1],
+          encoding: { columns: ["dept", "vanished"] },
+        },
+      ],
+    };
+    const result = parseBakedDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateBakedDashboardReferences(result.value);
+      const missing = issues.filter((i) => i.kind === "missing-column");
+      expect(missing).toHaveLength(1);
+      expect(missing[0]?.message).toMatch(/'vanished'/);
+    }
+  });
+
+  // Issue #59: y/h used to be unbounded, and at y=2^53 rectsOverlap's float
+  // addition (`2^53 + 1 === 2^53`) let two fully coincident tiles pass
+  // overlap detection. The schema maxima make that input unrepresentable...
+  it("issue #59: y beyond MAX_LAYOUT_Y (the old float-precision window) fails schema validation", () => {
+    const doc = {
+      ...minimalBaked,
+      layout: {
+        grid: "guidebook-12col",
+        items: [{ chart: "c1", x: 0, y: 9007199254740992, w: 6, h: 1 }],
+      },
+    };
+    expect(parseBakedDashboard(doc).ok).toBe(false);
+    const atLimit = {
+      ...minimalBaked,
+      layout: {
+        grid: "guidebook-12col",
+        items: [{ chart: "c1", x: 0, y: MAX_LAYOUT_Y, w: 6, h: 1 }],
+      },
+    };
+    expect(parseBakedDashboard(atLimit).ok).toBe(true);
+  });
+
+  // ...and inside the representable range, addition is integer-exact, so the
+  // original bug scenario (coincident tiles) is detected even at the ceiling.
+  it("issue #59: coincident tiles at the maximum y are flagged as overlap", () => {
+    const doc = {
+      ...fullBaked,
+      layout: {
+        grid: "guidebook-12col",
+        items: [
+          { chart: "c1", x: 0, y: MAX_LAYOUT_Y, w: 6, h: 1 },
+          { chart: "c3", x: 0, y: MAX_LAYOUT_Y, w: 6, h: 1 },
         ],
       },
     };
