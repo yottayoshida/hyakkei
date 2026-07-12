@@ -1,0 +1,1601 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden sample: 'applications' > appearance: dark > authoring path SVG matches golden snapshot 1`] = `
+{
+  "app-category": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">90</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">150</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(97.50 228)" y="6">建築確認</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(172.50 228)" y="6">農地転用</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(247.50 228)" y="6">廃棄物処理</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(322.50 228)" y="6">その他</text>
+<path class="ID1" d="M71.60 220l51.80 0l0 -132.30l-51.70 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M71.60 220l51.80 0l0 -132.30l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M146.60 220l51.80 0l0 -48.60l-51.70 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M146.60 220l51.80 0l0 -48.60l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M221.60 220l51.80 0l0 -65.10l-51.70 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M221.60 220l51.80 0l0 -65.10l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M296.60 220l51.80 0l0 -22.70l-51.70 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M296.60 220l51.80 0l0 -22.70l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-68 -5l136 0l0 28l-136 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別申請件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(123,165,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+  "app-monthly": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 198.50L360 198.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 175.50L360 175.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 153.50L360 153.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 131.50L360 131.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 109.50L360 109.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 87.50L360 87.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 197.86)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 175.71)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 153.57)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 131.43)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 109.29)">50</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 87.14)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">70</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(85 228)" y="6">令和8年4月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(135 228)" y="6">令和8年5月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(185 228)" y="6">令和8年6月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(235 228)" y="6">令和8年7月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(285 228)" y="6">令和8年8月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(335 228)" y="6">令和8年9月</text>
+<g clip-path="url(#ID1)">
+<path class="ID2" d="M85 107.10L135 82.70L185 91.60L235 65L285 122.60L335 73.90" fill="none" pointer-events="visible" stroke="#7096f8" stroke-linejoin="bevel" stroke-width="2"></path>
+</g>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,85,107.07)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,135,82.71)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,185,91.57)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,235,65)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="4" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,285,122.57)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="5" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,335,73.86)"></path>
+<path class="ID0" d="M-77 -5l154 0l0 28l-154 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">月次申請件数推移</text>
+<defs >
+<clipPath id="ID1">
+<path class="ID4" d="M59 64l302 0l0 157l-302 0Z" fill="#000"></path>
+</clipPath>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID4:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.ID2:hover {
+cursor:pointer;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'applications' > appearance: dark > authoring→bake→baked path SVG matches golden snapshot 1`] = `
+{
+  "app-category": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">90</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">150</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(97.50 228)" y="6">建築確認</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(172.50 228)" y="6">農地転用</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(247.50 228)" y="6">廃棄物処理</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(322.50 228)" y="6">その他</text>
+<path class="ID1" d="M71.60 220l51.80 0l0 -132.30l-51.70 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M71.60 220l51.80 0l0 -132.30l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M146.60 220l51.80 0l0 -48.60l-51.70 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M146.60 220l51.80 0l0 -48.60l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M221.60 220l51.80 0l0 -65.10l-51.70 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M221.60 220l51.80 0l0 -65.10l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M296.60 220l51.80 0l0 -22.70l-51.70 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M296.60 220l51.80 0l0 -22.70l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-68 -5l136 0l0 28l-136 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別申請件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(123,165,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+  "app-monthly": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 198.50L360 198.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 175.50L360 175.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 153.50L360 153.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 131.50L360 131.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 109.50L360 109.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 87.50L360 87.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 197.86)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 175.71)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 153.57)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 131.43)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 109.29)">50</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 87.14)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">70</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(85 228)" y="6">令和8年4月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(135 228)" y="6">令和8年5月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(185 228)" y="6">令和8年6月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(235 228)" y="6">令和8年7月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(285 228)" y="6">令和8年8月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(335 228)" y="6">令和8年9月</text>
+<g clip-path="url(#ID1)">
+<path class="ID2" d="M85 107.10L135 82.70L185 91.60L235 65L285 122.60L335 73.90" fill="none" pointer-events="visible" stroke="#7096f8" stroke-linejoin="bevel" stroke-width="2"></path>
+</g>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,85,107.07)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,135,82.71)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,185,91.57)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,235,65)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="4" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,285,122.57)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="5" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#7096f8" stroke-width="0.67" transform="matrix(3,0,0,3,335,73.86)"></path>
+<path class="ID0" d="M-77 -5l154 0l0 28l-154 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">月次申請件数推移</text>
+<defs >
+<clipPath id="ID1">
+<path class="ID4" d="M59 64l302 0l0 157l-302 0Z" fill="#000"></path>
+</clipPath>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID4:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.ID2:hover {
+cursor:pointer;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'applications' > appearance: light > authoring path SVG matches golden snapshot 1`] = `
+{
+  "app-category": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">90</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">150</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(97.50 228)" y="6">建築確認</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(172.50 228)" y="6">農地転用</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(247.50 228)" y="6">廃棄物処理</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(322.50 228)" y="6">その他</text>
+<path class="ID1" d="M71.60 220l51.80 0l0 -132.30l-51.70 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M71.60 220l51.80 0l0 -132.30l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M146.60 220l51.80 0l0 -48.60l-51.70 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M146.60 220l51.80 0l0 -48.60l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M221.60 220l51.80 0l0 -65.10l-51.70 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M221.60 220l51.80 0l0 -65.10l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M296.60 220l51.80 0l0 -22.70l-51.70 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M296.60 220l51.80 0l0 -22.70l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-68 -5l136 0l0 28l-136 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別申請件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(0,25,212,1);
+}
+
+]]>
+
+</style>
+</svg>",
+  "app-monthly": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 198.50L360 198.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 175.50L360 175.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 153.50L360 153.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 131.50L360 131.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 109.50L360 109.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 87.50L360 87.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 197.86)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 175.71)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 153.57)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 131.43)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 109.29)">50</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 87.14)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">70</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(85 228)" y="6">令和8年4月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(135 228)" y="6">令和8年5月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(185 228)" y="6">令和8年6月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(235 228)" y="6">令和8年7月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(285 228)" y="6">令和8年8月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(335 228)" y="6">令和8年9月</text>
+<g clip-path="url(#ID1)">
+<path class="ID2" d="M85 107.10L135 82.70L185 91.60L235 65L285 122.60L335 73.90" fill="none" pointer-events="visible" stroke="#0017c1" stroke-linejoin="bevel" stroke-width="2"></path>
+</g>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,85,107.07)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,135,82.71)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,185,91.57)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,235,65)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="4" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,285,122.57)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="5" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,335,73.86)"></path>
+<path class="ID0" d="M-77 -5l154 0l0 28l-154 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">月次申請件数推移</text>
+<defs >
+<clipPath id="ID1">
+<path class="ID4" d="M59 64l302 0l0 157l-302 0Z" fill="#000"></path>
+</clipPath>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID4:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.ID2:hover {
+cursor:pointer;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'applications' > appearance: light > authoring→bake→baked path SVG matches golden snapshot 1`] = `
+{
+  "app-category": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">90</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">150</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(97.50 228)" y="6">建築確認</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(172.50 228)" y="6">農地転用</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(247.50 228)" y="6">廃棄物処理</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(322.50 228)" y="6">その他</text>
+<path class="ID1" d="M71.60 220l51.80 0l0 -132.30l-51.70 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M71.60 220l51.80 0l0 -132.30l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M146.60 220l51.80 0l0 -48.60l-51.70 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M146.60 220l51.80 0l0 -48.60l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M221.60 220l51.80 0l0 -65.10l-51.70 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M221.60 220l51.80 0l0 -65.10l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M296.60 220l51.80 0l0 -22.70l-51.70 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M296.60 220l51.80 0l0 -22.70l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-68 -5l136 0l0 28l-136 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別申請件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(0,25,212,1);
+}
+
+]]>
+
+</style>
+</svg>",
+  "app-monthly": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 198.50L360 198.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 175.50L360 175.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 153.50L360 153.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 131.50L360 131.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 109.50L360 109.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 87.50L360 87.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 197.86)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 175.71)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 153.57)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 131.43)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 109.29)">50</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 87.14)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">70</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(85 228)" y="6">令和8年4月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(135 228)" y="6">令和8年5月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(185 228)" y="6">令和8年6月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(235 228)" y="6">令和8年7月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(285 228)" y="6">令和8年8月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(335 228)" y="6">令和8年9月</text>
+<g clip-path="url(#ID1)">
+<path class="ID2" d="M85 107.10L135 82.70L185 91.60L235 65L285 122.60L335 73.90" fill="none" pointer-events="visible" stroke="#0017c1" stroke-linejoin="bevel" stroke-width="2"></path>
+</g>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,85,107.07)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,135,82.71)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,185,91.57)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,235,65)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="4" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,285,122.57)"></path>
+<path class="ID3" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="5" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#0017c1" stroke-width="0.67" transform="matrix(3,0,0,3,335,73.86)"></path>
+<path class="ID0" d="M-77 -5l154 0l0 28l-154 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">月次申請件数推移</text>
+<defs >
+<clipPath id="ID1">
+<path class="ID4" d="M59 64l302 0l0 157l-302 0Z" fill="#000"></path>
+</clipPath>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID4:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.ID2:hover {
+cursor:pointer;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'budget' > appearance: dark > authoring path SVG matches golden snapshot 1`] = `
+{
+  "budget-breakdown": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 250.60 242L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff8d44"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 250.60 242L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M250.60 242A105 105 0 0 1 95.80 163.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fb5b01"></path>
+<path class="ID1" d="M250.60 242A105 105 0 0 1 95.80 163.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M95.80 163.20A105 105 0 0 1 143.70 61.30L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID1" d="M95.80 163.20A105 105 0 0 1 143.70 61.30L200 150Z" fill="url(#ID6)"></path>
+<path class="ID0" d="M143.70 61.30A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff8d44"></path>
+<path class="ID1" d="M143.70 61.30A105 105 0 0 1 200 45L200 150Z" fill="url(#ID7)"></path>
+<path class="ID1" d="M-5 -5l76 0l0 90l-76 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#b7b9be" stroke-width="0" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ff8d44" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID2)" transform="translate(329 200)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 200)" x="30" y="7">人件費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#fb5b01" transform="translate(329 222)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID4)" transform="translate(329 222)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 222)" x="30" y="7">委託費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 222)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ffc700" transform="translate(329 244)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID6)" transform="translate(329 244)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 244)" x="30" y="7">物件費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 244)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ff8d44" transform="translate(329 266)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID7)" transform="translate(329 266)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 266)" x="30" y="7">その他</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 266)"></path>
+<path class="ID1" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">費目別内訳</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID7" patternUnits="userSpaceOnUse" width="12">
+<g >
+<path d="M0 -6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 -6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l0 0l0 6l0 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6 0l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 0l0 0l0 6l0 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M18 0l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(255,155,74,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,100,1,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,218,0,1);
+}
+.ID8:hover {
+cursor:pointer;
+fill:rgba(0,0,0,0);
+}
+
+]]>
+
+</style>
+</svg>",
+  "budget-rate": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">50</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">令和8年4月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">令和8年5月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">令和8年6月</text>
+<g clip-path="url(#ID1)">
+<path class="ID2" d="M110 162.60L210 114L310 65.60L310 220L210 220L110 220Z" fill="#ff8d44" fill-opacity="0.70"></path>
+<path class="ID0" d="M110 162.60L210 114L310 65.60L310 220L210 220L110 220Z" fill="url(#ID3)" fill-opacity="0.70"></path>
+<path class="ID4" d="M110 162.60L210 114L310 65.60" fill="none" pointer-events="visible" stroke="#ff8d44" stroke-linejoin="bevel" stroke-width="2"></path>
+</g>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ff8d44" stroke-width="0.67" transform="matrix(3,0,0,3,110,162.65)"></path>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ff8d44" stroke-width="0.67" transform="matrix(3,0,0,3,210,113.98)"></path>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ff8d44" stroke-width="0.67" transform="matrix(3,0,0,3,310,65.62)"></path>
+<path class="ID0" d="M-77 -5l154 0l0 28l-154 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">執行率推移（％）</text>
+<defs >
+<clipPath id="ID1">
+<path class="ID6" d="M59 64l302 0l0 157l-302 0Z" fill="#000"></path>
+</clipPath>
+<pattern height="7" id="ID3" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID6:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.ID2:hover {
+cursor:pointer;
+fill:rgba(255,155,74,1);
+}
+.ID4:hover {
+cursor:pointer;
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'budget' > appearance: dark > authoring→bake→baked path SVG matches golden snapshot 1`] = `
+{
+  "budget-breakdown": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 250.60 242L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff8d44"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 250.60 242L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M250.60 242A105 105 0 0 1 95.80 163.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fb5b01"></path>
+<path class="ID1" d="M250.60 242A105 105 0 0 1 95.80 163.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M95.80 163.20A105 105 0 0 1 143.70 61.30L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID1" d="M95.80 163.20A105 105 0 0 1 143.70 61.30L200 150Z" fill="url(#ID6)"></path>
+<path class="ID0" d="M143.70 61.30A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff8d44"></path>
+<path class="ID1" d="M143.70 61.30A105 105 0 0 1 200 45L200 150Z" fill="url(#ID7)"></path>
+<path class="ID1" d="M-5 -5l76 0l0 90l-76 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#b7b9be" stroke-width="0" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ff8d44" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID2)" transform="translate(329 200)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 200)" x="30" y="7">人件費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#fb5b01" transform="translate(329 222)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID4)" transform="translate(329 222)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 222)" x="30" y="7">委託費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 222)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ffc700" transform="translate(329 244)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID6)" transform="translate(329 244)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 244)" x="30" y="7">物件費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 244)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ff8d44" transform="translate(329 266)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID7)" transform="translate(329 266)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 266)" x="30" y="7">その他</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 266)"></path>
+<path class="ID1" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">費目別内訳</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID7" patternUnits="userSpaceOnUse" width="12">
+<g >
+<path d="M0 -6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 -6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l0 0l0 6l0 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6 0l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 0l0 0l0 6l0 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M18 0l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(255,155,74,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,100,1,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,218,0,1);
+}
+.ID8:hover {
+cursor:pointer;
+fill:rgba(0,0,0,0);
+}
+
+]]>
+
+</style>
+</svg>",
+  "budget-rate": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">50</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">令和8年4月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">令和8年5月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">令和8年6月</text>
+<g clip-path="url(#ID1)">
+<path class="ID2" d="M110 162.60L210 114L310 65.60L310 220L210 220L110 220Z" fill="#ff8d44" fill-opacity="0.70"></path>
+<path class="ID0" d="M110 162.60L210 114L310 65.60L310 220L210 220L110 220Z" fill="url(#ID3)" fill-opacity="0.70"></path>
+<path class="ID4" d="M110 162.60L210 114L310 65.60" fill="none" pointer-events="visible" stroke="#ff8d44" stroke-linejoin="bevel" stroke-width="2"></path>
+</g>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ff8d44" stroke-width="0.67" transform="matrix(3,0,0,3,110,162.65)"></path>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ff8d44" stroke-width="0.67" transform="matrix(3,0,0,3,210,113.98)"></path>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ff8d44" stroke-width="0.67" transform="matrix(3,0,0,3,310,65.62)"></path>
+<path class="ID0" d="M-77 -5l154 0l0 28l-154 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">執行率推移（％）</text>
+<defs >
+<clipPath id="ID1">
+<path class="ID6" d="M59 64l302 0l0 157l-302 0Z" fill="#000"></path>
+</clipPath>
+<pattern height="7" id="ID3" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID6:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.ID2:hover {
+cursor:pointer;
+fill:rgba(255,155,74,1);
+}
+.ID4:hover {
+cursor:pointer;
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'budget' > appearance: light > authoring path SVG matches golden snapshot 1`] = `
+{
+  "budget-breakdown": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 250.60 242L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ac3e00"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 250.60 242L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M250.60 242A105 105 0 0 1 95.80 163.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fb5b01"></path>
+<path class="ID1" d="M250.60 242A105 105 0 0 1 95.80 163.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M95.80 163.20A105 105 0 0 1 143.70 61.30L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID1" d="M95.80 163.20A105 105 0 0 1 143.70 61.30L200 150Z" fill="url(#ID6)"></path>
+<path class="ID0" d="M143.70 61.30A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ac3e00"></path>
+<path class="ID1" d="M143.70 61.30A105 105 0 0 1 200 45L200 150Z" fill="url(#ID7)"></path>
+<path class="ID1" d="M-5 -5l76 0l0 90l-76 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#b7b9be" stroke-width="0" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ac3e00" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID2)" transform="translate(329 200)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 200)" x="30" y="7">人件費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#fb5b01" transform="translate(329 222)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID4)" transform="translate(329 222)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 222)" x="30" y="7">委託費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 222)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#a58000" transform="translate(329 244)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID6)" transform="translate(329 244)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 244)" x="30" y="7">物件費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 244)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ac3e00" transform="translate(329 266)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID7)" transform="translate(329 266)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 266)" x="30" y="7">その他</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 266)"></path>
+<path class="ID1" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">費目別内訳</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID7" patternUnits="userSpaceOnUse" width="12">
+<g >
+<path d="M0 -6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 -6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l0 0l0 6l0 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6 0l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 0l0 0l0 6l0 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M18 0l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(189,68,0,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,100,1,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(181,140,0,1);
+}
+.ID8:hover {
+cursor:pointer;
+fill:rgba(0,0,0,0);
+}
+
+]]>
+
+</style>
+</svg>",
+  "budget-rate": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">50</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">令和8年4月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">令和8年5月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">令和8年6月</text>
+<g clip-path="url(#ID1)">
+<path class="ID2" d="M110 162.60L210 114L310 65.60L310 220L210 220L110 220Z" fill="#ac3e00" fill-opacity="0.70"></path>
+<path class="ID0" d="M110 162.60L210 114L310 65.60L310 220L210 220L110 220Z" fill="url(#ID3)" fill-opacity="0.70"></path>
+<path class="ID4" d="M110 162.60L210 114L310 65.60" fill="none" pointer-events="visible" stroke="#ac3e00" stroke-linejoin="bevel" stroke-width="2"></path>
+</g>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ac3e00" stroke-width="0.67" transform="matrix(3,0,0,3,110,162.65)"></path>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ac3e00" stroke-width="0.67" transform="matrix(3,0,0,3,210,113.98)"></path>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ac3e00" stroke-width="0.67" transform="matrix(3,0,0,3,310,65.62)"></path>
+<path class="ID0" d="M-77 -5l154 0l0 28l-154 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">執行率推移（％）</text>
+<defs >
+<clipPath id="ID1">
+<path class="ID6" d="M59 64l302 0l0 157l-302 0Z" fill="#000"></path>
+</clipPath>
+<pattern height="7" id="ID3" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID6:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.ID2:hover {
+cursor:pointer;
+fill:rgba(189,68,0,1);
+}
+.ID4:hover {
+cursor:pointer;
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'budget' > appearance: light > authoring→bake→baked path SVG matches golden snapshot 1`] = `
+{
+  "budget-breakdown": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 250.60 242L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ac3e00"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 250.60 242L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M250.60 242A105 105 0 0 1 95.80 163.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fb5b01"></path>
+<path class="ID1" d="M250.60 242A105 105 0 0 1 95.80 163.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M95.80 163.20A105 105 0 0 1 143.70 61.30L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID1" d="M95.80 163.20A105 105 0 0 1 143.70 61.30L200 150Z" fill="url(#ID6)"></path>
+<path class="ID0" d="M143.70 61.30A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ac3e00"></path>
+<path class="ID1" d="M143.70 61.30A105 105 0 0 1 200 45L200 150Z" fill="url(#ID7)"></path>
+<path class="ID1" d="M-5 -5l76 0l0 90l-76 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#b7b9be" stroke-width="0" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ac3e00" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID2)" transform="translate(329 200)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 200)" x="30" y="7">人件費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 200)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#fb5b01" transform="translate(329 222)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID4)" transform="translate(329 222)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 222)" x="30" y="7">委託費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 222)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#a58000" transform="translate(329 244)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID6)" transform="translate(329 244)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 244)" x="30" y="7">物件費</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 244)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_silent="true" ecmeta_ssr_type="legend" fill="#ac3e00" transform="translate(329 266)"></path>
+<path class="ID1" d="M3.50 0L21.50 0A3.50 3.50 0 0 1 25 3.50L25 10.50A3.50 3.50 0 0 1 21.50 14L3.50 14A3.50 3.50 0 0 1 0 10.50L0 3.50A3.50 3.50 0 0 1 3.50 0Z" fill="url(#ID7)" transform="translate(329 266)"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="start" transform="translate(329 266)" x="30" y="7">その他</text>
+<path class="ID8" d="M0 0l66 0l0 14l-66 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="legend" fill="none" pointer-events="visible" transform="translate(329 266)"></path>
+<path class="ID1" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">費目別内訳</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID7" patternUnits="userSpaceOnUse" width="12">
+<g >
+<path d="M0 -6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 -6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l0 0l0 6l0 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6 0l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 0l0 0l0 6l0 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M18 0l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M12 6l6 0l0 6l-6 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(189,68,0,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,100,1,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(181,140,0,1);
+}
+.ID8:hover {
+cursor:pointer;
+fill:rgba(0,0,0,0);
+}
+
+]]>
+
+</style>
+</svg>",
+  "budget-rate": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">50</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">令和8年4月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">令和8年5月</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">令和8年6月</text>
+<g clip-path="url(#ID1)">
+<path class="ID2" d="M110 162.60L210 114L310 65.60L310 220L210 220L110 220Z" fill="#ac3e00" fill-opacity="0.70"></path>
+<path class="ID0" d="M110 162.60L210 114L310 65.60L310 220L210 220L110 220Z" fill="url(#ID3)" fill-opacity="0.70"></path>
+<path class="ID4" d="M110 162.60L210 114L310 65.60" fill="none" pointer-events="visible" stroke="#ac3e00" stroke-linejoin="bevel" stroke-width="2"></path>
+</g>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ac3e00" stroke-width="0.67" transform="matrix(3,0,0,3,110,162.65)"></path>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ac3e00" stroke-width="0.67" transform="matrix(3,0,0,3,210,113.98)"></path>
+<path class="ID5" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fff" stroke="#ac3e00" stroke-width="0.67" transform="matrix(3,0,0,3,310,65.62)"></path>
+<path class="ID0" d="M-77 -5l154 0l0 28l-154 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">執行率推移（％）</text>
+<defs >
+<clipPath id="ID1">
+<path class="ID6" d="M59 64l302 0l0 157l-302 0Z" fill="#000"></path>
+</clipPath>
+<pattern height="7" id="ID3" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID6:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.ID2:hover {
+cursor:pointer;
+fill:rgba(189,68,0,1);
+}
+.ID4:hover {
+cursor:pointer;
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,255,255,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'regional' > appearance: dark > authoring path SVG matches golden snapshot 1`] = `
+{
+  "regional-density": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 181.50L360 181.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 104.50L360 104.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60.50 65L60.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M110.50 65L110.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M160.50 65L160.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M210.50 65L210.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M260.50 65L260.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M310.50 65L310.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M360.50 65L360.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60.50 220L60.50 65" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<path class="ID0" d="M60 220.50L55 220.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 181.50L55 181.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 142.50L55 142.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 104.50L55 104.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 65.50L55 65.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60.50 220L60.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M110.50 220L110.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M160.50 220L160.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M210.50 220L210.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M260.50 220L260.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M310.50 220L310.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M360.50 220L360.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 181.25)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 103.75)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(60 228)" y="6">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">1,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(160 228)" y="6">2,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">3,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(260 228)" y="6">4,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">5,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(360 228)" y="6">6,000</text>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999" fill-opacity="0.80" transform="matrix(5,0,0,5,122,99.10)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.01" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999" fill-opacity="0.80" transform="matrix(15,0,0,15,259,123.90)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999" fill-opacity="0.80" transform="matrix(2,0,0,2,91,70.81)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.01" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999" fill-opacity="0.80" transform="matrix(21,0,0,21,335.50,138.24)"></path>
+<path class="ID0" d="M-86 -5l172 0l0 28l-172 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">人口密度と高齢化率</text>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(168,168,168,1);
+}
+
+]]>
+
+</style>
+</svg>",
+  "regional-population": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">50,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">100,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">150,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">200,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">250,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(97.50 228)" y="6">中央地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(172.50 228)" y="6">湾岸地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(247.50 228)" y="6">山間地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(322.50 228)" y="6">港北地区</text>
+<path class="ID1" d="M71.60 220l51.80 0l0 -29.80l-51.70 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M71.60 220l51.80 0l0 -29.80l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M146.60 220l51.80 0l0 -94.20l-51.70 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M146.60 220l51.80 0l0 -94.20l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M221.60 220l51.80 0l0 -11.80l-51.70 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M221.60 220l51.80 0l0 -11.80l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M296.60 220l51.80 0l0 -130.20l-51.70 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M296.60 220l51.80 0l0 -130.20l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">地域別人口</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(168,168,168,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'regional' > appearance: dark > authoring→bake→baked path SVG matches golden snapshot 1`] = `
+{
+  "regional-density": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 181.50L360 181.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 104.50L360 104.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60.50 65L60.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M110.50 65L110.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M160.50 65L160.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M210.50 65L210.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M260.50 65L260.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M310.50 65L310.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M360.50 65L360.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60.50 220L60.50 65" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<path class="ID0" d="M60 220.50L55 220.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 181.50L55 181.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 142.50L55 142.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 104.50L55 104.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 65.50L55 65.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60.50 220L60.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M110.50 220L110.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M160.50 220L160.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M210.50 220L210.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M260.50 220L260.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M310.50 220L310.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M360.50 220L360.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 181.25)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 103.75)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(60 228)" y="6">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">1,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(160 228)" y="6">2,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">3,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(260 228)" y="6">4,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">5,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(360 228)" y="6">6,000</text>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999" fill-opacity="0.80" transform="matrix(5,0,0,5,122,99.10)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.01" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999" fill-opacity="0.80" transform="matrix(15,0,0,15,259,123.90)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999" fill-opacity="0.80" transform="matrix(2,0,0,2,91,70.81)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.01" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999" fill-opacity="0.80" transform="matrix(21,0,0,21,335.50,138.24)"></path>
+<path class="ID0" d="M-86 -5l172 0l0 28l-172 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">人口密度と高齢化率</text>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(168,168,168,1);
+}
+
+]]>
+
+</style>
+</svg>",
+  "regional-population": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">50,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">100,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">150,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">200,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">250,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(97.50 228)" y="6">中央地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(172.50 228)" y="6">湾岸地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(247.50 228)" y="6">山間地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(322.50 228)" y="6">港北地区</text>
+<path class="ID1" d="M71.60 220l51.80 0l0 -29.80l-51.70 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M71.60 220l51.80 0l0 -29.80l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M146.60 220l51.80 0l0 -94.20l-51.70 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M146.60 220l51.80 0l0 -94.20l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M221.60 220l51.80 0l0 -11.80l-51.70 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M221.60 220l51.80 0l0 -11.80l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M296.60 220l51.80 0l0 -130.20l-51.70 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M296.60 220l51.80 0l0 -130.20l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">地域別人口</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(168,168,168,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'regional' > appearance: light > authoring path SVG matches golden snapshot 1`] = `
+{
+  "regional-density": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 181.50L360 181.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 104.50L360 104.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60.50 65L60.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M110.50 65L110.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M160.50 65L160.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M210.50 65L210.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M260.50 65L260.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M310.50 65L310.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M360.50 65L360.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60.50 220L60.50 65" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<path class="ID0" d="M60 220.50L55 220.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 181.50L55 181.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 142.50L55 142.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 104.50L55 104.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 65.50L55 65.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60.50 220L60.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M110.50 220L110.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M160.50 220L160.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M210.50 220L210.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M260.50 220L260.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M310.50 220L310.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M360.50 220L360.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 181.25)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 103.75)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(60 228)" y="6">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">1,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(160 228)" y="6">2,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">3,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(260 228)" y="6">4,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">5,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(360 228)" y="6">6,000</text>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a" fill-opacity="0.80" transform="matrix(5,0,0,5,122,99.10)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.01" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a" fill-opacity="0.80" transform="matrix(15,0,0,15,259,123.90)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a" fill-opacity="0.80" transform="matrix(2,0,0,2,91,70.81)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.01" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a" fill-opacity="0.80" transform="matrix(21,0,0,21,335.50,138.24)"></path>
+<path class="ID0" d="M-86 -5l172 0l0 28l-172 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">人口密度と高齢化率</text>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(28,28,28,1);
+}
+
+]]>
+
+</style>
+</svg>",
+  "regional-population": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">50,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">100,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">150,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">200,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">250,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(97.50 228)" y="6">中央地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(172.50 228)" y="6">湾岸地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(247.50 228)" y="6">山間地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(322.50 228)" y="6">港北地区</text>
+<path class="ID1" d="M71.60 220l51.80 0l0 -29.80l-51.70 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M71.60 220l51.80 0l0 -29.80l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M146.60 220l51.80 0l0 -94.20l-51.70 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M146.60 220l51.80 0l0 -94.20l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M221.60 220l51.80 0l0 -11.80l-51.70 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M221.60 220l51.80 0l0 -11.80l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M296.60 220l51.80 0l0 -130.20l-51.70 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M296.60 220l51.80 0l0 -130.20l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">地域別人口</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(28,28,28,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;
+
+exports[`golden sample: 'regional' > appearance: light > authoring→bake→baked path SVG matches golden snapshot 1`] = `
+{
+  "regional-density": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 181.50L360 181.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 104.50L360 104.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60.50 65L60.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M110.50 65L110.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M160.50 65L160.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M210.50 65L210.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M260.50 65L260.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M310.50 65L310.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M360.50 65L360.50 220" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60.50 220L60.50 65" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<path class="ID0" d="M60 220.50L55 220.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 181.50L55 181.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 142.50L55 142.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 104.50L55 104.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60 65.50L55 65.50" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M60.50 220L60.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M110.50 220L110.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M160.50 220L160.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M210.50 220L210.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M260.50 220L260.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M310.50 220L310.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<path class="ID0" d="M360.50 220L360.50 225" fill="none" pointer-events="visible" stroke="#54555a"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 181.25)">10</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 103.75)">30</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(60 228)" y="6">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">1,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(160 228)" y="6">2,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">3,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(260 228)" y="6">4,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">5,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(360 228)" y="6">6,000</text>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a" fill-opacity="0.80" transform="matrix(5,0,0,5,122,99.10)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.01" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a" fill-opacity="0.80" transform="matrix(15,0,0,15,259,123.90)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.10A1 1 0 0 1 1 0" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a" fill-opacity="0.80" transform="matrix(2,0,0,2,91,70.81)"></path>
+<path class="ID1" d="M1 0A1 1 0 1 1 1 -0.01" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a" fill-opacity="0.80" transform="matrix(21,0,0,21,335.50,138.24)"></path>
+<path class="ID0" d="M-86 -5l172 0l0 28l-172 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">人口密度と高齢化率</text>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(28,28,28,1);
+}
+
+]]>
+
+</style>
+</svg>",
+  "regional-population": "<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 189.50L360 189.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 158.50L360 158.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 127.50L360 127.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 96.50L360 96.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 189)">50,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 158)">100,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 127)">150,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 96)">200,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">250,000</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(97.50 228)" y="6">中央地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(172.50 228)" y="6">湾岸地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(247.50 228)" y="6">山間地区</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(322.50 228)" y="6">港北地区</text>
+<path class="ID1" d="M71.60 220l51.80 0l0 -29.80l-51.70 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M71.60 220l51.80 0l0 -29.80l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M146.60 220l51.80 0l0 -94.20l-51.70 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M146.60 220l51.80 0l0 -94.20l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M221.60 220l51.80 0l0 -11.80l-51.70 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M221.60 220l51.80 0l0 -11.80l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M296.60 220l51.80 0l0 -130.20l-51.70 0Z" ecmeta_data_index="3" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M296.60 220l51.80 0l0 -130.20l-51.70 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">地域別人口</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(28,28,28,1);
+}
+
+]]>
+
+</style>
+</svg>",
+}
+`;

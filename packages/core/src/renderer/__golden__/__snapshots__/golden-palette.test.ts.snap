@@ -1,0 +1,757 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-blue/dark 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(123,165,255,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-blue/light 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(0,25,212,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-cyan/dark 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#2bc8e4"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#2bc8e4"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#2bc8e4"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(47,220,250,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-cyan/light 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#006f83"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#006f83"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#006f83"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(0,122,144,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-green/dark 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#51b883"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#51b883"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#51b883"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(89,202,144,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-green/light 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#115a36"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#115a36"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#115a36"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(18,99,59,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-light-blue/dark 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#57b8ff"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#57b8ff"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#57b8ff"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(95,202,255,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-light-blue/light 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0055ad"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0055ad"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0055ad"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(0,93,190,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-neutral/dark 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(168,168,168,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-neutral/light 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(28,28,28,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-orange/dark 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff8d44"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff8d44"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff8d44"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(255,155,74,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-orange/light 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ac3e00"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ac3e00"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ac3e00"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(189,68,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-red/dark 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff7171"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff7171"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff7171"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(255,124,124,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: all 7 palettes x 2 appearances render a stable, distinct SVG > guidebook-red/light 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 194.50L360 194.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 168.50L360 168.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 142.50L360 142.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 116.50L360 116.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 91.50L360 91.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 65.50L360 65.50" fill="none" pointer-events="visible" stroke="#dbdee4"></path>
+<path class="ID0" d="M60 220.50L360 220.50" fill="none" pointer-events="visible" stroke="#54555a" stroke-linecap="round"></path>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 220)">0</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 194.17)">20</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 168.33)">40</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 142.50)">60</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 116.67)">80</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 90.83)">100</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="end" transform="translate(52 65)">120</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(110 228)" y="6">建築</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(210 228)" y="6">農地</text>
+<text dominant-baseline="central" fill="#54555a" style="font-size:12px;font-family:sans-serif;" text-anchor="middle" transform="translate(310 228)" y="6">その他</text>
+<path class="ID1" d="M75.50 220l69 0l0 -155l-69 0Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ce0000"></path>
+<path class="ID0" d="M75.50 220l69 0l0 -155l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M175.50 220l69 0l0 -116.20l-69 0Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ce0000"></path>
+<path class="ID0" d="M175.50 220l69 0l0 -116.20l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID1" d="M275.50 220l69 0l0 -58.10l-69 0Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ce0000"></path>
+<path class="ID0" d="M275.50 220l69 0l0 -58.10l-69 0Z" fill="url(#ID2)"></path>
+<path class="ID0" d="M-50 -5l100 0l0 28l-100 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別件数</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+pointer-events:none;
+}
+.ID1:hover {
+cursor:pointer;
+fill:rgba(226,0,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
