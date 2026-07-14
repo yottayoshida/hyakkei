@@ -9,7 +9,7 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && node scripts/generate-ajv-validators.mjs",
     "test": "vitest run"
   },
   "devDependencies": {

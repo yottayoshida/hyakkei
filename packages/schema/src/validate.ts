@@ -1,17 +1,25 @@
-import Ajv, { type ErrorObject, type ValidateFunction } from "ajv";
-import addFormats from "ajv-formats";
-import { BakedDashboard, type BakedDashboard as BakedDashboardT } from "./baked.js";
+import Ajv, { type ErrorObject } from "ajv";
+import validateBakedDashboardSchema from "./generated/validate-baked-dashboard.js";
+import validateDashboardSchema from "./generated/validate-dashboard.js";
+import { type BakedDashboard as BakedDashboardT } from "./baked.js";
 import { CURRENT_VERSION, GRID_WIDTHS, type Grid, type LayoutItem } from "./common.js";
-import { Dashboard, type Dashboard as DashboardT } from "./dashboard.js";
+import { type Dashboard as DashboardT } from "./dashboard.js";
 
-// removeAdditional defaults to false, which is required for additive-only
-// forward-compat: unknown fields must survive validation unmodified, not be
-// silently stripped (shape enumeration S4/B4 — this is the load-bearing flag).
+// PR-A1.5 prerequisite: these two validators used to be `ajv.compile()`
+// calls right here, which generates the validator's body via `new
+// Function(...)` at runtime — incompatible with a `script-src` that has no
+// `'unsafe-eval'` (ARCHITECTURE §6). `scripts/generate-ajv-validators.mjs`
+// now runs that same compilation once, at build time in plain Node (no CSP
+// applies to build tooling), and writes the result as an ordinary,
+// eval-free ESM module (`dist/generated/*.js`, not committed — every build
+// regenerates it from the current schema; `src/generated/*.d.ts` are the
+// committed type stubs `tsc --build` checks this import against, see that
+// directory). The runtime instance below is unrelated to either validator:
+// it exists only so `formatParseFailure` can call Ajv's own `errorsText`
+// formatter, which does no code generation of its own — constructing an
+// `Ajv` instance is not what needed `'unsafe-eval'`, calling `.compile()`
+// on it was.
 const ajv = new Ajv({ allErrors: true });
-addFormats(ajv);
-
-const validateDashboardSchema: ValidateFunction<DashboardT> = ajv.compile(Dashboard);
-const validateBakedDashboardSchema: ValidateFunction<BakedDashboardT> = ajv.compile(BakedDashboard);
 
 export type ParseResult<T> =
   { ok: true; value: T } | { ok: false; reason: string; errors?: ErrorObject[] };

@@ -1380,6 +1380,13 @@ export default [
     },
   },
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "spikes/**"],
+    // packages/schema/src/generated/: Ajv standalone-codegen'd validators
+    // (PR-A1.5 prerequisite), gitignored, not hand-written source.
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "spikes/**",
+      "packages/schema/src/generated/*.js",
+    ],
   },
 ];
