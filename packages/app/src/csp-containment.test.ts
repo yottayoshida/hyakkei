@@ -87,17 +87,26 @@ describe("index.html / golden.html / serve.json agree with csp.ts's EDITOR_CSP (
     },
   );
 
-  it("public/serve.json's Content-Security-Policy header matches EDITOR_CSP, and covers every response (not just HTML)", () => {
+  it("public/serve.json's Content-Security-Policy header matches EDITOR_CSP, and its rule covers every FILE response (not just HTML)", () => {
     const serveConfig = JSON.parse(readFileSync(join(APP_ROOT, "public/serve.json"), "utf-8"));
     const rule = serveConfig.headers?.find((r: { source: string }) => r.source === "**");
     // Codex Round 1 P0: an earlier version scoped this to `**/*.html`.
     // spikes/lib/server.mjs (M0's own test server, docs/spikes/
     // m0-containment.md) sends the CSP header "on every response", not
-    // just HTML — a Worker script/wasm response has no <meta> tag of its
-    // own to fall back on, and there is no guarantee a same-origin Worker
-    // inherits its creating document's CSP across every engine. `**`
-    // matches M0's actually-tested configuration exactly.
-    expect(rule?.source, "CSP header rule must cover every response, not just *.html").toBe("**");
+    // just HTML — a Worker script/wasm response's own header is what
+    // governs a network-loaded Worker's CSP (ARCHITECTURE §6's amended
+    // text: a Worker does not inherit its document's <meta> CSP), so it
+    // has no <meta> tag to fall back on. `**` matches M0's actually-tested
+    // configuration exactly. QA note: this glob covers every FILE `serve`
+    // serves, but not its synthesized directory-listing response for a
+    // bare `/` or `/vendor/` (that response carries no CSP, header or
+    // meta, in this configuration or the pre-PR-A1.5 one) — not a
+    // regression this PR introduces, and out of scope for it (no app code
+    // is reachable from a directory listing), but worth being precise
+    // about rather than "every response" without qualification.
+    expect(rule?.source, "CSP header rule must cover every file response, not just *.html").toBe(
+      "**",
+    );
     const cspHeader = rule?.headers?.find(
       (h: { key: string }) => h.key === "Content-Security-Policy",
     );

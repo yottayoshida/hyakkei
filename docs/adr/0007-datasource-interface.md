@@ -131,6 +131,26 @@ construction of its own, so it *could* live in either package on that basis alon
 stays in `packages/app` (`src/duckdb/containment.ts`) so DuckDB-facing code (the eventual
 factory PR-A2 adds, plus this flag sequence) isn't split across two packages for no benefit.
 
+**Residual risks this amendment adds** (PR-A1.5 security review; both are PR-A2 preconditions,
+not exploitable by this PR, which never instantiates a real DuckDB-WASM `Worker`):
+
+- **RR-NEW-1 — CSP's `connect-src` containment does not reach a same-origin Worker on a
+  header-less static host.** A network-loaded (non-`blob:`/`data:`) Worker does not inherit
+  its creating document's CSP — its policy comes from its own response's
+  `Content-Security-Policy` header (CSP3; see ARCHITECTURE §6's amended text). On a deployment
+  target that cannot set response headers (GitHub Pages, a plain object-storage bucket — both
+  README.md-listed v0.1 targets), the Worker's `connect-src` is unenforced by the browser, and
+  `configureContainment()`'s DuckDB flags become the *sole* control against `LOAD
+  httpfs`/`SELECT ... FROM 'https://...'` in that shape, not defense-in-depth alongside CSP.
+  Attacker capability required: victim deploys the editor to a header-less host **and** opens a
+  malicious authoring file **and** PR-A2 ships without addressing RR-NEW-2 below.
+- **RR-NEW-2 — nothing yet structurally prevents PR-A2 from wiring a DuckDB connection without
+  calling `configureContainment()`.** The function exists and is tested in isolation
+  (`containment.test.ts`) but has no caller. PR-A2 must either route every connection through a
+  single wrapper that calls it (and forbid the raw path via lint, mirroring how
+  `bundle-isolation.test.ts` forbids a bare `new Worker(` in core), or cover the call in an
+  integration test that would fail if a future edit ever bypassed it.
+
 ## Consequences
 
 - (+) `register()`'s additive guarantee is real for the interface v0.1 actually ships (`File`, `Url`, future snapshot-`Proxy`) — verified by construction (shared output contract), not by convention.

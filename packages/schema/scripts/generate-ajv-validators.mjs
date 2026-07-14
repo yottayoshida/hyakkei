@@ -61,52 +61,103 @@ for (const dir of outDirs) mkdirSync(dir, { recursive: true });
  * through its module graph (where CJS interop unambiguously applies, the
  * same as any ordinary `import _ from "lodash"`).
  *
- * Rewrites every `require("module-spec")` call — regardless of which
- * module or what property chain follows it — into a reference to one
- * hoisted `import * as` namespace binding per distinct module, appending
- * `.js` to the specifier (Codex Round 1 P1: Node's own ESM resolver,
- * unlike Vite's/Vitest's more lenient bundler-mode resolution, requires an
- * explicit extension on a relative/subpath specifier — verified
- * empirically with `node -e "import(...)"` against dist/index.js;
- * node-esm-smoke.test.ts is the regression). A namespace import (not a
- * default import) because Rollup's CJS interop exposes both a synthetic
- * `.default` AND each statically-detected named export on the same
- * namespace object, so it transparently covers `require(...).default` (
- * `ucs2length`) and `require(...).fullFormats.X` (`ajv-formats`) with one
- * mechanism, without this function needing to know which shape a given
- * module uses. `/simplify` altitude finding: an earlier version matched 2
- * hand-written literal strings instead (Ajv's exact quote style/property
- * chain for exactly these 2 known cases) — narrower than necessary (a
- * schema change needing a 3rd format would need this function extended
- * again) and coupled to formatting details of a dependency's generated
- * output rather than to its actual contract (the module specifier).
+ * Rewrites every `require("module-spec")` call, plus the single property
+ * access immediately following it (`.default` or `.someName` — a bare
+ * identifier; bracket-form and multi-segment chains are left as literal
+ * suffix, untouched, after that first segment), into a hoisted namespace
+ * import (`import * as __cjsN from "module-spec.js"`, `.js` appended —
+ * Codex Round 1 P1: Node's own ESM resolver, unlike Vite's/Vitest's more
+ * lenient bundler-mode resolution, requires an explicit extension on a
+ * relative/subpath specifier) plus a reference matching the original
+ * access: `.someName` (a real named export) becomes `__cjsN.someName`
+ * directly; `.default` becomes `__unwrapCjsDefault(__cjsN)` — see that
+ * helper's own comment for why a raw `.default` isn't enough.
  *
- * Still throws if anything unhandled remains — now only a genuine surprise
- * (e.g. a *dynamic* `require(someVariable)`, which this project's schemas
- * have never produced), not an ordinary new format/keyword.
+ * **Two prior attempts at this function were each wrong in the opposite
+ * direction, both confirmed empirically** (`node -e "import(...)"` against
+ * the real built output vs. running the Vitest suite) rather than reasoned
+ * out from documentation, because the two runtimes disagree here in a way
+ * neither's own docs make obvious:
+ * 1. A namespace import leaving `.default` as a literal suffix on `ns`
+ *    (`ns.default`): correct under Vite's/Vitest's bundler-mode CJS
+ *    interop (`ns.default` is already the unwrapped function — verified),
+ *    **wrong** under plain Node (`ns.default` is the *whole*
+ *    `module.exports` object for a module compiled with
+ *    `Object.defineProperty(exports, "__esModule", ...); exports.default =
+ *    fn` — verified with `node -e`), throwing `... is not a function`.
+ *    This is exactly the gap `node-esm-smoke.test.ts` exists to catch, and
+ *    (QA's finding) that test's original 2 inputs both returned early from
+ *    `validate.ts`'s own version check before ever reaching the generated
+ *    validator body, so it passed anyway despite the bug (now fixed
+ *    alongside this function — see that test's own comment).
+ * 2. A plain *default* import (`import x from "cjs-module"`) with the
+ *    `.default` suffix dropped: **wrong** under plain Node for the same
+ *    reason (a default import's binding is the whole `module.exports`,
+ *    not an unwrapped `exports.default` — TypeScript's `esModuleInterop`
+ *    helper does that unwrapping for TS-compiled *consumers*, but no such
+ *    helper runs in either Node's native loader or Vite's bundler-mode
+ *    interop), **and also wrong** under Vite/Vitest, which unwrap a
+ *    default import to the function directly — so `x.default` there reads
+ *    a non-existent property *off the already-unwrapped function*
+ *    (confirmed: broke 104 of 111 schema tests when tried).
+ *
+ * `__unwrapCjsDefault()` (below) is the actual fix: it inspects the
+ * namespace's `.default` at *runtime* and returns whichever level is
+ * actually callable, so the one generated file works correctly in both
+ * environments rather than needing environment-specific output. Only the
+ * `"default"` access needs this — a named export (`accessed !== "default"`)
+ * is bound directly and identically in both runtimes (verified: `import {
+ * fullFormats as x } from "ajv-formats/dist/formats.js"` gives `x` = the
+ * real object, `x.uri` a real function, in both Node and Vitest).
+ *
+ * Still throws if anything unhandled remains (a *dynamic* `require(
+ * someVariable)`, a bracket-form first access, or no property access at
+ * all after `require(...)` — none of which this project's schemas have
+ * ever produced) rather than silently mis-generating an import for a shape
+ * this function hasn't been taught the correct unwrapping for.
  */
 function esmifyRequires(code) {
-  const modules = new Map(); // module specifier -> hoisted namespace binding name
+  const modules = new Map(); // "spec" -> { name, importStmt } (one namespace import per module, however many access points it has)
   let n = 0;
-  const transformed = code.replace(/require\((["'])([^"']+)\1\)/g, (_match, _quote, spec) => {
-    if (!modules.has(spec)) modules.set(spec, `__cjs${n++}`);
-    return modules.get(spec);
-  });
+  let usesDefaultHelper = false;
+  const transformed = code.replace(
+    /require\((["'])([^"']+)\1\)\.([A-Za-z_$][A-Za-z0-9_$]*)/g,
+    (_match, _quote, spec, accessed) => {
+      let entry = modules.get(spec);
+      if (!entry) {
+        const name = `__cjs${n++}`;
+        entry = { name, importStmt: `import * as ${name} from "${spec}.js";` };
+        modules.set(spec, entry);
+      }
+      if (accessed === "default") {
+        usesDefaultHelper = true;
+        return `__unwrapCjsDefault(${entry.name})`;
+      }
+      return `${entry.name}.${accessed}`;
+    },
+  );
 
   const leftover = transformed.match(/\brequire\(/);
   if (leftover) {
     throw new Error(
-      `generate-ajv-validators.mjs: unhandled require() in generated code (not a simple require("literal-spec") call), extend esmifyRequires() — context: ${transformed.slice(leftover.index, leftover.index + 100)}`,
+      `generate-ajv-validators.mjs: unhandled require() in generated code (expected require("literal-spec").identifierAccess), extend esmifyRequires() — context: ${transformed.slice(leftover.index, leftover.index + 100)}`,
     );
   }
 
-  // Import statements must be at module top level, before any other
-  // statement — hoist them right after the "use strict" prologue
-  // `standaloneCode()` always emits first.
-  const imports = [...modules.entries()]
-    .map(([spec, name]) => `import * as ${name} from "${spec}.js";`)
-    .join("");
-  return transformed.replace(/^"use strict";/, `"use strict";${imports}`);
+  const imports = [...modules.values()].map((e) => e.importStmt).join("");
+  // See this function's own doc comment for why both branches exist: Vite's/
+  // Vitest's bundler-mode CJS interop already unwraps a namespace import's
+  // `.default` to the real value (function typeof, no further `.default` to
+  // read); plain Node's native interop leaves it as the whole
+  // `module.exports` (object typeof, the real value one `.default` deeper).
+  const helper = usesDefaultHelper
+    ? `function __unwrapCjsDefault(ns){const d=ns.default;return typeof d==="object"&&d!==null&&typeof d.default==="function"?d.default:d;}`
+    : "";
+  // Import statements (and the helper, which references nothing before
+  // it's called) must be at module top level, before any other statement
+  // — hoist them right after the "use strict" prologue `standaloneCode()`
+  // always emits first.
+  return transformed.replace(/^"use strict";/, `"use strict";${imports}${helper}`);
 }
 
 // Shared across both generate() calls below (`/simplify` efficiency
