@@ -23,6 +23,17 @@ coverage/
 spikes/*
 !spikes/README.md
 
+# DuckDB-WASM worker/wasm binaries (PR-A1.5, packages/app/scripts/
+# copy-duckdb-vendor.mjs), same reasoning as spikes/vendor/ above: these are
+# ~75MB, byte-for-byte reproducible from the already-pinned
+# @duckdb/duckdb-wasm npm dependency (packages/app/package.json), so
+# committing them would only bloat every clone/fetch for no integrity
+# benefit — the pinned dependency version IS the provenance record. Copied
+# into packages/app/public/vendor/ by `pnpm run build`/`pnpm run dev`
+# (predev/prebuild), then Vite copies public/ into dist/ like any other
+# static asset.
+packages/app/public/vendor/
+
 # Environment / secrets
 .env
 .env.*

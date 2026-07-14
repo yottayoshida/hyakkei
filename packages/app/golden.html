@@ -2,6 +2,18 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      PR-A1.5 containment wiring: same policy as index.html, kept in sync by
+      csp-containment.test.ts (see that file's comment for why a <meta> copy
+      exists per HTML entry and where the single source of truth lives).
+      Also proves the CSP does not regress golden rendering: this harness is
+      what e2e/golden-narrow-viewport.spec.ts and the Docker pixel-golden
+      suite actually render through.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'; object-src 'none'"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hyakkei golden harness</title>
   </head>

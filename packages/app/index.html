@@ -2,6 +2,21 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      PR-A1.5 containment wiring (ARCHITECTURE §6, ADR-0007): must stay the
+      first meta tag after charset, before viewport/title/script, so it
+      governs every subresource this document requests. A <meta> CSP is
+      enforced for connect-src/worker-src (CSP3 only exempts
+      frame-ancestors/sandbox/report-uri from meta delivery) but only for
+      resources requested AFTER this tag parses -- hence "first". This exact
+      string must match src/csp.ts's EDITOR_CSP and public/serve.json's
+      headers entry (csp-containment.test.ts asserts all three agree); this
+      copy exists because HTML cannot import a TS constant.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'; object-src 'none'"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hyakkei</title>
   </head>

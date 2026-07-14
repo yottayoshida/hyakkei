@@ -1380,12 +1380,16 @@ export default [
     },
   },
   {
+    // packages/app/public/vendor/: PR-A1.5's copy-duckdb-vendor.mjs-populated,
+    // gitignored DuckDB-WASM Worker/wasm binaries (minified third-party
+    // code, not this project's source — same reasoning as spikes/** below).
     // packages/schema/src/generated/: Ajv standalone-codegen'd validators
-    // (PR-A1.5 prerequisite), gitignored, not hand-written source.
+    // (PR-A1.5 prerequisite), also gitignored, also not hand-written source.
     ignores: [
       "**/dist/**",
       "**/node_modules/**",
       "spikes/**",
+      "packages/app/public/vendor/**",
       "packages/schema/src/generated/*.js",
     ],
   },
