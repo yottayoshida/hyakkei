@@ -33,10 +33,44 @@ function metaCspContent(html: string): string | undefined {
   return match?.[1];
 }
 
-describe("EDITOR_CSP itself never allows the two origins this policy exists to keep out", () => {
+/** `"connect-src 'self'"` -> `["'self'"]`. Throws if the directive is absent — every directive this policy's own tests check for is one this policy must always declare explicitly (no silent fallback-to-default-src reliance). */
+function directiveSources(csp: string, directive: string): string[] {
+  const match = csp.match(new RegExp(`(?:^|;)\\s*${directive}\\s+([^;]+)`));
+  if (!match) throw new Error(`EDITOR_CSP has no '${directive}' directive: ${csp}`);
+  return match[1]!.trim().split(/\s+/);
+}
+
+describe("EDITOR_CSP's actual security properties (Codex Round 2 Test Adversarial Review: string-equality-to-itself tests can't catch a weakening that keeps every copy in sync)", () => {
   it("does not contain extensions.duckdb.org or cdn.jsdelivr.net", () => {
     expect(EDITOR_CSP).not.toContain(HTTPFS_ORIGIN);
     expect(EDITOR_CSP).not.toContain(JSDELIVR_ORIGIN);
+  });
+
+  // Round 1 fixed 2 concrete regressions (Worker-script CSP coverage, Node
+  // ESM import extensions) with tests targeted at exactly those bugs.
+  // Round 2's adversarial pass found the gap those targeted tests share:
+  // `index.html`/`golden.html`/`serve.json` matching EDITOR_CSP *exactly*
+  // only proves internal consistency — if EDITOR_CSP itself were loosened
+  // (e.g. 'unsafe-eval' added to script-src, or a second origin added to
+  // connect-src) and all 3 copies updated together, every test above would
+  // still pass. These assert the actual directive VALUES, not just that
+  // the 3 copies agree on whatever value csp.ts happens to hold.
+  it("connect-src is exactly 'self' — no additional origin, no wildcard, no scheme-source", () => {
+    expect(directiveSources(EDITOR_CSP, "connect-src")).toEqual(["'self'"]);
+  });
+
+  it("worker-src is exactly 'self'", () => {
+    expect(directiveSources(EDITOR_CSP, "worker-src")).toEqual(["'self'"]);
+  });
+
+  it("script-src is exactly 'self' + 'wasm-unsafe-eval', and — the entire reason validate.ts moved off runtime ajv.compile() — never 'unsafe-eval'", () => {
+    const sources = directiveSources(EDITOR_CSP, "script-src");
+    expect(sources).toEqual(["'self'", "'wasm-unsafe-eval'"]);
+    expect(sources).not.toContain("'unsafe-eval'");
+  });
+
+  it("default-src is 'self' (not 'none' — ARCHITECTURE §6's prior draft used 'none' with no worker-src, which the CSP fallback chain would have resolved to blocking the DuckDB Worker outright)", () => {
+    expect(directiveSources(EDITOR_CSP, "default-src")).toEqual(["'self'"]);
   });
 });
 
@@ -88,8 +122,14 @@ function walkTextFiles(dir: string, exts: string[]): string[] {
   return out;
 }
 
+// Every text-ish extension `vite build`/the public/ copy step could
+// plausibly produce (Codex Round 2: the original list — .js/.mjs/.html —
+// would silently skip a leaked origin sitting in a .json/.css/.map/.svg
+// asset instead of catching it).
+const TEXT_ASSET_EXTS = [".js", ".mjs", ".html", ".json", ".css", ".map", ".svg", ".txt"];
+
 describe("packages/app real build output (dist/) never references a third-party CDN/httpfs origin", () => {
-  it("no .js/.mjs/.html file in dist contains extensions.duckdb.org or cdn.jsdelivr.net", () => {
+  it("no text asset in dist contains extensions.duckdb.org or cdn.jsdelivr.net", () => {
     // Sentinel: if dist/ doesn't exist, every assertion below would be
     // skipped-by-absence rather than genuinely passing — fail loudly
     // instead (same principle bundle-isolation.test.ts's srcs.length check
@@ -98,7 +138,7 @@ describe("packages/app real build output (dist/) never references a third-party 
       true,
     );
 
-    const files = walkTextFiles(DIST_DIR, [".js", ".mjs", ".html"]);
+    const files = walkTextFiles(DIST_DIR, TEXT_ASSET_EXTS);
     expect(files.length).toBeGreaterThan(0);
 
     const offenders = files.filter((f) => {

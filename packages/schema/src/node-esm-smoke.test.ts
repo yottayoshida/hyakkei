@@ -21,11 +21,26 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("@hyakkei/schema's real dist/index.js is importable by plain Node ESM", () => {
-  it('`node -e "import(...)"` against dist/index.js succeeds and exposes parseDashboard/parseBakedDashboard', () => {
+  it('`node -e "import(...)"` against dist/index.js succeeds, and the generated Ajv validators it exposes actually run correctly (not just resolve)', () => {
+    // Codex Round 2 (Test Adversarial Review): a bare `typeof === "function"`
+    // check proves the *import* resolved, but not that `esmifyRequires()`
+    // (generate-ajv-validators.mjs) bound the right thing to the right
+    // export — a mistake there could still leave `parseDashboard` callable
+    // but silently broken (e.g. always-true, or throwing on the first real
+    // schema check). Calling it with both a passing and a failing input
+    // pins actual validator behavior, not just resolvability.
     const distIndex = join(import.meta.dirname, "..", "dist", "index.js");
     const script = `import(${JSON.stringify(distIndex)}).then((m) => {
       if (typeof m.parseDashboard !== "function" || typeof m.parseBakedDashboard !== "function") {
         throw new Error("dist/index.js loaded but is missing expected exports");
+      }
+      const missingVersion = m.parseDashboard({});
+      if (missingVersion.ok !== false) {
+        throw new Error("parseDashboard({}) should reject (missing 'version'), got: " + JSON.stringify(missingVersion));
+      }
+      const wrongVersion = m.parseDashboard({ version: 999 });
+      if (wrongVersion.ok !== false || !wrongVersion.reason.includes("999")) {
+        throw new Error("parseDashboard should reject an unsupported version by name, got: " + JSON.stringify(wrongVersion));
       }
       console.log("OK");
     });`;
