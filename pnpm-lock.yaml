@@ -53,6 +53,9 @@ importers:
 
   packages/app:
     dependencies:
+      '@duckdb/duckdb-wasm':
+        specifier: 1.32.0
+        version: 1.32.0
       '@hyakkei/core':
         specifier: workspace:*
         version: link:../core

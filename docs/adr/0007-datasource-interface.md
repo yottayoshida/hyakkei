@@ -54,7 +54,7 @@ Deny-all (no `selfOrigin` configured) is the default and is provable without a n
 
 **Rejected: fixed third-party allowlist added to `connect-src`** (the plan's original design — `'self'` plus a small set of known-good origins such as Google's published-sheet domains). Rejected per the Context section: any widening of `connect-src` is a widening of what a compromised query engine can reach, not just what the app's own fetch layer can reach, and `connect-src` cannot express "only my own fetch calls, not SQL's." Revisit in M2/SR-3 once a mechanism exists (most likely Service Worker-mediated response interception) that can grant the app's own fetch layer broader reach without also granting it to `connect-src` at large.
 
-**`extensions.duckdb.org` must never appear in `connect-src`, independent of the above.** This is a distinct, narrower control: it forecloses `httpfs` (the DuckDB extension that lets SQL read an `https://` URL) from ever loading, regardless of what else is or isn't in the allowlist. A CI regression for this is deferred to M2, when CSP headers/meta are actually implemented — no CSP artifact exists in the repository yet to check against; adding a test today would test nothing real.
+**`extensions.duckdb.org` must never appear in `connect-src`, independent of the above.** This is a distinct, narrower control: it forecloses `httpfs` (the DuckDB extension that lets SQL read an `https://` URL) from ever loading, regardless of what else is or isn't in the allowlist. *(Originally written when no CSP artifact existed in the repository yet to check against — PR-A1.5's amendment below wires that artifact and its CI regression ahead of schedule; this paragraph is left as the historical record of the decision, not a still-current status.)*
 
 **Known v0.1 constraint: the editor itself must be served over https for `UrlSource` to ever succeed** (`/code-review`, Phase 9). `UrlSource.ref.url` is schema-constrained to `^https://` (dashboard.ts) — the author cannot author a plain-http url even if they wanted to — while `EgressPolicy` requires the *resolved* origin to equal `selfOrigin` exactly, scheme included. Serving the editor over plain http (a same-origin static-file-server or object-storage deployment without TLS — both are README.md-listed v0.1 deployment targets) makes this comparison structurally impossible to satisfy: `parsed.origin` is always `https://host`, `selfOrigin` is `http://host`, and no same-host URL can match. This is *not* fixed by loosening the schema or the scheme check to accept `http://` — doing so would mean fetching plain-http URLs, a real confidentiality/integrity regression, not a fix for a false restriction. The constraint is accepted as-is for v0.1: `UrlSource` requires an https-served editor; an http-served editor can still use `FileSource` (which never touches the network) without restriction. `EgressPolicy`'s rejection message names this specific cause (scheme mismatch) rather than reading as a generic allowlist miss.
 
@@ -77,6 +77,79 @@ The pattern alone cannot reject SQL reserved words (`select`, `from`, ...) — e
 | Fixed third-party allowlist in `connect-src` (original plan) | Widens what SQL can reach, not just what the app's fetch layer can reach — `connect-src` cannot express the distinction |
 | DuckDB config flags as the primary `httpfs`/network defense | Reverses ADR-0005/ARCHITECTURE §6's "CSP holds even if the query engine is compromised" principle; DuckDB's WASM flag behavior is explicitly documented (M0) as non-authoritative |
 | Restrict `Query.id` the same as `Source.id` | No corresponding injection surface — `Query.id` is never embedded in SQL text; would only add authoring friction |
+
+## Amendment (2026-07-14, PR-A1.5): CSP wired ahead of DuckDB-WASM landing, not after
+
+This ADR's "Decision" section above, and ARCHITECTURE §6, described the CSP `connect-src`
+containment model but left the artifact itself — a real header or `<meta>` tag — deferred
+to M2, "when CSP headers/meta are actually implemented." `/plan`'s differential re-review
+of the remaining issue #7 work (PR-A2 ingestion, PR-B intake UI) surfaced that this was
+backwards: PR-A2 is the first PR that instantiates real DuckDB-WASM in this repository, and
+without a shipped CSP artifact, that instantiation would run in an environment with *no*
+`connect-src` enforcement at all — the primary containment mechanism this ADR and
+ARCHITECTURE §6 rely on would simply not exist yet, leaving DuckDB's own defense-in-depth
+flags (`autoinstall_known_extensions=false` etc.) as the *only* control during that window,
+which M0 (`docs/spikes/m0-containment.md`) explicitly found insufficient on its own to rely
+on ("DuckDB's WASM flag behavior is explicitly documented as non-authoritative").
+
+**Decision**: split the remaining issue #7 work into three PRs instead of two —
+**PR-A1.5** (containment wiring: CSP as a real artifact, DuckDB-WASM self-hosted via
+`MANUAL_BUNDLES` rather than the package's default `getJsDelivrBundles()` CDN, the
+defense-in-depth flag `SET` sequence as a shared function, and a CI regression) lands
+**before** PR-A2 (FileSource/UrlSource ingestion, the first PR that actually instantiates
+DuckDB-WASM). PR-A2 then lands into an environment where containment is already verified,
+rather than needing to prove it itself.
+
+**CSP string correction**: ARCHITECTURE §6 previously documented the editor's target CSP as
+`default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; object-src
+'none'` — this omits `worker-src`, and per the CSP fallback chain (`worker-src -> child-src
+-> script-src -> default-src`), a `default-src 'none'` with no `worker-src` would have
+blocked DuckDB's own Worker outright had it shipped as written. PR-A1.5 ships
+`docs/spikes/m0-containment.md`'s exact tested string (`default-src 'self'; ...;
+worker-src 'self'`) plus `object-src 'none'` as additional hardening M0 didn't test but
+which cannot regress anything M0 verified.
+
+**DuckDB-WASM vendor files are not committed to git.** `spikes/vendor/`'s 4 files (2
+Worker scripts + 2 wasm binaries, ~75MB total) were never tracked — `.gitignore` excludes
+all of `spikes/*` — and PR-A1.5 follows the same pattern for `packages/app/public/vendor/`:
+a build-time script (`packages/app/scripts/copy-duckdb-vendor.mjs`) copies these 4 files
+from the already-pinned `@duckdb/duckdb-wasm` npm dependency (exact version match by
+construction — there is no separate version to drift) into `public/vendor/` on `dev`/
+`build`, and Vite copies `public/` into `dist/` like any other static asset. This keeps the
+same-origin self-hosting property (the actual security-relevant fact — no third-party CDN
+origin in `connect-src`) without a 75MB binary blob accumulating in git history on every
+DuckDB-WASM version bump.
+
+**DuckDB factory/containment-flag ownership: `packages/app`, not `packages/core/
+src/datasource`.** `packages/core/src/renderer/bundle-isolation.test.ts` forbids a
+`new Worker(` marker anywhere in core's bundle — core cannot construct an `AsyncDuckDB`
+instance without breaking that guarantee, and this ADR's own interface design (`
+TableRegistrar` as dependency injection, never constructed by a `DataSource`) already
+established the same boundary for `register()`'s DuckDB handle. `configureContainment()`
+(the flag `SET` sequence) takes an already-connected `AsyncDuckDBConnection` and issues no
+construction of its own, so it *could* live in either package on that basis alone — it
+stays in `packages/app` (`src/duckdb/containment.ts`) so DuckDB-facing code (the eventual
+factory PR-A2 adds, plus this flag sequence) isn't split across two packages for no benefit.
+
+**Residual risks this amendment adds** (PR-A1.5 security review; both are PR-A2 preconditions,
+not exploitable by this PR, which never instantiates a real DuckDB-WASM `Worker`):
+
+- **RR-NEW-1 — CSP's `connect-src` containment does not reach a same-origin Worker on a
+  header-less static host.** A network-loaded (non-`blob:`/`data:`) Worker does not inherit
+  its creating document's CSP — its policy comes from its own response's
+  `Content-Security-Policy` header (CSP3; see ARCHITECTURE §6's amended text). On a deployment
+  target that cannot set response headers (GitHub Pages, a plain object-storage bucket — both
+  README.md-listed v0.1 targets), the Worker's `connect-src` is unenforced by the browser, and
+  `configureContainment()`'s DuckDB flags become the *sole* control against `LOAD
+  httpfs`/`SELECT ... FROM 'https://...'` in that shape, not defense-in-depth alongside CSP.
+  Attacker capability required: victim deploys the editor to a header-less host **and** opens a
+  malicious authoring file **and** PR-A2 ships without addressing RR-NEW-2 below.
+- **RR-NEW-2 — nothing yet structurally prevents PR-A2 from wiring a DuckDB connection without
+  calling `configureContainment()`.** The function exists and is tested in isolation
+  (`containment.test.ts`) but has no caller. PR-A2 must either route every connection through a
+  single wrapper that calls it (and forbid the raw path via lint, mirroring how
+  `bundle-isolation.test.ts` forbids a bare `new Worker(` in core), or cover the call in an
+  integration test that would fail if a future edit ever bypassed it.
 
 ## Consequences
 

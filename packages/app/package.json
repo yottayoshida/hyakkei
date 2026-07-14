@@ -4,11 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --build && vite build",
+    "dev": "node scripts/copy-duckdb-vendor.mjs && vite",
+    "build": "node scripts/copy-duckdb-vendor.mjs && tsc --build && vite build",
     "test": "vitest run"
   },
   "dependencies": {
+    "@duckdb/duckdb-wasm": "1.32.0",
     "@hyakkei/core": "workspace:*",
     "@hyakkei/schema": "workspace:*",
     "react": "^18.3.0",

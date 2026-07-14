@@ -1,27 +1,43 @@
-import Ajv, { type ErrorObject, type ValidateFunction } from "ajv";
-import addFormats from "ajv-formats";
-import { BakedDashboard, type BakedDashboard as BakedDashboardT } from "./baked.js";
+import type { ErrorObject } from "ajv";
+import validateBakedDashboardSchema from "./generated/validate-baked-dashboard.js";
+import validateDashboardSchema from "./generated/validate-dashboard.js";
+import { type BakedDashboard as BakedDashboardT } from "./baked.js";
 import { CURRENT_VERSION, GRID_WIDTHS, type Grid, type LayoutItem } from "./common.js";
-import { Dashboard, type Dashboard as DashboardT } from "./dashboard.js";
+import { type Dashboard as DashboardT } from "./dashboard.js";
 
-// removeAdditional defaults to false, which is required for additive-only
-// forward-compat: unknown fields must survive validation unmodified, not be
-// silently stripped (shape enumeration S4/B4 — this is the load-bearing flag).
-const ajv = new Ajv({ allErrors: true });
-addFormats(ajv);
-
-const validateDashboardSchema: ValidateFunction<DashboardT> = ajv.compile(Dashboard);
-const validateBakedDashboardSchema: ValidateFunction<BakedDashboardT> = ajv.compile(BakedDashboard);
+// PR-A1.5 prerequisite: these two validators used to be `ajv.compile()`
+// calls right here, which generates the validator's body via `new
+// Function(...)` at runtime — incompatible with a `script-src` that has no
+// `'unsafe-eval'` (ARCHITECTURE §6). `scripts/generate-ajv-validators.mjs`
+// now runs that same compilation once, at build time in plain Node (no CSP
+// applies to build tooling), and writes the result as an ordinary,
+// eval-free ESM module (`dist/generated/*.js`, not committed — every build
+// regenerates it from the current schema; `src/generated/*.d.ts` are the
+// committed type stubs `tsc --build` checks this import against, see that
+// directory). `Ajv` itself is now a type-only import — `errorsText()`
+// below used to construct a full runtime `Ajv` instance purely to call that
+// one formatting method (`/simplify` efficiency finding: `Ajv` is a class
+// with many prototype methods a bundler generally can't tree-shake once
+// `new Ajv()` is referenced, so that single call was pulling most of the
+// compiler machinery this PR exists to strip out of the browser bundle
+// right back in — verified empirically, ~1MB+ of Ajv-internal code was
+// present in packages/app's built bundle before this change). `errorsText`
+// itself has no dependency on instance/compiled-schema state (`ajv/dist/
+// core.js`), so it's reproduced here as a plain function instead.
 
 export type ParseResult<T> =
   { ok: true; value: T } | { ok: false; reason: string; errors?: ErrorObject[] };
 
+/** Matches Ajv's own `errorsText()` default formatting (`dataVar: "data"`, `separator: ", "`) exactly — verified against `ajv/dist/core.js`. */
+function errorsText(errors: ErrorObject[]): string {
+  return errors.map((e) => `data${e.instancePath} ${e.message}`).join(", ");
+}
+
 /**
  * `result.reason` alone is a single generic line ("schema validation
  * failed") for most Ajv failures -- the per-field detail lives in
- * `result.errors`. Uses Ajv's own `errorsText` (not a hand-rolled
- * map/join) so every caller formats failures identically (/simplify,
- * reuse finding).
+ * `result.errors`. Every caller formats failures identically (/simplify,
+ * reuse finding) via `errorsText` above.
  *
  * The parameter is `Extract<ParseResult<unknown>, { ok: false }>`, not an
  * independently hand-typed `{ok:false, reason, errors?}` literal (/code-
@@ -30,7 +46,7 @@ export type ParseResult<T> =
  * object that merely happens to have the same shape today.
  */
 export function formatParseFailure(result: Extract<ParseResult<unknown>, { ok: false }>): string {
-  const detail = result.errors?.length ? ajv.errorsText(result.errors) : undefined;
+  const detail = result.errors?.length ? errorsText(result.errors) : undefined;
   return `${result.reason}${detail ? ` (${detail})` : ""}`;
 }
 
