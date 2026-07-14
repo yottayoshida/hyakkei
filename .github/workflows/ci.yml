@@ -27,13 +27,22 @@ permissions:
 # Fix: give every `push` event (main) its own group via `github.sha`, which
 # is unique per commit -- so no two `main` runs ever share a group and there
 # is nothing for GitHub to replace. `pull_request` events keep sharing a
-# group per branch (`github.head_ref`) so that superseded PR commits still
-# cancel each other as intended.
-# `github.head_ref` is empty on `push` events (that's specifically why the
-# original version fell back to `github.ref` for those events) -- so this
-# expression only uses `head_ref` when the event actually provides it.
+# group per PR (`github.event.pull_request.number`) so that superseded PR
+# commits still cancel each other as intended.
+#
+# Follow-up review (post-merge, re-review round): this originally keyed the
+# `pull_request` group on `github.head_ref` (the source branch name) instead
+# of the PR number. Two unrelated PRs -- e.g. from different forks, or two
+# same-repo branches -- that happen to share a common branch name (a common
+# occurrence: GitHub's own web UI suggests names like `patch-1`) landed in
+# the identical concurrency group, so a push to either PR could cancel the
+# other's completely unrelated, already-running CI run. `github.event.
+# pull_request.number` is unique per PR regardless of branch name and is the
+# standard mitigation for this exact collision; it is empty on `push` events
+# (same reason the original version fell back for those events), so this
+# expression only uses it when the event actually provides it.
 concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
