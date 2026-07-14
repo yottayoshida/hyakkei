@@ -31,6 +31,27 @@ test.describe("editor CSP (public/serve.json header, delivered via playwright.co
     expect(violations, `CSP violations during golden render: ${violations.join("; ")}`).toEqual([]);
   });
 
+  test("the CSP header is served on every response, not just HTML (Codex Round 1 P0: a Worker script has no <meta> tag to fall back on)", async ({
+    page,
+  }) => {
+    // The self-hosted DuckDB Worker script (packages/app/scripts/
+    // copy-duckdb-vendor.mjs) — a stable, predictable path, unlike
+    // content-hashed JS chunks, and the exact resource this check matters
+    // most for: it's what the (not-yet-wired) DuckDB factory will load via
+    // `new Worker(...)`, and per spikes/lib/server.mjs's own comment, M0's
+    // tested configuration sent the CSP header "on every response", not
+    // only HTML — a Worker script's own network attempts are its own
+    // response's concern, not necessarily inherited from the document that
+    // created it.
+    const response = await page.goto("/vendor/duckdb-browser-eh.worker.js");
+    const cspHeader = response?.headers()["content-security-policy"];
+    expect(
+      cspHeader,
+      "public/serve.json's CSP header did not reach a non-HTML (Worker script) response",
+    ).toBeTruthy();
+    expect(cspHeader).toContain("connect-src 'self'");
+  });
+
   test("CSP header + meta agree on connect-src/worker-src 'self', and a same-page fetch() to a non-self https origin is blocked (M0 control-test replay: zero successful non-self responses)", async ({
     page,
   }) => {

@@ -57,12 +57,18 @@ describe("index.html / golden.html / serve.json agree with csp.ts's EDITOR_CSP (
     expect(metaCspContent(html)).toBe(EDITOR_CSP);
   });
 
-  it("public/serve.json's Content-Security-Policy header matches EDITOR_CSP", () => {
+  it("public/serve.json's Content-Security-Policy header matches EDITOR_CSP, and covers every response (not just HTML)", () => {
     const serveConfig = JSON.parse(readFileSync(join(APP_ROOT, "public/serve.json"), "utf-8"));
-    const htmlRule = serveConfig.headers?.find((rule: { source: string }) =>
-      rule.source.includes(".html"),
-    );
-    const cspHeader = htmlRule?.headers?.find(
+    const rule = serveConfig.headers?.find((r: { source: string }) => r.source === "**");
+    // Codex Round 1 P0: an earlier version scoped this to `**/*.html`.
+    // spikes/lib/server.mjs (M0's own test server, docs/spikes/
+    // m0-containment.md) sends the CSP header "on every response", not
+    // just HTML — a Worker script/wasm response has no <meta> tag of its
+    // own to fall back on, and there is no guarantee a same-origin Worker
+    // inherits its creating document's CSP across every engine. `**`
+    // matches M0's actually-tested configuration exactly.
+    expect(rule?.source, "CSP header rule must cover every response, not just *.html").toBe("**");
+    const cspHeader = rule?.headers?.find(
       (h: { key: string }) => h.key === "Content-Security-Policy",
     );
     expect(cspHeader?.value).toBe(EDITOR_CSP);

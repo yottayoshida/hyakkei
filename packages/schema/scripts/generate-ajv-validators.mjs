@@ -74,9 +74,20 @@ function esmifyRequires(code) {
   let transformed = code;
   const imports = [];
 
+  // `.js` extensions are load-bearing, not cosmetic (Codex Round 1 P1):
+  // Node's own ESM resolver — unlike Vite's/Vitest's more lenient
+  // bundler-mode resolution, which is all this project's build/test
+  // pipeline exercises — requires an explicit extension on a relative or
+  // subpath specifier. Verified empirically: `node -e "import('./dist/
+  // index.js')"` against an earlier, extensionless version of this output
+  // failed with `Cannot find module '.../ajv/dist/runtime/ucs2length'
+  // ... Did you mean to import "ajv/dist/runtime/ucs2length.js"?` — exactly
+  // the failure a future plain-Node consumer of this package (a CLI, an
+  // MCP server — this project has discussed exactly that) would hit.
+  // schema-package-node-esm.test.ts is the regression for this.
   const ucs2lengthCall = 'require("ajv/dist/runtime/ucs2length").default';
   if (transformed.includes(ucs2lengthCall)) {
-    imports.push('import __ucs2length_default from "ajv/dist/runtime/ucs2length";');
+    imports.push('import __ucs2length_default from "ajv/dist/runtime/ucs2length.js";');
     transformed = transformed.replaceAll(ucs2lengthCall, "__ucs2length_default");
   }
 
@@ -87,7 +98,7 @@ function esmifyRequires(code) {
   const formatsPrefix = 'require("ajv-formats/dist/formats").fullFormats';
   if (transformed.includes(formatsPrefix)) {
     imports.push(
-      'import { fullFormats as __ajv_formats_fullFormats } from "ajv-formats/dist/formats";',
+      'import { fullFormats as __ajv_formats_fullFormats } from "ajv-formats/dist/formats.js";',
     );
     transformed = transformed.replaceAll(formatsPrefix, "__ajv_formats_fullFormats");
   }
