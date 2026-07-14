@@ -121,6 +121,19 @@ export default [
     // non-React packages (core/export/schema) that never call a hook.
     files: ["packages/app/src/**/*.{ts,tsx}"],
     ...reactHooks.configs.flat.recommended,
+    rules: {
+      ...reactHooks.configs.flat.recommended.rules,
+      // Follow-up review (post-#78 merge, re-review round): the plugin's
+      // own `flat.recommended` preset ships `exhaustive-deps` at `"warn"`,
+      // and this repo's `lint` script (`eslint .`, no `--max-warnings`)
+      // does not fail on warnings -- so CI's lint step could not have
+      // caught issue #55's ref-read-in-cleanup bug even after this rule
+      // was enabled (empirically verified: a probe component with a
+      // missing dependency produced exit code 0). That was the commit's
+      // own stated motivation for enabling react-hooks in the first
+      // place, so it must actually gate CI. Promoted to `"error"`.
+      "react-hooks/exhaustive-deps": "error",
+    },
   },
   {
     // #63 (audit round 2) §設計方針 2-3, plain-DOM/XSS-sink layer: this is
@@ -155,6 +168,15 @@ export default [
     // ever needed, use a line-level `eslint-disable-next-line` with a
     // reason comment, not a directory-level carve-out.
     //
+    // Follow-up review (post-#78 merge, re-review round): the glob below
+    // used to be `packages/*/src/**/*.{ts,tsx}` only, which contradicted
+    // this very comment -- it silently excluded `e2e/**/*.ts` (real
+    // Playwright spec/config files) and package-root config files like
+    // `packages/app/vite.config.ts`/`playwright.config.ts` (empirically
+    // verified: a DOM-sink snippet placed in `e2e/foo.spec.ts` produced
+    // zero findings before this widening). Extended to cover both so the
+    // comment's claim and the glob's actual behavior match.
+    //
     // Computed-property coverage (Codex round-1 review Major-2, widened by
     // Codex round-2 review P1-2): every selector below is listed in up to
     // three forms -- a `.property.name` form for static member access
@@ -173,7 +195,7 @@ export default [
     // residual gap of this approach (plan §Out of scope) -- this comment is
     // the authoritative statement of that gap so a future reader does not
     // mistake this rule for exhaustive coverage.
-    files: ["packages/*/src/**/*.{ts,tsx}"],
+    files: ["packages/*/src/**/*.{ts,tsx}", "e2e/**/*.ts", "*.config.ts", "packages/*/*.config.ts"],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -255,6 +277,33 @@ export default [
             "DOMParser().parseFromString(untrustedHtml, ...) is an XSS sink; parsed nodes must never be inserted into the live document without sanitization.",
         },
         {
+          // Follow-up review (post-#78 merge, re-review round): unlike every
+          // other sink in this file, DOMParser never received the
+          // window/globalThis/self-receiver or computed-property forms --
+          // `new window['DOMParser']()` and `new self.DOMParser()` both
+          // bypassed the bare-identifier selector above (empirically
+          // verified). Dot-form receiver-qualified sibling.
+          selector:
+            "NewExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='DOMParser'][callee.object.name=/^(window|globalThis|self)$/]",
+          message:
+            "DOMParser().parseFromString(untrustedHtml, ...) is an XSS sink. (window/globalThis/self.DOMParser() form detected.)",
+        },
+        {
+          // Computed/bracket sibling (`new window['DOMParser']()`).
+          selector:
+            "NewExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='DOMParser'][callee.object.name=/^(window|globalThis|self)$/]",
+          message:
+            "DOMParser().parseFromString(untrustedHtml, ...) is an XSS sink. (window/globalThis/self['DOMParser'](...) computed-property form detected.)",
+        },
+        {
+          // No-substitution template-literal computed sibling
+          // (`` new window[`DOMParser`]() ``).
+          selector:
+            "NewExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.type='TemplateLiteral'][callee.property.expressions.length=0][callee.property.quasis.0.value.cooked='DOMParser'][callee.object.name=/^(window|globalThis|self)$/]",
+          message:
+            "DOMParser().parseFromString(untrustedHtml, ...) is an XSS sink. (window/globalThis/self[`DOMParser`](...) computed-property form detected.)",
+        },
+        {
           selector:
             "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='createContextualFragment']",
           message:
@@ -273,44 +322,51 @@ export default [
             "Range.createContextualFragment is an XSS sink. Computed-property call form detected (el[`createContextualFragment`](...)).",
         },
         {
-          // Technical note (#63 audit-round-2 follow-up research): only
+          // Technical note (#63 audit-round-2 follow-up research; follow-up
+          // review post-#78 merge added `outerHTML` to this note): only
           // `srcdoc` is a genuine XSS sink here -- it is a real HTML content
           // attribute that the browser reflects onto the iframe and parses
-          // as markup. `innerHTML` is a DOM *property* only; it has no
-          // content-attribute reflection, so `setAttribute('innerHTML', x)`
-          // just creates an inert, meaningless custom attribute named
-          // "innerHTML" on the element and does nothing dangerous. This
-          // selector still flags `setAttribute('innerHTML', ...)` on
-          // purpose (deliberately over-broad): writing that call is a
-          // strong signal the author actually meant the `.innerHTML`
+          // as markup. `innerHTML`/`outerHTML` are DOM *properties* only;
+          // neither has content-attribute reflection, so
+          // `setAttribute('innerHTML'|'outerHTML', x)` just creates an
+          // inert, meaningless custom attribute on the element and does
+          // nothing dangerous. This selector still flags
+          // `setAttribute('innerHTML'|'outerHTML', ...)` on purpose
+          // (deliberately over-broad): writing either call is a strong
+          // signal the author actually meant the `.innerHTML`/`.outerHTML`
           // property setter and reached for the wrong API, so it is worth
-          // catching as a likely bug even though it is not itself
-          // exploitable. If a legitimate reason to set a custom
-          // "innerHTML" attribute ever comes up, use
-          // `eslint-disable-next-line` with a reason comment rather than
+          // catching as a likely bug even though neither is itself
+          // exploitable. `outerHTML` was originally omitted from this
+          // selector's argument-value filter -- an inconsistency with every
+          // other sink family in this file (AssignmentExpression,
+          // Reflect.set, Object.assign, Object.defineProperty/defineProperties
+          // all already treated innerHTML/outerHTML/srcdoc as one group) --
+          // found and closed in a follow-up review. If a legitimate reason
+          // to set a custom "innerHTML"/"outerHTML" attribute ever comes up,
+          // use `eslint-disable-next-line` with a reason comment rather than
           // relaxing this selector.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML', ...) is NOT an XSS sink (innerHTML has no content-attribute reflection; this just creates an inert custom attribute) -- flagged anyway because it is very likely a mistaken attempt at the `.innerHTML` property setter.",
+            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML'|'outerHTML', ...) is NOT an XSS sink (neither has content-attribute reflection; this just creates an inert custom attribute) -- flagged anyway because it is very likely a mistaken attempt at the `.innerHTML`/`.outerHTML` property setter.",
         },
         {
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='setAttribute'][arguments.0.type='TemplateLiteral'][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='setAttribute'][arguments.0.type='TemplateLiteral'][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML', ...) is NOT an XSS sink (innerHTML has no content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML` property setter. Template-literal argument form detected (setAttribute(`srcdoc`, ...)).",
+            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML'|'outerHTML', ...) is NOT an XSS sink (neither has content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML`/`.outerHTML` property setter. Template-literal argument form detected (setAttribute(`srcdoc`, ...)).",
         },
         {
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML', ...) is NOT an XSS sink (innerHTML has no content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML` property setter. Computed-property call form detected.",
+            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML'|'outerHTML', ...) is NOT an XSS sink (neither has content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML`/`.outerHTML` property setter. Computed-property call form detected.",
         },
         {
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='setAttribute'][arguments.0.type='TemplateLiteral'][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='setAttribute'][arguments.0.type='TemplateLiteral'][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML', ...) is NOT an XSS sink (innerHTML has no content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML` property setter. Computed-property call form detected with template-literal argument.",
+            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML'|'outerHTML', ...) is NOT an XSS sink (neither has content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML`/`.outerHTML` property setter. Computed-property call form detected with template-literal argument.",
         },
         {
           // Codex round-2 review (post-P1-2 fix verification): every other
@@ -320,15 +376,15 @@ export default [
           // `el[\`setAttribute\`]('srcdoc', ...)` slipped through. This entry
           // is the missing third form.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.type='TemplateLiteral'][callee.property.expressions.length=0][callee.property.quasis.0.value.cooked='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.type='TemplateLiteral'][callee.property.expressions.length=0][callee.property.quasis.0.value.cooked='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML', ...) is NOT an XSS sink (innerHTML has no content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML` property setter. Computed-property call form detected (el[`setAttribute`](...)).",
+            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML'|'outerHTML', ...) is NOT an XSS sink (neither has content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML`/`.outerHTML` property setter. Computed-property call form detected (el[`setAttribute`](...)).",
         },
         {
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.type='TemplateLiteral'][callee.property.expressions.length=0][callee.property.quasis.0.value.cooked='setAttribute'][arguments.0.type='TemplateLiteral'][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.type='TemplateLiteral'][callee.property.expressions.length=0][callee.property.quasis.0.value.cooked='setAttribute'][arguments.0.type='TemplateLiteral'][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML', ...) is NOT an XSS sink (innerHTML has no content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML` property setter. Computed-property call form detected with template-literal callee and argument (el[`setAttribute`](`srcdoc`, ...)).",
+            "setAttribute('srcdoc', ...) is an XSS sink: srcdoc is a real HTML content attribute reflected into the iframe and parsed as markup. setAttribute('innerHTML'|'outerHTML', ...) is NOT an XSS sink (neither has content-attribute reflection) -- flagged anyway as a likely mistaken `.innerHTML`/`.outerHTML` property setter. Computed-property call form detected with template-literal callee and argument (el[`setAttribute`](`srcdoc`, ...)).",
         },
         {
           // Codex round-2 review P1-3 originally added a direct
@@ -398,6 +454,78 @@ export default [
             "eval() executes arbitrary strings as code. ((window as T).eval(...) cast form detected.)",
         },
         {
+          // Follow-up review (post-#78 merge, re-review round): the cast
+          // selector above requires `callee.computed=false` (dot access
+          // after the cast). `(window as T)['eval'](...)` -- bracket access
+          // on the exact same cast receiver -- bypassed it entirely
+          // (empirically verified: 0 findings before this selector was
+          // added). Computed/bracket sibling of the dot-form cast selector.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='eval'][callee.object.type='TSAsExpression'][callee.object.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "eval() executes arbitrary strings as code. ((window as T)['eval'](...) cast + computed-property form detected.)",
+        },
+        {
+          // Follow-up review: the cast selectors above require
+          // `callee.object.expression` to be a plain Identifier -- i.e. only
+          // a single-hop cast (`window as T`). TypeScript itself forces a
+          // double cast (`window as unknown as T`) whenever the target type
+          // doesn't structurally overlap the source, which is the MORE
+          // common real-world form for this exact idiom, not an edge case --
+          // and it produces a nested TSAsExpression as `callee.object.
+          // expression` instead of a bare Identifier, so the selectors above
+          // never match it (empirically verified: 0 findings before this
+          // selector was added). Dot-access sibling for the double-cast
+          // shape.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='eval'][callee.object.type='TSAsExpression'][callee.object.expression.type='TSAsExpression'][callee.object.expression.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "eval() executes arbitrary strings as code. ((window as unknown as T).eval(...) double-cast form detected.)",
+        },
+        {
+          // Computed/bracket sibling of the double-cast selector above
+          // (`(window as unknown as T)['eval'](...)`).
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='eval'][callee.object.type='TSAsExpression'][callee.object.expression.type='TSAsExpression'][callee.object.expression.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "eval() executes arbitrary strings as code. ((window as unknown as T)['eval'](...) double-cast + computed-property form detected.)",
+        },
+        {
+          // Follow-up review: `self` has zero .call/.apply/.bind/
+          // Reflect.apply indirection coverage even though the file
+          // implements that exact indirection sweep for setAttribute/
+          // insertAdjacentHTML/createContextualFragment/document.write.
+          // `self.eval.call(null, code)` and `Reflect.apply(self.eval, self,
+          // [code])` both bypassed every selector above (empirically
+          // verified). `window`/`globalThis.eval` indirection forms are
+          // already covered by core `no-eval`'s own indirection support
+          // (verified: `window.eval.call(null, x)` is caught natively), so
+          // this sweep is scoped to `self` only, consistent with every other
+          // `self`-only selector in this file.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name=/^(call|apply)$/][callee.object.type='MemberExpression'][callee.object.computed=false][callee.object.object.name='self'][callee.object.property.name='eval']",
+          message:
+            "eval() executes arbitrary strings as code. (self.eval.call/.apply(...) -indirected invocation detected.)",
+        },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name=/^(call|apply)$/][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.object.name='self'][callee.object.property.value='eval']",
+          message:
+            "eval() executes arbitrary strings as code. (self['eval'].call/.apply(...) -indirected invocation detected. Computed-property sink-target form.)",
+        },
+        {
+          selector:
+            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=false][callee.callee.object.object.name='self'][callee.callee.object.property.name='eval']",
+          message:
+            "eval() executes arbitrary strings as code. (self.eval.bind(...)(...) -indirected invocation detected.)",
+        },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=false][arguments.0.object.name='self'][arguments.0.property.name='eval']",
+          message:
+            "eval() executes arbitrary strings as code. (Reflect.apply(self.eval, ...) -indirected invocation detected.)",
+        },
+        {
           // #63 audit-round-2 follow-up research: direct `new Function(...)`
           // and direct `Function(...)` (no `new`) selectors formerly lived
           // here and have been removed -- the core `no-new-func` rule (added
@@ -439,6 +567,30 @@ export default [
             "new Function(...) executes arbitrary strings as code. ((window as T).Function(...) cast form detected.)",
         },
         {
+          // Follow-up review (post-#78 merge, re-review round): computed/
+          // bracket sibling of the cast selector above (`new (window as T)
+          // ['Function'](...)`), same gap class already fixed for eval().
+          selector:
+            "NewExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='Function'][callee.object.type='TSAsExpression'][callee.object.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "new Function(...) executes arbitrary strings as code. ((window as T)['Function'](...) cast + computed-property form detected.)",
+        },
+        {
+          // Double-cast (`window as unknown as T`) sibling of the cast
+          // selector above, same gap class already fixed for eval().
+          selector:
+            "NewExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='Function'][callee.object.type='TSAsExpression'][callee.object.expression.type='TSAsExpression'][callee.object.expression.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "new Function(...) executes arbitrary strings as code. ((window as unknown as T).Function(...) double-cast form detected.)",
+        },
+        {
+          // Computed/bracket sibling of the double-cast selector above.
+          selector:
+            "NewExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='Function'][callee.object.type='TSAsExpression'][callee.object.expression.type='TSAsExpression'][callee.object.expression.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "new Function(...) executes arbitrary strings as code. ((window as unknown as T)['Function'](...) double-cast + computed-property form detected.)",
+        },
+        {
           // Security Review (audit round 2, Low finding): same
           // TSAsExpression cast gap as eval() above, for `Function(...)`
           // called without `new`.
@@ -446,6 +598,27 @@ export default [
             "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='Function'][callee.object.type='TSAsExpression'][callee.object.expression.name=/^(window|globalThis|self)$/]",
           message:
             "Function(...) executes arbitrary strings as code. ((window as T).Function(...) cast form detected, called without `new`.)",
+        },
+        {
+          // Computed/bracket sibling, called without `new`.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='Function'][callee.object.type='TSAsExpression'][callee.object.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "Function(...) executes arbitrary strings as code. ((window as T)['Function'](...) cast + computed-property form detected, called without `new`.)",
+        },
+        {
+          // Double-cast sibling, called without `new`.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='Function'][callee.object.type='TSAsExpression'][callee.object.expression.type='TSAsExpression'][callee.object.expression.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "Function(...) executes arbitrary strings as code. ((window as unknown as T).Function(...) double-cast form detected, called without `new`.)",
+        },
+        {
+          // Double-cast + computed/bracket sibling, called without `new`.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.property.value='Function'][callee.object.type='TSAsExpression'][callee.object.expression.type='TSAsExpression'][callee.object.expression.expression.name=/^(window|globalThis|self)$/]",
+          message:
+            "Function(...) executes arbitrary strings as code. ((window as unknown as T)['Function'](...) double-cast + computed-property form detected, called without `new`.)",
         },
         {
           // Codex round-1 review, Thesis-aligned finding: `no-new-func` has
@@ -503,6 +676,40 @@ export default [
           message:
             "Reflect.construct(Function, [code]) constructs a callable function from a string body, same class of risk as `new Function(...)`/eval().",
         },
+        {
+          // Follow-up review (post-#78 merge, re-review round): unlike bare
+          // `Function`, whose `.call`/`.apply`/`.bind`/`Reflect.apply`
+          // indirection forms core `no-new-func` already catches natively,
+          // `window/globalThis/self.Function` has NO indirection coverage at
+          // all -- `no-new-func` has no global-object-walking logic (per the
+          // comment above), so `window.Function.call(null, code)` bypassed
+          // every selector in this file (empirically verified). Dot-form
+          // sink-target sibling of the direct `window/globalThis/self.
+          // Function(...)` selectors above.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name=/^(call|apply)$/][callee.object.type='MemberExpression'][callee.object.computed=false][callee.object.property.name='Function'][callee.object.object.name=/^(window|globalThis|self)$/]",
+          message:
+            "Function(...) executes arbitrary strings as code. (window/globalThis/self.Function.call/.apply(...) -indirected invocation detected.)",
+        },
+        {
+          // Computed sink-target sibling (`window['Function'].call(...)`).
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name=/^(call|apply)$/][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.value='Function'][callee.object.object.name=/^(window|globalThis|self)$/]",
+          message:
+            "Function(...) executes arbitrary strings as code. (window/globalThis/self['Function'].call/.apply(...) -indirected invocation detected. Computed-property sink-target form.)",
+        },
+        {
+          selector:
+            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=false][callee.callee.object.property.name='Function'][callee.callee.object.object.name=/^(window|globalThis|self)$/]",
+          message:
+            "Function(...) executes arbitrary strings as code. (window/globalThis/self.Function.bind(...)(...) -indirected invocation detected.)",
+        },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=false][arguments.0.property.name='Function'][arguments.0.object.name=/^(window|globalThis|self)$/]",
+          message:
+            "Function(...) executes arbitrary strings as code. (Reflect.apply(window/globalThis/self.Function, ...) -indirected invocation detected.)",
+        },
         // ---------------------------------------------------------------
         // #63 audit-round-2 follow-up research: CallExpression-argument
         // bypasses of the innerHTML/outerHTML/srcdoc property-write sinks.
@@ -544,6 +751,20 @@ export default [
             "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.object.name='Reflect'][callee.property.value='set'][arguments.1.value=/^(innerHTML|outerHTML|srcdoc)$/]",
           message:
             "Reflect['set'](el, 'innerHTML'|'outerHTML'|'srcdoc', ...) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed-property callee form detected.",
+        },
+        {
+          // Follow-up review (post-#78 merge, re-review round): the
+          // computed-callee sibling above only got the `.value` (bracket-
+          // string) form -- `` Reflect[`set`](...) `` (template-literal
+          // callee, no interpolation) bypassed it (empirically verified).
+          // Every other CallExpression-based sink in this file (eval,
+          // Function, insertAdjacentHTML, setAttribute) already received
+          // this exact third computed-callee form; it was never propagated
+          // to this Reflect/Object cluster.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.object.name='Reflect'][callee.property.type='TemplateLiteral'][callee.property.expressions.length=0][callee.property.quasis.0.value.cooked='set'][arguments.1.value=/^(innerHTML|outerHTML|srcdoc)$/]",
+          message:
+            "Reflect[`set`](el, 'innerHTML'|'outerHTML'|'srcdoc', ...) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed-property callee form detected (template-literal key).",
         },
         {
           // `Object.assign(el, { innerHTML: x })` merges an object
@@ -629,6 +850,16 @@ export default [
             "Object['assign'](el, { innerHTML|outerHTML|srcdoc: ... }) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed-property callee form detected.",
         },
         {
+          // Follow-up review (post-#78 merge, re-review round): sibling of
+          // the computed-callee selector above using a template-literal
+          // callee (`` Object[`assign`](...) ``) instead of a bracket-string
+          // callee -- same gap already fixed for `Reflect.set` above.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.object.name='Object'][callee.property.type='TemplateLiteral'][callee.property.expressions.length=0][callee.property.quasis.0.value.cooked='assign'] > ObjectExpression.arguments:not(:first-child) > Property.properties[computed=false][key.name=/^(innerHTML|outerHTML|srcdoc)$/]",
+          message:
+            "Object[`assign`](el, { innerHTML|outerHTML|srcdoc: ... }) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed-property callee form detected (template-literal key).",
+        },
+        {
           // `Object.defineProperty(el, 'innerHTML', { value: x })` (or a
           // getter/setter descriptor) also performs the same property
           // definition as a direct assignment. Property name is
@@ -654,6 +885,15 @@ export default [
             "Object['defineProperty'](el, 'innerHTML'|'outerHTML'|'srcdoc', ...) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed-property callee form detected.",
         },
         {
+          // Follow-up review (post-#78 merge, re-review round): template-
+          // literal-callee sibling (`` Object[`defineProperty`](...) ``),
+          // same gap already fixed for `Reflect.set`/`Object.assign` above.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.object.name='Object'][callee.property.type='TemplateLiteral'][callee.property.expressions.length=0][callee.property.quasis.0.value.cooked='defineProperty'][arguments.1.value=/^(innerHTML|outerHTML|srcdoc)$/]",
+          message:
+            "Object[`defineProperty`](el, 'innerHTML'|'outerHTML'|'srcdoc', ...) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed-property callee form detected (template-literal key).",
+        },
+        {
           // Codex round-1 review, Thesis-aligned finding: `Object
           // .defineProperties(el, { innerHTML: { value: x }, ... })` is the
           // plural, batched-descriptor-map sibling of `defineProperty` --
@@ -675,6 +915,36 @@ export default [
             "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Object'][callee.property.name='defineProperties'] > ObjectExpression.arguments:nth-child(2) > Property.properties[computed=false][key.type='Literal'][key.value=/^(innerHTML|outerHTML|srcdoc)$/]",
           message:
             "Object.defineProperties(el, { 'innerHTML'|'outerHTML'|'srcdoc': {...}, ... }) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write.",
+        },
+        {
+          // Follow-up review (post-#78 merge, re-review round):
+          // `Object.defineProperties` only received the identifier-key and
+          // quoted-string-key forms above -- it never received the
+          // computed-callee (`Object['defineProperties'](...)`) or
+          // computed-key (`{ ['innerHTML']: {...} }`) forms that its
+          // near-twin `Object.assign` has (both empirically verified to
+          // bypass before this selector was added). Computed-callee,
+          // identifier-key sibling.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=true][callee.object.name='Object'][callee.property.value='defineProperties'] > ObjectExpression.arguments:nth-child(2) > Property.properties[computed=false][key.name=/^(innerHTML|outerHTML|srcdoc)$/]",
+          message:
+            "Object['defineProperties'](el, { innerHTML|outerHTML|srcdoc: {...}, ... }) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed-property callee form detected.",
+        },
+        {
+          // Dot-callee, computed descriptor-map key (`{ ['innerHTML']:
+          // {...} }`) sibling, mirroring Object.assign's equivalent form.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Object'][callee.property.name='defineProperties'] > ObjectExpression.arguments:nth-child(2) > Property.properties[computed=true][key.type='Literal'][key.value=/^(innerHTML|outerHTML|srcdoc)$/]",
+          message:
+            "Object.defineProperties(el, { ['innerHTML'|'outerHTML'|'srcdoc']: {...}, ... }) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed descriptor-map key form detected.",
+        },
+        {
+          // Dot-callee, no-substitution template-literal descriptor-map key
+          // (`{ [\`innerHTML\`]: {...} }`) sibling.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Object'][callee.property.name='defineProperties'] > ObjectExpression.arguments:nth-child(2) > Property.properties[computed=true][key.type='TemplateLiteral'][key.expressions.length=0][key.quasis.0.value.cooked=/^(innerHTML|outerHTML|srcdoc)$/]",
+          message:
+            "Object.defineProperties(el, { [`innerHTML`|`outerHTML`|`srcdoc`]: {...}, ... }) performs the same property write as a direct assignment and is an XSS sink (srcdoc) or a likely mistaken `.innerHTML`/`.outerHTML` property write. Computed descriptor-map key form detected (template-literal key).",
         },
         // ---------------------------------------------------------------
         // #63 audit-round-2 follow-up research, design principle: the
@@ -893,46 +1163,46 @@ export default [
           // `arguments[1]` here (not `arguments[0]` as in the direct-call
           // selectors above).
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='call'][callee.object.type='MemberExpression'][callee.object.computed=false][callee.object.property.name='setAttribute'][arguments.1.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='call'][callee.object.type='MemberExpression'][callee.object.computed=false][callee.object.property.name='setAttribute'][arguments.1.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).call(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .call indirection does not evade this rule.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).call(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .call indirection does not evade this rule.",
         },
         {
           // Codex round-1 review, Thesis-aligned finding: computed
           // `el['setAttribute'].call(...)` sink-target sibling.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='call'][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.value='setAttribute'][arguments.1.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='call'][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.value='setAttribute'][arguments.1.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).call(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .call indirection does not evade this rule. Computed-property sink-target form detected.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).call(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .call indirection does not evade this rule. Computed-property sink-target form detected.",
         },
         {
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='call'][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.type='TemplateLiteral'][callee.object.property.expressions.length=0][callee.object.property.quasis.0.value.cooked='setAttribute'][arguments.1.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='call'][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.type='TemplateLiteral'][callee.object.property.expressions.length=0][callee.object.property.quasis.0.value.cooked='setAttribute'][arguments.1.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).call(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .call indirection does not evade this rule. Computed-property sink-target form detected (template-literal key).",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).call(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .call indirection does not evade this rule. Computed-property sink-target form detected (template-literal key).",
         },
         {
           // `.apply(thisArg, [name, value])` passes the original arguments
           // as an array literal, so the attribute name lives at
           // `arguments[1].elements[0]`, not `arguments[1]` directly.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='apply'][callee.object.type='MemberExpression'][callee.object.computed=false][callee.object.property.name='setAttribute'][arguments.1.type='ArrayExpression'][arguments.1.elements.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='apply'][callee.object.type='MemberExpression'][callee.object.computed=false][callee.object.property.name='setAttribute'][arguments.1.type='ArrayExpression'][arguments.1.elements.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).apply(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .apply indirection does not evade this rule.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).apply(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .apply indirection does not evade this rule.",
         },
         {
           // Codex round-1 review, Thesis-aligned finding: computed
           // `el['setAttribute'].apply(...)` sink-target sibling.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='apply'][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.value='setAttribute'][arguments.1.type='ArrayExpression'][arguments.1.elements.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='apply'][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.value='setAttribute'][arguments.1.type='ArrayExpression'][arguments.1.elements.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).apply(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .apply indirection does not evade this rule. Computed-property sink-target form detected.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).apply(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .apply indirection does not evade this rule. Computed-property sink-target form detected.",
         },
         {
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='apply'][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.type='TemplateLiteral'][callee.object.property.expressions.length=0][callee.object.property.quasis.0.value.cooked='setAttribute'][arguments.1.type='ArrayExpression'][arguments.1.elements.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='apply'][callee.object.type='MemberExpression'][callee.object.computed=true][callee.object.property.type='TemplateLiteral'][callee.object.property.expressions.length=0][callee.object.property.quasis.0.value.cooked='setAttribute'][arguments.1.type='ArrayExpression'][arguments.1.elements.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).apply(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .apply indirection does not evade this rule. Computed-property sink-target form detected (template-literal key).",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).apply(...)-indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .apply indirection does not evade this rule. Computed-property sink-target form detected (template-literal key).",
         },
         {
           // `el.setAttribute.bind(thisArg)(name, value)` is two nested
@@ -945,9 +1215,9 @@ export default [
           // case where the attribute name is supplied at the OUTER
           // (eventually-invoked) call, i.e. `.bind(el)('srcdoc', html)`.
           selector:
-            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=false][callee.callee.object.property.name='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=false][callee.callee.object.property.name='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .bind indirection does not evade this rule.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .bind indirection does not evade this rule.",
         },
         {
           // Codex round-1 review, Bug-fact finding: the selector above only
@@ -968,17 +1238,17 @@ export default [
           // outer-supplied name never also appears at `callee.arguments[1]`
           // and vice versa).
           selector:
-            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=false][callee.callee.object.property.name='setAttribute'][callee.arguments.1.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=false][callee.callee.object.property.name='setAttribute'][callee.arguments.1.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; pre-binding the attribute name as a .bind(...) argument (rather than supplying it at the eventual call) does not evade this rule.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; pre-binding the attribute name as a .bind(...) argument (rather than supplying it at the eventual call) does not evade this rule.",
         },
         {
           // Template-literal form of the pre-bound-name case immediately
           // above (`el.setAttribute.bind(el, `srcdoc`, html)()`).
           selector:
-            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=false][callee.callee.object.property.name='setAttribute'][callee.arguments.1.type='TemplateLiteral'][callee.arguments.1.expressions.length=0][callee.arguments.1.quasis.0.value.cooked=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=false][callee.callee.object.property.name='setAttribute'][callee.arguments.1.type='TemplateLiteral'][callee.arguments.1.expressions.length=0][callee.arguments.1.quasis.0.value.cooked=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; pre-binding the attribute name as a .bind(...) argument does not evade this rule. Template-literal argument form detected.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; pre-binding the attribute name as a .bind(...) argument does not evade this rule. Template-literal argument form detected.",
         },
         {
           // Codex round-1 review, Thesis-aligned finding: computed
@@ -992,15 +1262,15 @@ export default [
           // residual gap as the fully-dynamic-key case documented at the
           // top of this block.)
           selector:
-            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=true][callee.callee.object.property.value='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=true][callee.callee.object.property.value='setAttribute'][arguments.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .bind indirection does not evade this rule. Computed-property sink-target form detected.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; .bind indirection does not evade this rule. Computed-property sink-target form detected.",
         },
         {
           selector:
-            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=true][callee.callee.object.property.value='setAttribute'][callee.arguments.1.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='CallExpression'][callee.callee.type='MemberExpression'][callee.callee.computed=false][callee.callee.property.name='bind'][callee.callee.object.type='MemberExpression'][callee.callee.object.computed=true][callee.callee.object.property.value='setAttribute'][callee.arguments.1.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; pre-binding the attribute name does not evade this rule. Computed-property sink-target form detected.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...).bind(...)(...) -indirected invocation is the same sink/likely-mistake as a direct setAttribute call; pre-binding the attribute name does not evade this rule. Computed-property sink-target form detected.",
         },
         {
           // `Reflect.apply(el.setAttribute, el, [name, value])`: the target
@@ -1008,23 +1278,23 @@ export default [
           // MemberExpression), and the real setAttribute args are the array
           // literal at `arguments[2]`.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=false][arguments.0.property.name='setAttribute'][arguments.2.type='ArrayExpression'][arguments.2.elements.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=false][arguments.0.property.name='setAttribute'][arguments.2.type='ArrayExpression'][arguments.2.elements.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...) via Reflect.apply is the same sink/likely-mistake as a direct setAttribute call; Reflect.apply indirection does not evade this rule.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...) via Reflect.apply is the same sink/likely-mistake as a direct setAttribute call; Reflect.apply indirection does not evade this rule.",
         },
         {
           // Codex round-1 review, Thesis-aligned finding: computed
           // `Reflect.apply(el['setAttribute'], ...)` sink-target sibling.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=true][arguments.0.property.value='setAttribute'][arguments.2.type='ArrayExpression'][arguments.2.elements.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=true][arguments.0.property.value='setAttribute'][arguments.2.type='ArrayExpression'][arguments.2.elements.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...) via Reflect.apply is the same sink/likely-mistake as a direct setAttribute call; Reflect.apply indirection does not evade this rule. Computed-property sink-target form detected.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...) via Reflect.apply is the same sink/likely-mistake as a direct setAttribute call; Reflect.apply indirection does not evade this rule. Computed-property sink-target form detected.",
         },
         {
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=true][arguments.0.property.type='TemplateLiteral'][arguments.0.property.expressions.length=0][arguments.0.property.quasis.0.value.cooked='setAttribute'][arguments.2.type='ArrayExpression'][arguments.2.elements.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=true][arguments.0.property.type='TemplateLiteral'][arguments.0.property.expressions.length=0][arguments.0.property.quasis.0.value.cooked='setAttribute'][arguments.2.type='ArrayExpression'][arguments.2.elements.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...) via Reflect.apply is the same sink/likely-mistake as a direct setAttribute call; Reflect.apply indirection does not evade this rule. Computed-property sink-target form detected (template-literal key).",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...) via Reflect.apply is the same sink/likely-mistake as a direct setAttribute call; Reflect.apply indirection does not evade this rule. Computed-property sink-target form detected (template-literal key).",
         },
         // ---------------------------------------------------------------
         // Codex round-1 review, remaining Thesis-aligned findings: two
@@ -1052,9 +1322,9 @@ export default [
           // no longer `arguments[0]` directly but the first element of a
           // statically-known array literal spread into the call.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='setAttribute'][arguments.0.type='SpreadElement'][arguments.0.argument.type='ArrayExpression'][arguments.0.argument.elements.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='setAttribute'][arguments.0.type='SpreadElement'][arguments.0.argument.type='ArrayExpression'][arguments.0.argument.elements.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...) via a spread array argument (el.setAttribute(...['srcdoc', ...])) is the same sink/likely-mistake as a direct setAttribute call; spread-argument indirection does not evade this rule.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...) via a spread array argument (el.setAttribute(...['srcdoc', ...])) is the same sink/likely-mistake as a direct setAttribute call; spread-argument indirection does not evade this rule.",
         },
         {
           // `Reflect.apply(el.setAttribute, el, [...['srcdoc', html]])`:
@@ -1063,9 +1333,9 @@ export default [
           // itself the SpreadElement, rather than the attribute name
           // directly).
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=false][arguments.0.property.name='setAttribute'][arguments.2.type='ArrayExpression'][arguments.2.elements.0.type='SpreadElement'][arguments.2.elements.0.argument.type='ArrayExpression'][arguments.2.elements.0.argument.elements.0.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.object.name='Reflect'][callee.property.name='apply'][arguments.0.type='MemberExpression'][arguments.0.computed=false][arguments.0.property.name='setAttribute'][arguments.2.type='ArrayExpression'][arguments.2.elements.0.type='SpreadElement'][arguments.2.elements.0.argument.type='ArrayExpression'][arguments.2.elements.0.argument.elements.0.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...) via Reflect.apply with a spread array argument is the same sink/likely-mistake as a direct setAttribute call; spread-argument indirection does not evade this rule.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...) via Reflect.apply with a spread array argument is the same sink/likely-mistake as a direct setAttribute call; spread-argument indirection does not evade this rule.",
         },
         {
           // `Function.prototype.call.call(el.setAttribute, el, 'srcdoc',
@@ -1078,9 +1348,9 @@ export default [
           // `.call` case above, which is `el.setAttribute.call(el, name,
           // value)` with name at `arguments[1]`).
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='call'][callee.object.type='MemberExpression'][callee.object.computed=false][callee.object.property.name='call'][callee.object.object.type='MemberExpression'][callee.object.object.computed=false][callee.object.object.property.name='prototype'][callee.object.object.object.name='Function'][arguments.0.type='MemberExpression'][arguments.0.computed=false][arguments.0.property.name='setAttribute'][arguments.2.value=/^(srcdoc|innerHTML)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='call'][callee.object.type='MemberExpression'][callee.object.computed=false][callee.object.property.name='call'][callee.object.object.type='MemberExpression'][callee.object.object.computed=false][callee.object.object.property.name='prototype'][callee.object.object.object.name='Function'][arguments.0.type='MemberExpression'][arguments.0.computed=false][arguments.0.property.name='setAttribute'][arguments.2.value=/^(srcdoc|innerHTML|outerHTML)$/]",
           message:
-            "setAttribute('srcdoc'|'innerHTML', ...) via Function.prototype.call.call(...) meta-indirection is the same sink/likely-mistake as a direct setAttribute call.",
+            "setAttribute('srcdoc'|'innerHTML'|'outerHTML', ...) via Function.prototype.call.call(...) meta-indirection is the same sink/likely-mistake as a direct setAttribute call.",
         },
         {
           // `Function.prototype.apply.call(el.insertAdjacentHTML, el,
