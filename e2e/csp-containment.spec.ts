@@ -54,11 +54,18 @@ test.describe("editor CSP (public/serve.json header, delivered via playwright.co
 
   test("CSP header + meta agree on connect-src/worker-src 'self', and a same-page fetch() to a non-self https origin is blocked (M0 control-test replay: zero successful non-self responses)", async ({
     page,
+    baseURL,
   }) => {
+    // `/simplify` reuse finding: read from playwright.config.ts's single
+    // `use.baseURL` fixture rather than a second, unlinked copy of the
+    // literal — a config port change would otherwise go stale here
+    // silently (start flagging legitimate same-origin responses instead of
+    // failing loudly).
+    const selfOrigin = new URL(baseURL!).origin;
     const nonSelfResponses: string[] = [];
     page.on("response", (response) => {
       const url = new URL(response.url());
-      if (url.origin !== "http://localhost:4173" && response.ok()) {
+      if (url.origin !== selfOrigin && response.ok()) {
         nonSelfResponses.push(`${response.status()} ${response.url()}`);
       }
     });

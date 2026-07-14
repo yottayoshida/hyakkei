@@ -10,6 +10,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { VENDOR_FILES } from "../scripts/duckdb-vendor-files.mjs";
 import { EDITOR_CSP } from "./csp.js";
 
 const APP_ROOT = join(import.meta.dirname, "..");
@@ -75,21 +76,16 @@ describe("EDITOR_CSP's actual security properties (Codex Round 2 Test Adversaria
 });
 
 describe("index.html / golden.html / serve.json agree with csp.ts's EDITOR_CSP (single source of truth)", () => {
-  it("index.html's CSP meta matches EDITOR_CSP and is the first meta after charset", () => {
-    const html = readFileSync(join(APP_ROOT, "index.html"), "utf-8");
-    const metaOrder = [...html.matchAll(/<meta\s[^>]*>/gs)];
-    expect(metaOrder[0]?.[0]).toContain('charset="UTF-8"');
-    expect(metaOrder[1]?.[0]).toContain("Content-Security-Policy");
-    expect(metaCspContent(html)).toBe(EDITOR_CSP);
-  });
-
-  it("golden.html's CSP meta matches EDITOR_CSP and is the first meta after charset", () => {
-    const html = readFileSync(join(APP_ROOT, "golden.html"), "utf-8");
-    const metaOrder = [...html.matchAll(/<meta\s[^>]*>/gs)];
-    expect(metaOrder[0]?.[0]).toContain('charset="UTF-8"');
-    expect(metaOrder[1]?.[0]).toContain("Content-Security-Policy");
-    expect(metaCspContent(html)).toBe(EDITOR_CSP);
-  });
+  it.each(["index.html", "golden.html"])(
+    "%s's CSP meta matches EDITOR_CSP and is the first meta after charset",
+    (htmlFile) => {
+      const html = readFileSync(join(APP_ROOT, htmlFile), "utf-8");
+      const metaOrder = [...html.matchAll(/<meta\s[^>]*>/gs)];
+      expect(metaOrder[0]?.[0]).toContain('charset="UTF-8"');
+      expect(metaOrder[1]?.[0]).toContain("Content-Security-Policy");
+      expect(metaCspContent(html)).toBe(EDITOR_CSP);
+    },
+  );
 
   it("public/serve.json's Content-Security-Policy header matches EDITOR_CSP, and covers every response (not just HTML)", () => {
     const serveConfig = JSON.parse(readFileSync(join(APP_ROOT, "public/serve.json"), "utf-8"));
@@ -150,12 +146,7 @@ describe("packages/app real build output (dist/) never references a third-party 
 
   it("the 4 self-hosted DuckDB-WASM vendor files (Worker + wasm, MVP + EH) are present in dist/vendor", () => {
     const vendorDir = join(DIST_DIR, "vendor");
-    for (const file of [
-      "duckdb-mvp.wasm",
-      "duckdb-eh.wasm",
-      "duckdb-browser-mvp.worker.js",
-      "duckdb-browser-eh.worker.js",
-    ]) {
+    for (const file of VENDOR_FILES) {
       expect(existsSync(join(vendorDir, file)), `dist/vendor/${file} missing`).toBe(true);
     }
   });
