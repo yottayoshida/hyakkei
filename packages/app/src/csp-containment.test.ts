@@ -76,7 +76,7 @@ describe("EDITOR_CSP's actual security properties (Codex Round 2 Test Adversaria
 });
 
 describe("index.html / golden.html / serve.json agree with csp.ts's EDITOR_CSP (single source of truth)", () => {
-  it.each(["index.html", "golden.html", "register-harness.html"])(
+  it.each(["index.html", "golden.html", "register-harness.html", "intake.html"])(
     "%s's CSP meta matches EDITOR_CSP and is the first meta after charset",
     (htmlFile) => {
       const html = readFileSync(join(APP_ROOT, htmlFile), "utf-8");
