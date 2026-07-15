@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      PR-A2's e2e test harness for the real DuckDB-WASM round-trip (D11:
+      "登録→SELECT round-tripの最終段のみ" gets a real browser; everything
+      upstream of it is Vitest). Same containment as index.html/golden.html
+      — csp-containment.test.ts does not enumerate this file, but the CSP
+      string must still match so a real registration exercises the actual
+      shipped containment, not a looser test-only policy.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'; object-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hyakkei register harness</title>
+  </head>
+  <body>
+    <!--
+      No UI: this page is driven exclusively via `window.__hyakkeiHarness`
+      from Playwright's `page.evaluate()` (e2e/datasource-register.spec.ts),
+      not through clicks — there is nothing here for a human to interact
+      with. Never linked from index.html; a SEPARATE Vite build input
+      (vite.config.ts), so this page's duckdb/exceljs imports never reach
+      index.html's real-app bundle (same isolation golden.html already has).
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/register-harness-main.ts"></script>
+  </body>
+</html>

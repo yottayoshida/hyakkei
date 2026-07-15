@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/copy-duckdb-vendor.mjs && vite",
-    "build": "node scripts/copy-duckdb-vendor.mjs && tsc --build && vite build",
+    "dev": "node scripts/copy-duckdb-vendor.mjs && node scripts/copy-duckdb-extension.mjs && vite",
+    "build": "node scripts/copy-duckdb-vendor.mjs && node scripts/copy-duckdb-extension.mjs && tsc --build && vite build",
     "test": "vitest run"
   },
   "dependencies": {

@@ -23,6 +23,18 @@ coverage/
 spikes/*
 !spikes/README.md
 
+# PR-A2 exception: spikes/excel-fidelity/fixtures/ stopped being spike-only
+# scratch the moment packages/core/src/datasource/*.test.ts and
+# e2e/datasource-register.spec.ts started reading these exact files by
+# name — a fresh clone needs them present, not regenerated (xlsx output is
+# byte-nondeterministic across ExcelJS runs, so these are tracked as opaque
+# goldens; generate-fixtures.mjs stays alongside for provenance/regeneration
+# if a fixture ever needs replacing, not for CI to re-run and byte-compare).
+!spikes/excel-fidelity/
+spikes/excel-fidelity/*
+!spikes/excel-fidelity/fixtures/
+!spikes/excel-fidelity/generate-fixtures.mjs
+
 # DuckDB-WASM worker/wasm binaries (PR-A1.5, packages/app/scripts/
 # copy-duckdb-vendor.mjs), same reasoning as spikes/vendor/ above: these are
 # ~75MB, byte-for-byte reproducible from the already-pinned

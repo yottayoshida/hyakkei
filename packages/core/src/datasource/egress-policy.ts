@@ -1,4 +1,4 @@
-import { DataSourceError, type EgressPolicy } from "./types.js";
+import { DataSourceError, type EgressPolicy, type NetworkBlockedReason } from "./types.js";
 
 export interface EgressPolicyOptions {
   /**
@@ -27,7 +27,8 @@ export interface EgressPolicyOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_MAX_BYTES = 256 * 1024 * 1024;
+/** Exported so `byte-gate.ts`'s O-GATE ceiling can import this value instead of re-declaring it (/simplify reuse pass) — both acquisition paths enforce the same ceiling by construction, not by two literals staying in sync manually. */
+export const DEFAULT_MAX_BYTES = 256 * 1024 * 1024;
 
 /**
  * Resolves `url` against `base` (when given) and re-validates the *result's*
@@ -107,13 +108,92 @@ async function readBodyCapped(response: Response, maxBytes: number): Promise<Uin
   return bytes;
 }
 
+export type UrlClassification =
+  | { kind: "same-origin"; url: URL }
+  | { kind: "blocked"; reason: NetworkBlockedReason | undefined; message: string };
+
+/**
+ * The origin-classification decision `fetchBytes()` needs before it may
+ * touch the network — extracted and exported (UX Phase 8 review, Finding
+ * 1) so a future intake UI (PR-B) can run the SAME decision as a
+ * pre-fetch preflight (plan D10: "第三者URLはfetch前のUIプリフライトで正常
+ * 分岐") without reimplementing origin/scheme/credentials logic from
+ * scratch — the exact one-decision-two-implementations drift risk the
+ * mirror-seam discipline (V-094) exists to prevent elsewhere in this PR.
+ * `fetchBytes()` below is now a thin wrapper: call this, then fetch only
+ * on `"same-origin"`.
+ *
+ * Every check runs on the *parsed* `URL`, never the raw string —
+ * `startsWith` matching is exactly what a userinfo host-spoof
+ * (`https://self@evil.com`) or a mixed-case scheme (`HTTPS://…`) defeats
+ * (shape enumeration EG-A5/EG-B1, verified against Node's `URL`
+ * implementation in this PR's PoC).
+ */
+export function classifyUrlTarget(url: string, selfOrigin: string | undefined): UrlClassification {
+  let parsed: URL;
+  try {
+    parsed = parseAgainst(url, selfOrigin);
+  } catch {
+    return { kind: "blocked", reason: undefined, message: `not a resolvable URL: ${url}` };
+  }
+
+  if (parsed.protocol !== "https:") {
+    return {
+      kind: "blocked",
+      reason: "scheme",
+      message: `scheme '${parsed.protocol}' is not allowed (https: only)`,
+    };
+  }
+  // Credentials embedded in the URL never leave in a request (LGWAN
+  // deanonymization concern, shape enumeration EG-A6) — reject outright
+  // rather than silently stripping them, so the author sees the mistake.
+  if (parsed.username || parsed.password) {
+    return {
+      kind: "blocked",
+      reason: "credentials",
+      message: "URLs with embedded credentials are not allowed",
+    };
+  }
+  // No separate "no selfOrigin configured" branch needed: `parsed.origin`
+  // is always a non-empty string once parsing succeeds, so it can never
+  // equal an unset (`undefined`) or empty `selfOrigin` — the deny-all
+  // case (EG-A11) falls out of this one comparison for free.
+  if (parsed.origin !== selfOrigin) {
+    // `UrlSource.ref.url` is schema-constrained to `^https://`
+    // (dashboard.ts), so an editor served over plain http — a
+    // same-origin static-file-server or object-storage deployment
+    // README.md lists as supported, without TLS — can *never* satisfy
+    // this check: `parsed.origin` is always `https://host`, `selfOrigin`
+    // is `http://host`, and no host-only match makes them equal
+    // (/code-review, Phase 9). This is a known v0.1 constraint, not a
+    // bug this function can fix by relaxing the scheme check — doing so
+    // would mean fetching plain-http URLs, which is a real
+    // confidentiality/integrity regression, not a fix. Name the actual
+    // cause in the error rather than leaving it looking like a generic
+    // config mistake.
+    // `startsWith("http://")`, not `!startsWith("https://")`: the hint is
+    // about one specific deployment (an editor actually served over plain
+    // http). The deny-all configuration (`selfOrigin: ""`, EG-A11) also
+    // fails the negated check, which used to mis-blame the editor's TLS
+    // setup for a block that is deny-all by configuration (issue #62).
+    const schemeMismatch =
+      selfOrigin !== undefined && selfOrigin.startsWith("http://") && parsed.protocol === "https:";
+    const hint = schemeMismatch
+      ? ` (this editor is not served over https — UrlSource requires both the editor and the target to be https, so no same-host URL can pass; see ADR-0007)`
+      : "";
+    return {
+      kind: "blocked",
+      reason: schemeMismatch ? "http-editor" : "third-party",
+      message: `origin '${parsed.origin}' is not in the allowed list${hint}`,
+    };
+  }
+
+  return { kind: "same-origin", url: parsed };
+}
+
 /**
  * The one place a `UrlSource` (or a future snapshot `ProxySource`) is
- * allowed to touch the network (plan D3, ARCHITECTURE §6). Every check here
- * runs on the *parsed* `URL`, never the raw string — `startsWith` matching
- * is exactly what a userinfo host-spoof (`https://self@evil.com`) or a
- * mixed-case scheme (`HTTPS://…`) defeats (shape enumeration EG-A5/EG-B1,
- * verified against Node's `URL` implementation in this PR's PoC).
+ * allowed to touch the network (plan D3, ARCHITECTURE §6).
  */
 export function createEgressPolicy(options: EgressPolicyOptions = {}): EgressPolicy {
   const {
@@ -125,62 +205,13 @@ export function createEgressPolicy(options: EgressPolicyOptions = {}): EgressPol
 
   return {
     async fetchBytes(url: string): Promise<Uint8Array> {
-      let parsed: URL;
-      try {
-        parsed = parseAgainst(url, selfOrigin);
-      } catch {
-        throw new DataSourceError("network-blocked", `not a resolvable URL: ${url}`);
+      const classification = classifyUrlTarget(url, selfOrigin);
+      if (classification.kind === "blocked") {
+        throw new DataSourceError("network-blocked", classification.message, {
+          reason: classification.reason,
+        });
       }
-
-      if (parsed.protocol !== "https:") {
-        throw new DataSourceError(
-          "network-blocked",
-          `scheme '${parsed.protocol}' is not allowed (https: only)`,
-        );
-      }
-      // Credentials embedded in the URL never leave in a request (LGWAN
-      // deanonymization concern, shape enumeration EG-A6) — reject outright
-      // rather than silently stripping them, so the author sees the mistake.
-      if (parsed.username || parsed.password) {
-        throw new DataSourceError(
-          "network-blocked",
-          "URLs with embedded credentials are not allowed",
-        );
-      }
-      // No separate "no selfOrigin configured" branch needed: `parsed.origin`
-      // is always a non-empty string once parsing succeeds, so it can never
-      // equal an unset (`undefined`) or empty `selfOrigin` — the deny-all
-      // case (EG-A11) falls out of this one comparison for free.
-      if (parsed.origin !== selfOrigin) {
-        // `UrlSource.ref.url` is schema-constrained to `^https://`
-        // (dashboard.ts), so an editor served over plain http — a
-        // same-origin static-file-server or object-storage deployment
-        // README.md lists as supported, without TLS — can *never* satisfy
-        // this check: `parsed.origin` is always `https://host`, `selfOrigin`
-        // is `http://host`, and no host-only match makes them equal
-        // (/code-review, Phase 9). This is a known v0.1 constraint, not a
-        // bug this function can fix by relaxing the scheme check — doing so
-        // would mean fetching plain-http URLs, which is a real
-        // confidentiality/integrity regression, not a fix. Name the actual
-        // cause in the error rather than leaving it looking like a generic
-        // config mistake.
-        // `startsWith("http://")`, not `!startsWith("https://")`: the hint is
-        // about one specific deployment (an editor actually served over plain
-        // http). The deny-all configuration (`selfOrigin: ""`, EG-A11) also
-        // fails the negated check, which used to mis-blame the editor's TLS
-        // setup for a block that is deny-all by configuration (issue #62).
-        const schemeMismatch =
-          selfOrigin !== undefined &&
-          selfOrigin.startsWith("http://") &&
-          parsed.protocol === "https:";
-        const hint = schemeMismatch
-          ? ` (this editor is not served over https — UrlSource requires both the editor and the target to be https, so no same-host URL can pass; see ADR-0007)`
-          : "";
-        throw new DataSourceError(
-          "network-blocked",
-          `origin '${parsed.origin}' is not in the allowed list${hint}`,
-        );
-      }
+      const parsed = classification.url;
 
       // The timeout must stay armed through the body read, not just until
       // headers resolve — a connection that stalls mid-body (rather than
@@ -219,10 +250,16 @@ export function createEgressPolicy(options: EgressPolicyOptions = {}): EgressPol
           signal: controller.signal,
         });
         if (!response.ok) {
-          const kind = response.status === 404 ? "network-notfound" : "network-blocked";
+          if (response.status === 404) {
+            throw new DataSourceError(
+              "network-notfound",
+              `fetch failed: ${response.status} ${response.statusText}`,
+            );
+          }
           throw new DataSourceError(
-            kind,
+            "network-blocked",
             `fetch failed: ${response.status} ${response.statusText}`,
+            { reason: "fetch-failed" },
           );
         }
         return await readBodyCapped(response, maxBytes);
@@ -231,7 +268,10 @@ export function createEgressPolicy(options: EgressPolicyOptions = {}): EgressPol
         if (controller.signal.aborted) {
           throw new DataSourceError("aborted", `fetch timed out after ${timeoutMs}ms`);
         }
-        throw new DataSourceError("network-blocked", "fetch failed", { cause });
+        throw new DataSourceError("network-blocked", "fetch failed", {
+          cause,
+          reason: "fetch-failed",
+        });
       } finally {
         clearTimeout(timer);
       }
