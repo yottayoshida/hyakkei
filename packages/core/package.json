@@ -18,8 +18,10 @@
     "@digital-go-jp/design-tokens": "2.0.1",
     "@duckdb/duckdb-wasm": "1.32.0",
     "@hyakkei/schema": "workspace:*",
+    "apache-arrow": "17.0.0",
     "echarts": "6.1.0",
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "iconv-lite": "0.7.3"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

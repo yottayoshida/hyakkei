@@ -84,13 +84,31 @@ export type DataSourceErrorKind =
   | "aborted"
   | "oom";
 
+/**
+ * A limited discriminator on `network-blocked` only (not a new
+ * `DataSourceErrorKind` leaf — additive per the union's own no-reshape
+ * contract). `network-blocked` alone collapses five distinct situations
+ * `egress-policy.ts` can hit into one kind, which left the intake UI unable
+ * to show a situation-appropriate message (plan D11). Deliberately a closed
+ * union, not a free-text field: an open string would invite message-parsing
+ * fragility on the UI side, the exact failure mode this type exists to avoid.
+ */
+export type NetworkBlockedReason =
+  "third-party" | "http-editor" | "credentials" | "scheme" | "fetch-failed";
+
+export interface DataSourceErrorOptions extends ErrorOptions {
+  reason?: NetworkBlockedReason;
+}
+
 export class DataSourceError extends Error {
   readonly kind: DataSourceErrorKind;
+  readonly reason?: NetworkBlockedReason;
 
-  constructor(kind: DataSourceErrorKind, message: string, options?: ErrorOptions) {
+  constructor(kind: DataSourceErrorKind, message: string, options?: DataSourceErrorOptions) {
     super(message, options);
     this.name = "DataSourceError";
     this.kind = kind;
+    this.reason = options?.reason;
   }
 }
 

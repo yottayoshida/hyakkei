@@ -1380,6 +1380,20 @@ export default [
     },
   },
   {
+    // Node build scripts (`packages/*/scripts/**/*.mjs`): executed directly
+    // by Node, never bundled/shipped — `js.configs.recommended`'s `no-undef`
+    // otherwise flags Node 18+'s built-in global `fetch` (first needed by
+    // PR-A2's `copy-duckdb-extension.mjs`, which fetches the pinned parquet
+    // extension binary at build time). The `.ts/.tsx` block above already
+    // turns `no-undef` off entirely (tsc's own type-checking supersedes it);
+    // this file type has no such compiler pass, so only the specific global
+    // actually used is declared, not a blanket env switch.
+    files: ["**/scripts/**/*.mjs"],
+    languageOptions: {
+      globals: { fetch: "readonly" },
+    },
+  },
+  {
     // packages/app/public/vendor/: PR-A1.5's copy-duckdb-vendor.mjs-populated,
     // gitignored DuckDB-WASM Worker/wasm binaries (minified third-party
     // code, not this project's source — same reasoning as spikes/** below).

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createEgressPolicy } from "./egress-policy.js";
+import { classifyUrlTarget, createEgressPolicy } from "./egress-policy.js";
 import { DataSourceError } from "./types.js";
 
 // Shape IDs (EG-*) reference
@@ -387,5 +387,148 @@ describe("createEgressPolicy — response-size ceiling (EG follow-up, issue #67)
       maxBytes: 16,
     });
     await expect(policy.fetchBytes(url)).rejects.toMatchObject({ kind: "too-large" });
+  });
+});
+
+// Round 1 Codex review (Bug-fact): `reason` was added to every
+// `network-blocked` throw site but never asserted anywhere — the field was
+// entirely untested. Each reachable discriminator gets its own minimal
+// case here; the existing `it.each` table above (EG-A1..EG-B5) stays
+// unmodified per this PR's "existing 24 it 不変維持" thesis constraint.
+describe("createEgressPolicy — network-blocked reason discriminator (additive field, Round 1 follow-up)", () => {
+  const selfOrigin = "https://gov.example.jp";
+
+  it("reason: 'scheme' for a non-https URL", async () => {
+    const policy = createEgressPolicy({ selfOrigin, fetch: vi.fn() as unknown as typeof fetch });
+    await expect(policy.fetchBytes("http://gov.example.jp/x.csv")).rejects.toMatchObject({
+      kind: "network-blocked",
+      reason: "scheme",
+    });
+  });
+
+  it("reason: 'credentials' for a URL with embedded userinfo", async () => {
+    const policy = createEgressPolicy({ selfOrigin, fetch: vi.fn() as unknown as typeof fetch });
+    await expect(policy.fetchBytes("https://u:p@gov.example.jp/x.csv")).rejects.toMatchObject({
+      kind: "network-blocked",
+      reason: "credentials",
+    });
+  });
+
+  it("reason: 'third-party' for a well-formed https URL on a different origin", async () => {
+    const policy = createEgressPolicy({ selfOrigin, fetch: vi.fn() as unknown as typeof fetch });
+    await expect(policy.fetchBytes("https://evil.example.jp/x.csv")).rejects.toMatchObject({
+      kind: "network-blocked",
+      reason: "third-party",
+    });
+  });
+
+  it("reason: 'http-editor' when the editor itself is served over plain http", async () => {
+    const policy = createEgressPolicy({
+      selfOrigin: "http://gov.example.jp",
+      fetch: vi.fn() as unknown as typeof fetch,
+    });
+    await expect(policy.fetchBytes("https://gov.example.jp/x.csv")).rejects.toMatchObject({
+      kind: "network-blocked",
+      reason: "http-editor",
+    });
+  });
+
+  it("reason: 'fetch-failed' for a non-404 error response", async () => {
+    const fetchSpy = vi.fn(async () =>
+      fakeResponse({ ok: false, status: 500, statusText: "Internal Server Error" }),
+    );
+    const policy = createEgressPolicy({ selfOrigin, fetch: fetchSpy as unknown as typeof fetch });
+    await expect(policy.fetchBytes("https://gov.example.jp/x.csv")).rejects.toMatchObject({
+      kind: "network-blocked",
+      reason: "fetch-failed",
+    });
+  });
+
+  it("reason: 'fetch-failed' when fetch() itself throws (e.g. a real CORS block)", async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const policy = createEgressPolicy({ selfOrigin, fetch: fetchSpy as unknown as typeof fetch });
+    await expect(policy.fetchBytes("https://gov.example.jp/x.csv")).rejects.toMatchObject({
+      kind: "network-blocked",
+      reason: "fetch-failed",
+    });
+  });
+
+  it("a 404 response maps to 'network-notfound', a distinct kind with no reason value", async () => {
+    const fetchSpy = vi.fn(async () =>
+      fakeResponse({ ok: false, status: 404, statusText: "Not Found" }),
+    );
+    const policy = createEgressPolicy({ selfOrigin, fetch: fetchSpy as unknown as typeof fetch });
+    try {
+      await policy.fetchBytes("https://gov.example.jp/x.csv");
+      expect.fail("expected fetchBytes to reject");
+    } catch (err) {
+      expect(err).toBeInstanceOf(DataSourceError);
+      expect((err as DataSourceError).kind).toBe("network-notfound");
+      expect((err as DataSourceError).reason).toBeUndefined();
+    }
+  });
+
+  it("an unparseable URL string has no reason value (deliberately: none of the 5 discriminators fit a malformed-input case)", async () => {
+    const policy = createEgressPolicy({ selfOrigin, fetch: vi.fn() as unknown as typeof fetch });
+    try {
+      await policy.fetchBytes("https://[");
+      expect.fail("expected fetchBytes to reject");
+    } catch (err) {
+      expect(err).toBeInstanceOf(DataSourceError);
+      expect((err as DataSourceError).kind).toBe("network-blocked");
+      expect((err as DataSourceError).reason).toBeUndefined();
+    }
+  });
+});
+
+// UX Phase 8 review (Finding 1): `classifyUrlTarget` is the extracted,
+// exported decision `fetchBytes()` itself now calls — a future intake UI
+// (PR-B) preflight can call the SAME function to decide "fetch or route to
+// the escape hatch" without reimplementing origin/scheme/credentials logic.
+// These tests exercise it directly (not just indirectly through
+// `fetchBytes`), since it's now public API surface with its own contract.
+describe("classifyUrlTarget (UX Phase 8 Finding 1 — the preflight predicate PR-B needs)", () => {
+  const selfOrigin = "https://gov.example.jp";
+
+  it("same-origin https URL classifies as 'same-origin' with the parsed URL attached", () => {
+    const result = classifyUrlTarget("https://gov.example.jp/x.csv", selfOrigin);
+    expect(result.kind).toBe("same-origin");
+    if (result.kind === "same-origin") {
+      expect(result.url.origin).toBe(selfOrigin);
+    }
+  });
+
+  it("a third-party https URL classifies as 'blocked' with reason 'third-party' — the exact predicate a UI preflight needs to route to the download-then-drop escape hatch before any fetch", () => {
+    const result = classifyUrlTarget("https://evil.example.jp/x.csv", selfOrigin);
+    expect(result).toMatchObject({ kind: "blocked", reason: "third-party" });
+  });
+
+  it("classifies scheme/credentials/http-editor the same as fetchBytes's own throw sites", () => {
+    expect(classifyUrlTarget("http://gov.example.jp/x.csv", selfOrigin)).toMatchObject({
+      kind: "blocked",
+      reason: "scheme",
+    });
+    expect(classifyUrlTarget("https://u:p@gov.example.jp/x.csv", selfOrigin)).toMatchObject({
+      kind: "blocked",
+      reason: "credentials",
+    });
+    expect(
+      classifyUrlTarget("https://gov.example.jp/x.csv", "http://gov.example.jp"),
+    ).toMatchObject({ kind: "blocked", reason: "http-editor" });
+  });
+
+  it("never throws — a preflight caller does not need a try/catch to inspect the classification", () => {
+    // Not a relative-path string ("not a url at all" actually resolves
+    // successfully against `selfOrigin` as a base — WHATWG URL parsing is
+    // lenient with relative paths, confirmed empirically) — this needs a
+    // string genuinely unparseable even with a base, same one already
+    // proven unparseable in the reason-coverage tests above.
+    expect(() => classifyUrlTarget("https://[", selfOrigin)).not.toThrow();
+    expect(classifyUrlTarget("https://[", selfOrigin)).toMatchObject({
+      kind: "blocked",
+      reason: undefined,
+    });
   });
 });
