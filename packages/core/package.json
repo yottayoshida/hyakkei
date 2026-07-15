@@ -8,6 +8,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./renderer": "./dist/renderer/index.js",
+    "./datasource": "./dist/datasource/index.js",
     "./golden-fixtures": "./dist/golden-fixtures/index.js"
   },
   "scripts": {

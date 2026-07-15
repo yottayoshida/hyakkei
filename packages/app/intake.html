@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      PR-B intake harness — same containment as index.html/golden.html/
+      register-harness.html (csp-containment.test.ts's it.each enumerates
+      this file too). Must stay the first meta after charset (see
+      index.html's own comment for why).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'; object-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hyakkei データ取り込み</title>
+  </head>
+  <body>
+    <!--
+      PR-B (issue #7 close-out): file/url ingestion harness. Named "intake",
+      not "editor" -- the real chart-building editor is M2 (#11-#16), this
+      page's job ends at a registered DuckDB table (D7). A SEPARATE Vite
+      build input from index.html (vite.config.ts), so duckdb/exceljs never
+      reach the real viewer's bundle (bundle-isolation.test.ts's reverse
+      assertion pins this the other way too: THIS bundle must contain them).
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/intake-main.tsx"></script>
+  </body>
+</html>
