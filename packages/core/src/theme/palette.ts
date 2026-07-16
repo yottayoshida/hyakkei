@@ -41,10 +41,54 @@ const NEUTRAL = tokens.Color.Neutral as unknown as { SolidGray: ColorFamily };
 // installed package — a 2-key literal type instead of `ColorFamily`, same
 // non-optional-access rationale as `PrimitiveFamilies` above.
 type SemanticPair = { "1": DesignToken; "2": DesignToken };
-const SEMANTIC = tokens.Color.Semantic as unknown as {
-  Success: SemanticPair;
-  Error: SemanticPair;
-};
+const SEMANTIC_SOURCE = tokens.Color.Semantic as unknown;
+
+// issue #65 item 2: the `PRIMITIVE`/`NEUTRAL` casts above are only guarded
+// downstream for the six palette-KEYED families — an absent/renamed
+// `Color.Primitive.Blue` collapses to `undefined` in `PALETTE_FAMILY`,
+// which `resolveChartColors`'s "unknown palette" check catches (if
+// imprecisely worded). That check keys on `palette`, so it does NOTHING
+// for the families read cross-palette regardless of which palette is
+// being resolved: `Yellow` (the shared accent), `Green`/`Red` (dark-mode
+// success/error borrow their DARK_SEMANTIC_STEP for EVERY palette), and
+// `Color.Semantic`. Any of those going missing died as an opaque "Cannot
+// read properties of undefined" deep inside `nearestStep`, naming neither
+// the actual missing family nor where to look. All four are therefore
+// guarded at module load (not at first use), so the failure is identical
+// regardless of which palette/appearance is resolved first.
+//
+// Deliberately FAMILY-existence only, no step-level probes: a family that
+// exists but lost one step is already handled by the degrade pipeline this
+// same change builds — `nearestStep` falls back to the numerically nearest
+// surviving step, and if that lands below 3:1 the contrast-degrade path
+// records a warning and keeps rendering. A load-time hard-throw for a
+// missing step would blank the whole dashboard over a condition the code
+// survives, contradicting the crash-is-worse-than-degrade principle the
+// `ContrastWarning` doc comment commits to (QA review). `probeStep` exists
+// for `Color.Semantic` only, whose steps are read by direct property
+// access (`SEMANTIC.Success["2"].$value`) with no nearest-step fallback —
+// there a missing step IS a real crash, so failing loudly at load is
+// strictly better.
+function assertFamilyShape(label: string, family: unknown, probeStep?: string): void {
+  if (!family || typeof family !== "object" || Object.keys(family).length === 0) {
+    throw new Error(
+      `hyakkei theme: design-tokens family '${label}' is missing or empty — token package drift?`,
+    );
+  }
+  if (probeStep !== undefined && !Object.hasOwn(family, probeStep)) {
+    throw new Error(
+      `hyakkei theme: design-tokens family '${label}' is missing its '${probeStep}' step — token package drift?`,
+    );
+  }
+}
+// Two-level check: `Color.Semantic` disappearing entirely (not just one of
+// its two children) must also fail here with a message naming "Semantic",
+// not crash on `.Success`/`.Error` property access against `undefined`.
+assertFamilyShape("Color.Semantic", SEMANTIC_SOURCE, "Success");
+assertFamilyShape("Color.Semantic", SEMANTIC_SOURCE, "Error");
+const SEMANTIC = SEMANTIC_SOURCE as { Success: SemanticPair; Error: SemanticPair };
+assertFamilyShape("Color.Semantic.Success", SEMANTIC.Success, "2");
+assertFamilyShape("Color.Semantic.Error", SEMANTIC.Error, "2");
 
 /**
  * Every `Palette` literal (common.ts) maps to a design-tokens color family by
@@ -65,7 +109,9 @@ const PALETTE_FAMILY: Record<Palette, ColorFamily> = {
 
 const YELLOW_ACCENT_FAMILY = PRIMITIVE.Yellow;
 
-export const BACKGROUND = { light: "#F8F8FB", dark: "#1A1A1A" } as const;
+// Frozen at runtime, not just `as const` (TS-only): both are exported, and
+// a same-realm consumer mutating them would corrupt every later resolution.
+export const BACKGROUND = Object.freeze({ light: "#F8F8FB", dark: "#1A1A1A" } as const);
 
 // Dark-mode step-selection rule (a hyakkei extension -- confirmed the
 // guidebook/design-tokens define no dark-mode values at all, PR-0 spike):
@@ -80,6 +126,13 @@ export const BACKGROUND = { light: "#F8F8FB", dark: "#1A1A1A" } as const;
 // and its live `600: 600` cell already contradicted a "mirror" framing).
 const DARK_PRIMARY_STEP = 400;
 const DARK_SECONDARY_STEP = 600;
+// Dark-mode success/error borrow the Green/Red families' own lighter step
+// (design-tokens defines no dark-mode Semantic values at all, confirmed) --
+// numerically the same 400 as DARK_PRIMARY_STEP by the same mirroring rule,
+// but a separate constant because they answer different questions (which
+// step a palette's own primary uses vs. which step the shared semantic
+// borrow uses) and nothing forces them to stay equal.
+const DARK_SEMANTIC_STEP = 400;
 
 /**
  * Closest available step by numeric distance, not `family[step] ??
@@ -110,6 +163,14 @@ function nearestStep(family: ColorFamily, target: number): string {
 // contrast. Step 600 is not usable as a standalone accent against either.
 const ACCENT_STEP: Record<Appearance, number> = { light: 800, dark: 400 };
 
+// Load-time existence probes for the three cross-palette Primitive
+// families this file reads regardless of which palette is resolved (see
+// the block comment above `assertFamilyShape` for why these are
+// family-existence only, no step probes).
+assertFamilyShape("Color.Primitive.Yellow", YELLOW_ACCENT_FAMILY);
+assertFamilyShape("Color.Primitive.Green", PRIMITIVE.Green);
+assertFamilyShape("Color.Primitive.Red", PRIMITIVE.Red);
+
 // cyan's default secondary (nearestStep 600, #00A3BF) measures 2.83:1
 // against the light background -- fails 3:1 (measured against the real
 // design-tokens value, /code-review 2026-07-11). Promoting to step 900
@@ -134,20 +195,116 @@ export type ChartColors = {
   background: string;
 };
 
+// Exported (not module-private) so tests iterate the same role list the
+// implementation checks, instead of re-declaring a copy that can drift.
+// Runtime-frozen for the same reason as BACKGROUND above.
+export const CHART_COLOR_ROLES = Object.freeze([
+  "primary",
+  "secondary",
+  "accent",
+  "success",
+  "error",
+] as const);
+export type ChartColorRole = (typeof CHART_COLOR_ROLES)[number];
+
+// issue #65: (palette, appearance) inputs are a closed 7x2 = 14-entry
+// enum whose resolved colors never change within a process lifetime -- this
+// memoizes what was previously a full re-scan + 5x luminance/contrast
+// computation on every `buildEChartsTheme` call. `Map`, not a plain object:
+// a plain-object cache keyed by an untrusted `palette`/`appearance` string
+// would let a `"__proto__"` key silently vanish into a prototype setter
+// instead of being stored (this repo's own recurring bug class -- see
+// `StructRow.toJSON()`/`insertJSONFromPath` incidents in hyakkei's history).
+// LIFECYCLE COUPLING: this cache and `contrastWarnings` below must be
+// cleared together or not at all -- the "one warning per combination"
+// guarantee rests entirely on the cache-hit early return. A future
+// reset()/invalidation that clears only the cache would re-record
+// duplicate warnings for every violating combination it re-resolves.
+const themeColorCache = new Map<string, ChartColors>();
+const cacheKey = (palette: string, appearance: string): string => `${palette}:${appearance}`;
+
+/**
+ * issue #65: a color-role that fails the 3:1 graphic-object floor at
+ * runtime (e.g. a future design-tokens patch shifting a near-margin hex by
+ * one 8-bit step -- see `SECONDARY_STEP_OVERRIDE`'s orange/neutral margins
+ * measured at 3.0023:1 / 3.0311:1) used to crash the whole render
+ * (`assertGraphicContrast` throwing inside `resolveChartColors`). For a
+ * browser-complete product read in closed/air-gapped networks (LGWAN etc.),
+ * a viewer who hits this has no recourse -- a blank white dashboard is a
+ * strictly worse outcome than one chart's role rendering at reduced
+ * contrast. `resolveChartColors` now degrades instead: the violating color
+ * still ships, and the violation is recorded here for a maintainer/library
+ * consumer to inspect via `getContrastWarnings()` -- never gated behind a
+ * test-only flag or `NODE_ENV` check, which would make this fail-open with
+ * no record at all in whichever environment the gate excludes.
+ */
+export type ContrastWarning = {
+  readonly palette: Palette;
+  readonly appearance: Appearance;
+  readonly role: ChartColorRole;
+  readonly color: string;
+  readonly background: string;
+  readonly ratio: number;
+};
+
+const contrastWarnings: ContrastWarning[] = [];
+
+/** Frozen snapshot -- callers cannot mutate hyakkei's own warning log. */
+export function getContrastWarnings(): readonly ContrastWarning[] {
+  return Object.freeze([...contrastWarnings]);
+}
+
+type ContrastViolation = { role: ChartColorRole; ratio: number };
+
+function contrastViolations(colors: ChartColors): ContrastViolation[] {
+  const violations: ContrastViolation[] = [];
+  for (const role of CHART_COLOR_ROLES) {
+    const ratio = contrastRatio(colors[role], colors.background);
+    if (!meetsGraphicContrastFloor(ratio)) {
+      violations.push({ role, ratio });
+    }
+  }
+  return violations;
+}
+
+// Shared between the degrade-path `console.warn` and `assertGraphicContrast`'s
+// throw -- the two messages must describe the same violation identically and
+// diverge only in what the reader should do about it.
+function formatContrastViolation(
+  palette: Palette,
+  appearance: Appearance,
+  colors: ChartColors,
+  violation: ContrastViolation,
+): string {
+  return `resolveChartColors(${palette}, ${appearance}): ${violation.role} ${colors[violation.role]} vs background ${colors.background} = ${violation.ratio.toFixed(2)}:1, below the 3:1 SC1.4.11 minimum.`;
+}
+
 export function resolveChartColors(palette: Palette, appearance: Appearance): ChartColors {
-  // Runtime guard, not just a TS type: a value that reaches here having
-  // bypassed schema validation (e.g. cast through `as Palette`, or a
-  // supply-chain drift where this package's TS types are stale relative to
-  // a differently-versioned caller) would otherwise fail deep inside
-  // `nearestStep` with an opaque "Object.keys(undefined)" crash instead of
-  // a message naming the actual bad value (Codex test-adversarial review).
-  const family = PALETTE_FAMILY[palette];
+  // issue #65 item 3 (`__proto__` hardening): `PALETTE_FAMILY`/`BACKGROUND`
+  // are plain object literals, so a bare truthy check on `table[key]` alone
+  // resolves `"__proto__"` to `Object.prototype` (truthy) instead of
+  // `undefined` -- silently passing an attacker- or bug-supplied
+  // `"__proto__"` straight into `nearestStep`. `Object.hasOwn` checks the
+  // literal's own keys only, so `"__proto__"` (never assigned as an own key
+  // here) reports `false` same as any other unknown value -- but is
+  // combined with the original truthy check (not `hasOwn` alone) so a
+  // family that genuinely *is* an own key with an `undefined` value
+  // (upstream token-package drift collapsing `PRIMITIVE.X` to `undefined`)
+  // still throws the same named error instead of reaching `nearestStep`
+  // with `undefined`.
+  const family = Object.hasOwn(PALETTE_FAMILY, palette) ? PALETTE_FAMILY[palette] : undefined;
   if (!family) {
     throw new Error(`resolveChartColors: unknown palette '${String(palette)}'`);
   }
-  const background = BACKGROUND[appearance];
+  const background = Object.hasOwn(BACKGROUND, appearance) ? BACKGROUND[appearance] : undefined;
   if (!background) {
     throw new Error(`resolveChartColors: unknown appearance '${String(appearance)}'`);
+  }
+
+  const key = cacheKey(palette, appearance);
+  const cached = themeColorCache.get(key);
+  if (cached) {
+    return cached;
   }
 
   const colors: ChartColors =
@@ -175,17 +332,44 @@ export function resolveChartColors(palette: Palette, appearance: Appearance): Ch
           // (none exist anywhere in the package, confirmed) and its own two
           // light-mode steps both sit close to the 3:1 floor against the
           // dark background with little to no margin (Error.2 measures
-          // exactly 3.00:1, Success.2 3.25:1). Borrowing the Red/Green families' own
-          // lighter step (400, matching this palette's own dark-mode
-          // mirroring rule) is a hyakkei extension with real margin (6.51:1
-          // / 7.07:1), not a guidebook value.
-          success: nearestStep(PRIMITIVE.Green, 400),
-          error: nearestStep(PRIMITIVE.Red, 400),
+          // exactly 3.00:1, Success.2 3.25:1). Borrowing the Red/Green
+          // families' own lighter step (DARK_SEMANTIC_STEP, matching this
+          // palette's own dark-mode mirroring rule) is a hyakkei extension
+          // with real margin (6.51:1 / 7.07:1), not a guidebook value.
+          success: nearestStep(PRIMITIVE.Green, DARK_SEMANTIC_STEP),
+          error: nearestStep(PRIMITIVE.Red, DARK_SEMANTIC_STEP),
           background,
         };
 
-  assertGraphicContrast(palette, appearance, colors);
-  return colors;
+  // Runs exactly once per (palette, appearance) -- on the cache-miss path,
+  // never gated behind a test-only or NODE_ENV flag (see `ContrastWarning`
+  // doc comment above). `assertGraphicContrast` (below) stays the throwing
+  // hard gate CI calls directly; this is the non-throwing sibling that
+  // backs runtime degrade.
+  for (const violation of contrastViolations(colors)) {
+    // Frozen at construction, not just in `getContrastWarnings`'s returned
+    // array: `readonly` on `ContrastWarning`'s fields is TS-only -- without
+    // this, a consumer holding a warning object from a prior call could
+    // mutate it in place and corrupt the entries still held in
+    // `contrastWarnings` itself, since arrays only ever store references
+    // (Codex Round 1 review).
+    const warning: ContrastWarning = Object.freeze({
+      palette,
+      appearance,
+      role: violation.role,
+      color: colors[violation.role],
+      background: colors.background,
+      ratio: violation.ratio,
+    });
+    contrastWarnings.push(warning);
+    console.warn(
+      `${formatContrastViolation(palette, appearance, colors, violation)} Rendering anyway (degraded) -- see getContrastWarnings().`,
+    );
+  }
+
+  const frozen = Object.freeze(colors);
+  themeColorCache.set(key, frozen);
+  return frozen;
 }
 
 // WCAG SC1.4.11's minimum for graphical objects. A named constant (not a
@@ -209,19 +393,21 @@ export function meetsGraphicContrastFloor(ratio: number): boolean {
 // synthetic hex pairs -- if a future palette/background/appearance addition
 // reintroduces a sub-3:1 combination, this throws instead of silently
 // shipping it (the gap `/code-review` found in PR-0's spike code, where the
-// "fix" was a hardcoded constant nothing re-checked at call time).
+// "fix" was a hardcoded constant nothing re-checked at call time). Unlike
+// `resolveChartColors` (issue #65: degrades + records instead of throwing),
+// this stays a throwing hard gate -- it is what CI calls directly against
+// all 14 real (palette, appearance) combinations, independent of whether
+// `resolveChartColors`'s cache has already resolved them.
 export function assertGraphicContrast(
   palette: Palette,
   appearance: Appearance,
   colors: ChartColors,
 ): void {
-  for (const role of ["primary", "secondary", "accent", "success", "error"] as const) {
-    const ratio = contrastRatio(colors[role], colors.background);
-    if (!meetsGraphicContrastFloor(ratio)) {
-      throw new Error(
-        `resolveChartColors(${palette}, ${appearance}): ${role} ${colors[role]} vs background ${colors.background} = ${ratio.toFixed(2)}:1, below the 3:1 SC1.4.11 minimum. Add a SECONDARY_STEP_OVERRIDE (or equivalent) entry.`,
-      );
-    }
+  const [first] = contrastViolations(colors);
+  if (first) {
+    throw new Error(
+      `${formatContrastViolation(palette, appearance, colors, first)} Add a SECONDARY_STEP_OVERRIDE (or equivalent) entry.`,
+    );
   }
 }
 
