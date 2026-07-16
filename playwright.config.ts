@@ -16,6 +16,11 @@ export default defineConfig({
   testIgnore: "**/pixel-golden/**",
   fullyParallel: true,
   reporter: "list",
+  // issue #64: a committed `test.only` silently shrinks CI to one test
+  // across all three browsers and reports green -- fails the CI run
+  // instead of letting it pass on a fraction of the suite. Not set
+  // outside CI so local development can still use `.only` freely.
+  forbidOnly: !!process.env.CI,
   // Playwright's own default (5000ms) is a generic UI-interaction budget,
   // not tuned for this suite's DuckDB-WASM-backed flows (worker spin-up +
   // actual file parsing before a status region appears) -- intake-harness

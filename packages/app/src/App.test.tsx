@@ -46,4 +46,28 @@ describe("app package scaffold", () => {
     });
     expect(unmountSpy).toHaveBeenCalledWith(mountedElement);
   });
+
+  // issue #64: the pre-existing "exports a component" test above only
+  // asserts `typeof App === 'function'` -- it would pass even if App threw
+  // on render or rendered nothing. This asserts the render itself, as an
+  // explicit standalone check (not just implied by the issue #55 test's
+  // mount-was-called assertions above). Real chart content (canvas/a11y
+  // fallback table) comes from the mocked-away `mount()` -- that's core's
+  // own test surface (mount.test.ts) and e2e's (e2e/scaffold.spec.ts,
+  // which navigates the real built app), not this component's.
+  it("render(<App/>) does not throw and produces a non-empty DOM tree", async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+
+    await act(async () => {
+      root.render(<App />);
+    });
+    expect(host.querySelector("div")).not.toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
 });
