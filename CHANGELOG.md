@@ -4,6 +4,10 @@ Day-by-day development log for hyakkei, from repository bootstrap through the cu
 
 This project has not yet reached a versioned release; entries are grouped by date rather than by semver tag.
 
+## 2026-07-16
+
+- **fix(core): treat a legend position without `show` as intent to show (issue #61)** — `{ "legend": { "position": "right" } }` was schema-valid but silently rendered no legend: `legendOption` treated an omitted `show` as `false`, so the position had zero effect and the author got no feedback. The legend contract is now three-valued and fully pinned by tests: no legend object → hidden; explicit `show: false` → hidden (position or not); any property present with `show` omitted → shown. The inferred default is documented on the schema's `ChartOptions.legend` (dashboard.json is an external authoring/MCP contract). No schema shape change, no golden output change (the only legend-bearing fixture already sets `show: true`).
+
 ## 2026-07-14
 
 - **fix(lint,ci): close residual lint bypasses and CI gaps found in PR #78 re-review (#80)** — An independent re-review of the previous day's lint-hardening PR found 10 confirmed bypasses still open: `self.eval`/`window.Function` had no `.call`/`.apply`/`.bind`/`Reflect.apply` indirection coverage even though other sinks did; double-cast (`window as unknown as T`) and bracket-notation forms slipped past the eval/Function selectors; `DOMParser` and `Object.defineProperties` were missing receiver/computed-key forms their sibling rules already had; the DOM-sink glob excluded `e2e/**` and root config files despite a comment claiming otherwise; `react-hooks/exhaustive-deps` shipped at `warn` with no `--max-warnings`, so CI could not have caught the bug it was added to prevent; CI's concurrency group keyed on branch name instead of PR number, letting unrelated PRs cancel each other's runs. All fixed and verified with dedicated `eslint --stdin` probes.

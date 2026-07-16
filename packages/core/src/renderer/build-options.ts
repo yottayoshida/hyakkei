@@ -10,11 +10,25 @@ import type { RenderChart, RenderModel } from "./render-model.js";
 
 type LegendPosition = "top" | "bottom" | "left" | "right";
 
+/**
+ * Three-valued semantics, pinned by tests (issue #61):
+ * 1. no legend object at all -> hidden (charts stay legend-free by default)
+ * 2. `show: false`, with or without a position -> hidden (explicit opt-out
+ *    always wins)
+ * 3. `position` present, `show` omitted -> SHOWN. The only reason to write
+ *    `position: "right"` is wanting a legend on the right -- the previous
+ *    `if (!show)` treated an omitted `show` as `false` and silently ignored
+ *    the position, giving the author no legend and no feedback. The inferred
+ *    default is also documented on the schema (`ChartOptions.legend` JSDoc,
+ *    packages/schema/src/common.ts) since dashboard.json is an external
+ *    authoring contract, not an internal shape.
+ */
 function legendOption(
   position: LegendPosition | undefined,
   show: boolean | undefined,
 ): EChartsOption["legend"] {
-  if (!show) return { show: false };
+  const visible = show ?? position !== undefined;
+  if (!visible) return { show: false };
   const orient = position === "left" || position === "right" ? "vertical" : "horizontal";
   switch (position ?? "top") {
     case "top":
