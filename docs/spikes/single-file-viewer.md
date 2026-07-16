@@ -40,9 +40,11 @@ Two structural facts fall out of the breakdown:
 
 ## What this means for issue #26 (MCP)
 
-Precondition ③ is satisfiable with zero new mechanism: `bake()` + esbuild-IIFE + JSON island is the whole recipe, and every ingredient already ships. An MCP server returning `dashboard.json` would NOT be a dead end — a thin "bake and wrap" step (this spike's ~70-line build script, productized) turns its output into a viewable artifact. The WHETHER review (step ④) can proceed on that basis.
+> **Scope correction (2026-07-16, from the step-④ WHETHER review):** the original conclusion below overstated its reach. This spike proved the **baked→view** leg only — it fed `bake()` the golden sample's *pre-resolved* `rowsByQuery` and never executed any SQL. The **authoring→baked** leg (resolving an authoring document's `queries` against real data — what an MCP returning authoring `dashboard.json` would actually require downstream) was never crossed here. That resolution engine is DuckDB, its only containment-safe execution environment is the browser (CSP is a browser property; it does not exist in Node), and neither the M2 editor nor the v0.4 CLI ships yet. So "not a dead end" holds **only for documents whose rows are already resolved**; for LLM-generated authoring documents the viewing path still dead-ends today. The WHETHER review returned NO-GO — see issue #26's 2026-07-16 comment.
 
-Two facts the WHETHER review should carry:
+Original conclusion (kept for the record, read with the correction above): precondition ③ is satisfiable with zero new mechanism: `bake()` + esbuild-IIFE + JSON island is the whole recipe, and every ingredient already ships. An MCP server returning `dashboard.json` would NOT be a dead end — a thin "bake and wrap" step (this spike's ~70-line build script, productized) turns its output into a viewable artifact, *provided the rows are already resolved*.
+
+Two facts the WHETHER review carried forward:
 
 1. **file:// works today because the renderer needs no fetch/worker.** The moment a viewer artifact needs DuckDB (live re-query) this breaks — file:// has no worker/WASM story across engines. Baked-rows-only viewing is the file://-safe envelope, which is exactly ADR-0005's precomputed-export contract.
 2. **1.22 MiB raw / 398 KiB gzipped is the minimum shippable artifact** with today's full-ECharts import. If #17 wants smaller artifacts, the lever is ECharts modular imports (per-chart-type tree shaking), not data trimming.
