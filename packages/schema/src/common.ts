@@ -267,20 +267,39 @@ export type BaseMeta = Static<typeof BaseMeta>;
 export const ChartOptions = Type.Object(
   {
     title: Type.Optional(Type.String()),
+    // issue #61: `description` here (not a `//` comment) is deliberate --
+    // TypeBox does not propagate source comments into the emitted JSON
+    // Schema, so an MCP/LLM consumer reading only the published schema
+    // would otherwise never see this renderer default at all.
     legend: Type.Optional(
       Type.Object(
         {
-          show: Type.Optional(Type.Boolean()),
+          show: Type.Optional(
+            Type.Boolean({
+              description:
+                "If omitted, inferred true when `position` is set, false otherwise. Explicit false always wins (legend stays hidden even with a `position`).",
+            }),
+          ),
           position: Type.Optional(
-            Type.Union([
-              Type.Literal("top"),
-              Type.Literal("bottom"),
-              Type.Literal("left"),
-              Type.Literal("right"),
-            ]),
+            Type.Union(
+              [
+                Type.Literal("top"),
+                Type.Literal("bottom"),
+                Type.Literal("left"),
+                Type.Literal("right"),
+              ],
+              {
+                description:
+                  "Setting this alone (no `show`) shows the legend -- writing a position is treated as intent to display it.",
+              },
+            ),
           ),
         },
-        { additionalProperties: false },
+        {
+          additionalProperties: false,
+          description:
+            "Omitting `legend` entirely, or an empty object, keeps the chart legend-free.",
+        },
       ),
     ),
     xAxisLabelRotate: Type.Optional(Type.Integer({ minimum: -90, maximum: 90 })),

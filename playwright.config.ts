@@ -21,6 +21,17 @@ export default defineConfig({
   // instead of letting it pass on a fraction of the suite. Not set
   // outside CI so local development can still use `.only` freely.
   forbidOnly: !!process.env.CI,
+  // Playwright's own default (5000ms) is a generic UI-interaction budget,
+  // not tuned for this suite's DuckDB-WASM-backed flows (worker spin-up +
+  // actual file parsing before a status region appears) -- intake-harness
+  // specs hit this ceiling intermittently under CI resource contention
+  // (webkit specifically, 3 consecutive CI runs each timing out on a
+  // *different* status-visibility assertion in the same file, same
+  // browser -- the signature of environment variance, not a deterministic
+  // bug in any one test). A global bump, not a per-assertion override
+  // sprinkled through the affected spec, since every assertion in this
+  // suite shares the same underlying WASM-init dependency.
+  expect: { timeout: 10_000 },
   // `packages/app/dist` (a prior `pnpm run build`, already a CI step
   // ordered before "E2E tests") served statically -- same pure-JS `serve`
   // choice as e2e/pixel-golden.config.ts, for the same reason (`vite

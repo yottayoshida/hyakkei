@@ -98,6 +98,64 @@ describe("buildOptions", () => {
     expect(noLegend.legend).toEqual({ show: false });
   });
 
+  // issue #61: the three-valued legend contract. `{position, no show}` was
+  // schema-valid but silently rendered no legend -- the position had zero
+  // effect and the author got no feedback that `show: true` was "required".
+  it("issue #61: legend position WITHOUT show is treated as intent to show", () => {
+    const chart = {
+      id: "c1",
+      type: "bar" as const,
+      encoding: { x: "cat", y: "val" },
+      options: { legend: { position: "right" as const } },
+    };
+    const option = buildOptions(modelOf(chart, [{ cat: "A", val: 1 }])).c1!;
+    expect(option.legend).toEqual({ show: true, orient: "vertical", right: 0 });
+  });
+
+  it("issue #61: explicit show:false wins even when a position is present", () => {
+    const chart = {
+      id: "c1",
+      type: "bar" as const,
+      encoding: { x: "cat", y: "val" },
+      options: { legend: { show: false, position: "right" as const } },
+    };
+    const option = buildOptions(modelOf(chart, [{ cat: "A", val: 1 }])).c1!;
+    expect(option.legend).toEqual({ show: false });
+  });
+
+  it("issue #61: show:true without a position defaults to top (unchanged)", () => {
+    const chart = {
+      id: "c1",
+      type: "bar" as const,
+      encoding: { x: "cat", y: "val" },
+      options: { legend: { show: true } },
+    };
+    const option = buildOptions(modelOf(chart, [{ cat: "A", val: 1 }])).c1!;
+    expect(option.legend).toEqual({ show: true, orient: "horizontal", top: 0 });
+  });
+
+  it("issue #61: explicit show:false without a position stays hidden (truth-table completeness)", () => {
+    const chart = {
+      id: "c1",
+      type: "bar" as const,
+      encoding: { x: "cat", y: "val" },
+      options: { legend: { show: false } },
+    };
+    const option = buildOptions(modelOf(chart, [{ cat: "A", val: 1 }])).c1!;
+    expect(option.legend).toEqual({ show: false });
+  });
+
+  it("issue #61: an empty legend object stays hidden (no property implies no intent)", () => {
+    const chart = {
+      id: "c1",
+      type: "bar" as const,
+      encoding: { x: "cat", y: "val" },
+      options: { legend: {} },
+    };
+    const option = buildOptions(modelOf(chart, [{ cat: "A", val: 1 }])).c1!;
+    expect(option.legend).toEqual({ show: false });
+  });
+
   it("area sets areaStyle, line/bar do not", () => {
     const areaChart = {
       id: "c1",
