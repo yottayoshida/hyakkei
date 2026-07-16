@@ -1,8 +1,10 @@
 # P1 demand hearing plan
 
-- **Status**: Planned (2026-07-05)
+- **Status**: Not run — decided 2026-07-11 (M2 proceeds as P1-designed, accepting the unvalidated-demand risk instead)
 - **Owner**: yotta
 - **Related**: [PRD.md §3](../PRD.md#3-users) · Market Research (`/plan`, 2026-07-04)
+
+Kept as a record of the plan as originally scoped, not an active or pending task.
 
 ## Why this exists
 
