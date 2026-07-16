@@ -16,6 +16,11 @@ export default defineConfig({
   testIgnore: "**/pixel-golden/**",
   fullyParallel: true,
   reporter: "list",
+  // issue #64: a committed `test.only` silently shrinks CI to one test
+  // across all three browsers and reports green -- fails the CI run
+  // instead of letting it pass on a fraction of the suite. Not set
+  // outside CI so local development can still use `.only` freely.
+  forbidOnly: !!process.env.CI,
   // `packages/app/dist` (a prior `pnpm run build`, already a CI step
   // ordered before "E2E tests") served statically -- same pure-JS `serve`
   // choice as e2e/pixel-golden.config.ts, for the same reason (`vite

@@ -28,6 +28,11 @@ export default defineConfig({
   snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
   fullyParallel: false,
   reporter: "list",
+  // issue #64: same rationale as playwright.config.ts -- this config
+  // previously had no forbidOnly at all, so a committed `test.only` here
+  // would shrink the pixel-golden CI job to one screenshot and report
+  // green.
+  forbidOnly: !!process.env.CI,
   webServer: {
     command: `npx serve ${APP_DIST} -l 4173`,
     url: "http://localhost:4173",
