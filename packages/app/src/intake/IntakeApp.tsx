@@ -1,19 +1,20 @@
-import {
-  createEgressPolicy,
-  createFileSource,
-  createUrlSource,
-  DataSourceError,
-  DEFAULT_MAX_BYTES,
-  quoteIdentifier,
-  rowToPlainObject,
-  type DataSource,
-  type EgressPolicy,
-  type NetworkBlockedReason,
-  type RegisterContext,
+import type {
+  DataSource,
+  EgressPolicy,
+  NetworkBlockedReason,
+  RegisterContext,
 } from "@hyakkei/core/datasource";
 import type { Source } from "@hyakkei/schema";
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { createDuckDB, type DuckDBHandle } from "../duckdb/factory.js";
+import {
+  DATA_SIZE_CEILING_BYTES,
+  getDuckDBHandle,
+  getDuckDBHandleWithLayer,
+  getResolvedDataLayer,
+  loadDataLayer,
+  scheduleIdleWarm,
+  warmDuckDB,
+} from "../data-layer.js";
 import { BlockedPanel } from "./BlockedPanel.js";
 import { DropZone } from "./DropZone.js";
 import { ErrorPanel } from "./ErrorPanel.js";
@@ -24,26 +25,14 @@ import { SheetPickPanel } from "./SheetPickPanel.js";
 import { INITIAL_STATE, intakeReducer, type IntakeError, type IntakeSample } from "./types.js";
 import { UrlPanel } from "./UrlPanel.js";
 
-// Module-level singleton, same pattern as register-harness-main.ts: a
-// single intake.html document only ever needs one DuckDB instance, and
-// `createDuckDB()` is itself lazy (only called on first use).
-//
-// On rejection, `handlePromise` is cleared so the NEXT call retries from
-// scratch (/code-review, 3 independent finder angles): `??=` alone only
-// reassigns when nullish, and a rejected promise is not nullish — without
-// this, one transient init failure (a slow vendor-file fetch tripping
-// factory.ts's 15s timeout, a flaky Worker bootstrap) would wedge the
-// intake page for the rest of the session, with every subsequent
-// registration attempt awaiting the same stale rejection regardless of
-// whether the underlying condition had already cleared.
-let handlePromise: Promise<DuckDBHandle> | undefined;
-function getHandle(): Promise<DuckDBHandle> {
-  handlePromise ??= createDuckDB().catch((err: unknown) => {
-    handlePromise = undefined;
-    throw err;
-  });
-  return handlePromise;
-}
+// `DataSource`/`EgressPolicy`/`NetworkBlockedReason`/`RegisterContext` above
+// are `import type` only (erased at compile time, no bundle-graph edge) --
+// the VALUE surface (createFileSource/createUrlSource/createEgressPolicy/
+// DataSourceError/quoteIdentifier/rowToPlainObject/createDuckDB) now lives
+// behind `../data-layer.js`'s dynamic-import boundary (issue #54): none of
+// it may appear as a static top-level import in this file again, or the
+// data layer (duckdb-wasm/exceljs/iconv-lite) re-enters intake's entry
+// chunk (bundle-isolation.test.ts's Stage A assertion).
 
 /** `FileSource` must never reach the network (mirror-seam asymmetry, same guard register-harness-main.ts uses for the same reason). */
 const forbiddenEgress: EgressPolicy = {
@@ -96,9 +85,27 @@ function buildUrlSpec(id: string, format: "csv" | "parquet", url: string): UrlSo
   return { id, kind: "url", format, ref: { url } };
 }
 
-/** Not a `DataSourceError` means an unexpected internal failure, not a content problem this UI can name precisely — "corrupt" is the closest honest approximation among the 10 kinds, not a claim about what actually happened. */
+/**
+ * Not a `DataSourceError` means an unexpected internal failure, not a
+ * content problem this UI can name precisely — "corrupt" is the closest
+ * honest approximation among the 10 kinds, not a claim about what actually
+ * happened. This also correctly covers a `loadDataLayer()` rejection
+ * itself (e.g. a chunk-fetch failure): `getResolvedDataLayer()` returns
+ * `undefined` in that case (its promise never resolved), so the
+ * `instanceof` check below is skipped and this falls through to the same
+ * generic classification — fail-closed, never a blank error.
+ *
+ * Synchronous by design (`getResolvedDataLayer()`, not `await
+ * loadDataLayer()`): every call site below only reaches its `catch` block
+ * after an earlier `await loadDataLayer()`/`getDuckDBHandle()` in the SAME
+ * call chain already settled, so re-awaiting here would either resolve
+ * instantly (redundant) or, on the load-failure path, retry the import a
+ * second time from inside error classification itself — surprising and
+ * unnecessary.
+ */
 function toIntakeError(err: unknown): IntakeError {
-  if (err instanceof DataSourceError) {
+  const layer = getResolvedDataLayer();
+  if (layer && err instanceof layer.datasource.DataSourceError) {
     return { kind: err.kind, reason: err.reason, message: err.message };
   }
   return {
@@ -134,6 +141,28 @@ export function IntakeApp() {
       window.removeEventListener("dragover", preventDefault);
       window.removeEventListener("drop", preventDefault);
     };
+  }, []);
+
+  // Data-layer warm hooks (issue #54): idle-time module-only prefetch so
+  // the shell/drop-zone paint is never blocked on it, plus a full
+  // (DuckDB-instantiating) warm the moment a drag gesture starts, since a
+  // drop is imminent by the time `dragenter` fires. Both are silent,
+  // best-effort — `warmDataLayerModule`/`warmDuckDB` never throw; the real
+  // attempt (startFile/startUrl) retries and reports failure normally.
+  useEffect(() => {
+    scheduleIdleWarm();
+  }, []);
+
+  useEffect(() => {
+    const handleDragEnter = () => warmDuckDB();
+    // `once: true` (/simplify efficiency finding): `dragenter` rebubbles
+    // from every element a drag gesture crosses, and `getDuckDBHandle()`
+    // is already a singleton -- without this, one drag re-triggers this
+    // listener (and allocates a fresh `.catch()` closure) repeatedly for
+    // no benefit, since a second warm attempt can only replay whatever
+    // the first one already resolved or permanently failed as (issue #91).
+    window.addEventListener("dragenter", handleDragEnter, { once: true });
+    return () => window.removeEventListener("dragenter", handleDragEnter);
   }, []);
 
   const [state, dispatch] = useReducer(intakeReducer, INITIAL_STATE);
@@ -177,6 +206,11 @@ export function IntakeApp() {
       // for what is actually an id-reuse bug, not a content problem.
       usedIdsRef.current.add(id);
       try {
+        // Cache hit in every real call path (startFile/startUrl already
+        // awaited `loadDataLayer()` before calling this function) — this
+        // await resolves on the next microtask, not a second import.
+        const layer = await loadDataLayer();
+        if (generation !== generationRef.current) return;
         // `sheet !== undefined`, not a truthy check (/code-review): a
         // truthy check would silently fall back to the workbook's first
         // sheet if the user-chosen sheet's name happened to be the empty
@@ -187,12 +221,14 @@ export function IntakeApp() {
         const table = await source.register(ctx, sheet !== undefined ? { sheet } : undefined);
         if (generation !== generationRef.current) return;
         const result = await ctx.registrar.conn.query(
-          `SELECT * FROM ${quoteIdentifier(id)} LIMIT 5`,
+          `SELECT * FROM ${layer.datasource.quoteIdentifier(id)} LIMIT 5`,
         );
         if (generation !== generationRef.current) return;
         const rows = result
           .toArray()
-          .map((row) => rowToPlainObject(row as unknown as Iterable<[string, unknown]>));
+          .map((row) =>
+            layer.datasource.rowToPlainObject(row as unknown as Iterable<[string, unknown]>),
+          );
         const sample: IntakeSample = { table, rows };
         dispatch({ type: "REGISTERED", sample });
       } catch (err) {
@@ -228,27 +264,38 @@ export function IntakeApp() {
       // (byte-gate.ts, deep inside `inspect()`/`register()`) ever gets a
       // chance to reject it as `too-large` -- unlike the URL path, where
       // `readBodyCapped` (egress-policy.ts) streams and counts bytes
-      // without ever fully buffering past the same limit.
-      if (file.size > DEFAULT_MAX_BYTES) {
+      // without ever fully buffering past the same limit. Checked against
+      // the LOCAL `DATA_SIZE_CEILING_BYTES` mirror, not the real
+      // `DEFAULT_MAX_BYTES` (issue #54): this gate must stay synchronous
+      // and fire before paying for a data-layer fetch, not after.
+      if (file.size > DATA_SIZE_CEILING_BYTES) {
         dispatch({
           type: "FAILED",
           error: {
             kind: "too-large",
             reason: undefined,
-            message: `content is ${file.size} bytes, exceeding the ${DEFAULT_MAX_BYTES}-byte limit`,
+            message: `content is ${file.size} bytes, exceeding the ${DATA_SIZE_CEILING_BYTES}-byte limit`,
           },
         });
         return;
       }
 
       try {
-        const bytes = new Uint8Array(await file.arrayBuffer());
+        // Parallel, not sequential (issue #54): reading the file and
+        // loading the data layer are independent, and a dragenter-warmed
+        // load (`warmDuckDB()`) may already be in flight -- awaiting them
+        // together lets both finish as fast as the slower of the two,
+        // instead of paying their sum.
+        const [bytes, layer, handle] = await Promise.all([
+          file.arrayBuffer().then((buf) => new Uint8Array(buf)),
+          loadDataLayer(),
+          getDuckDBHandle(),
+        ]);
         if (generation !== generationRef.current) return;
         const id = generateSourceId(file.name, usedIdsRef.current);
         const spec = buildFileSpec(id, format, file.name);
-        const source = createFileSource(spec, bytes);
-        const { db, conn } = await getHandle();
-        if (generation !== generationRef.current) return;
+        const source = layer.datasource.createFileSource(spec, bytes);
+        const { db, conn } = handle;
         const ctx: RegisterContext = { registrar: { db, conn }, egress: forbiddenEgress };
         const shape = await source.inspect(ctx);
         if (generation !== generationRef.current) return;
@@ -275,15 +322,19 @@ export function IntakeApp() {
       try {
         const format = urlFormatFromPath(url);
         const id = generateSourceId(url, usedIdsRef.current);
-        const spec = buildUrlSpec(id, format, url);
-        const source = createUrlSource(spec);
-        const { db, conn } = await getHandle();
+        // `UrlPanel` already awaited `loadDataLayer()` for its own
+        // preflight before ever calling `onUrlAccepted` (which reaches
+        // here) — this is a cache hit, not a second import.
+        const { layer, handle } = await getDuckDBHandleWithLayer();
         if (generation !== generationRef.current) return;
+        const spec = buildUrlSpec(id, format, url);
+        const source = layer.datasource.createUrlSource(spec);
+        const { db, conn } = handle;
         // The real policy (https-only/same-origin/size-capped/timeout),
         // not register-harness.html's deliberately loose test stub —
         // this is production UI, `UrlPanel`'s preflight is UX, this is
         // the actual security boundary.
-        const egress = createEgressPolicy({ selfOrigin: window.location.origin });
+        const egress = layer.datasource.createEgressPolicy({ selfOrigin: window.location.origin });
         const ctx: RegisterContext = { registrar: { db, conn }, egress };
         await source.inspect(ctx);
         if (generation !== generationRef.current) return;
@@ -340,16 +391,52 @@ export function IntakeApp() {
     [],
   );
 
+  // Codex R2 (fix-for-a-fix): while URL's `loadDataLayer()` preflight is
+  // still pending, `IntakeApp.state.phase` is still "empty" — `submitting`
+  // (Codex R1 P1/P2) only disables `UrlPanel`'s OWN input/button, not
+  // `DropZone`, which stays interactive the whole time. A user can drop a
+  // file (starting `startFile`'s own generation+SUBMIT) WHILE the URL
+  // preflight is still in flight; if that preflight later rejects,
+  // dispatching `SUBMIT`+`FAILED` unconditionally (the original R1 fix)
+  // would silently clobber whatever the file attempt had already reached
+  // — "reading", or even a completed "registered" — with an error screen
+  // about a URL the user already abandoned. `SUBMIT` itself carries no
+  // reducer-side phase guard (types.ts, it's the designed entry point for
+  // a fresh attempt), so this generation check is the only thing that can
+  // catch it.
+  //
+  // `beginUrlAttempt` lets `UrlPanel` capture ITS OWN generation the
+  // moment it starts (mirroring `startFile`/`startUrl`'s `const
+  // generation = ++generationRef.current`), before the async preflight —
+  // relying on `IntakeApp`'s reactive `state.phase` instead would not
+  // work here: `UrlPanel.handleSubmit`'s already-running call keeps
+  // whatever `onLoadFailed`/`state` closure it captured when the attempt
+  // STARTED, not whatever `IntakeApp` re-renders to while the preflight
+  // is in flight, so a phase check evaluated inside that stale closure
+  // would answer "was it empty when I started", the wrong question.
+  const beginUrlAttempt = useCallback(() => ++generationRef.current, []);
+
+  const handleUrlLoadFailed = useCallback((url: string, err: unknown, generation: number) => {
+    if (generation !== generationRef.current) return;
+    dispatch({ type: "SUBMIT", sourceLabel: url });
+    dispatch({ type: "FAILED", error: toIntakeError(err) });
+  }, []);
+
   const handleRedo = useCallback(async () => {
     if (state.phase !== "registered") return;
     const tableId = state.sample.table.id;
     try {
-      const { conn } = await getHandle();
+      // A cache hit — a redo is only reachable after a prior successful
+      // registration, which already loaded the layer.
+      const {
+        layer,
+        handle: { conn },
+      } = await getDuckDBHandleWithLayer();
       // An abandoned registration's table is otherwise dead weight for the
       // rest of the session (M1 has no cross-session persistence to worry
       // about) — cleaning it up here is the plan's own risk-table item
       // ("eager registerで「やり直す」時の掃除漏れ").
-      await conn.query(`DROP TABLE IF EXISTS ${quoteIdentifier(tableId)}`);
+      await conn.query(`DROP TABLE IF EXISTS ${layer.datasource.quoteIdentifier(tableId)}`);
       // Reclaimed ONLY after a confirmed drop (/code-review, 4 independent
       // finder angles): without this, `usedIdsRef` kept every redone id
       // reserved forever even once its table no longer existed, silently
@@ -392,6 +479,8 @@ export function IntakeApp() {
             disabled={false}
             onUrlAccepted={(url) => void startUrl(url)}
             onUrlBlocked={handleUrlBlocked}
+            onLoadFailed={handleUrlLoadFailed}
+            beginAttempt={beginUrlAttempt}
           />
         </>
       )}
