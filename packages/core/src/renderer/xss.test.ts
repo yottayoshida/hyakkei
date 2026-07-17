@@ -15,6 +15,9 @@ import { buildStatElement } from "./dom/stat.js";
 import { buildTableElement } from "./dom/table.js";
 import { mount } from "./mount.js";
 import { normalizeBaked } from "./render-model.js";
+import { installResizeObserverStub } from "./resize-observer-stub.js";
+
+installResizeObserverStub();
 
 const PAYLOAD = "<img src=x onerror=alert(1)>";
 const SCRIPT_PAYLOAD = "</td><script>alert(2)</script>";
