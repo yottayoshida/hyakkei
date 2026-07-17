@@ -70,4 +70,39 @@ describe("app package scaffold", () => {
       root.unmount();
     });
   });
+
+  // Issue #69: mount.ts's own per-tile/per-instance try/catch (core's test
+  // surface, mount.test.ts) covers throws INSIDE mount() -- this test is
+  // for what's outside that scope: mount() itself throwing synchronously
+  // (the mock below stands in for `normalizeBaked`/`buildOptions`/
+  // `gridStyle` failing before mount.ts's own tile loop even starts).
+  // React's error-boundary contract explicitly covers useEffect callbacks
+  // (unlike event handlers/setTimeout/rAF), so DashboardErrorBoundary
+  // (App.tsx) must catch this without the WHOLE app unmounting.
+  it("issue #69: a synchronous throw from mount() inside useEffect is caught by the error boundary, not left to blank the whole app", async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    mountSpy.mockImplementationOnce(() => {
+      throw new Error("simulated mount() failure");
+    });
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+
+    await act(async () => {
+      root.render(<App />);
+    });
+
+    const alert = host.querySelector('[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert?.textContent).toBe(
+      "ダッシュボードを表示できませんでした。お手数ですが、ページを再読み込みしてください。",
+    );
+
+    consoleErrorSpy.mockRestore();
+    await act(async () => {
+      root.unmount();
+    });
+  });
 });

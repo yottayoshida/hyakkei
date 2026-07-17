@@ -97,7 +97,25 @@ function renderChartBody(
   canvas.style.minHeight = "0";
   const instance = echarts.init(canvas, undefined, { renderer: "svg" });
   const option = echartsOptions[entry.id];
-  if (option) instance.setOption(option);
+  if (option) {
+    // Codex proxy R1 / /code-review (xhigh) finding (4 independent angles):
+    // `echarts.init` registers `instance` in ECharts' own module-level
+    // registry (`instances[chart.id] = ...`) BEFORE this line runs -- a
+    // `setOption` throw here would otherwise leave that instance orphaned
+    // (this `canvas` never reaches `renderTile`'s caller, so `unmount()`'s
+    // `querySelectorAll('.hyakkei-chart-canvas')` can never find it to
+    // dispose it), leaking its zrender timers/listeners for the page's
+    // lifetime. Disposing before re-throwing makes this function's own
+    // failure self-contained; renderTile's "ok" case below handles the
+    // OTHER orphan path (a throw from the accessible-fallback builder,
+    // after this function already returned successfully).
+    try {
+      instance.setOption(option);
+    } catch (err) {
+      instance.dispose();
+      throw err;
+    }
+  }
   return canvas;
 }
 
@@ -132,12 +150,117 @@ function renderTile(
           buildMessageTile(`データに列が見つかりません: ${missing.join(", ")}`, "error"),
         );
       }
-      return buildTile(
-        renderChartBody(entry, echartsOptions),
-        wrapAccessibleFallback(buildAccessibleDataTable(entry.chart, entry.rows)),
-      );
+      const body = renderChartBody(entry, echartsOptions);
+      // The OTHER orphan path renderChartBody's own try/catch can't cover:
+      // by the time body returns, echarts.init already succeeded and
+      // registered a live instance -- if buildAccessibleDataTable throws
+      // before buildTile ever attaches `body` to the DOM, that instance
+      // would otherwise leak the same way (see renderChartBody's comment).
+      try {
+        return buildTile(
+          body,
+          wrapAccessibleFallback(buildAccessibleDataTable(entry.chart, entry.rows)),
+        );
+      } catch (err) {
+        echarts.getInstanceByDom(body)?.dispose();
+        throw err;
+      }
     }
   }
+}
+
+/**
+ * Per-tile blast-radius containment (issue #69): `renderTile` calls into
+ * ECharts (`init`/`setOption`) and the accessible-fallback builders, none
+ * of which this file controls end-to-end -- a malformed option shape or an
+ * unexpected `RenderModel` value reaching this function must not tear down
+ * every OTHER tile too (React unmounts the whole tree past an uncaught
+ * render/effect-phase error, plan's own risk-table entry). Console-only
+ * detail (errorCopy.ts's discipline elsewhere in this repo: no raw error
+ * content in user-facing text) + the existing generic message-tile is the
+ * degrade path, not a new UI primitive.
+ */
+function renderTileSafely(
+  entry: RenderChart,
+  echartsOptions: Record<string, echarts.EChartsOption>,
+): HTMLElement {
+  try {
+    return renderTile(entry, echartsOptions);
+  } catch (err) {
+    console.error(`hyakkei: chart "${entry.id}" failed to render`, err);
+    // UX review (Phase 8): "チャート", not "グラフ" -- this file's other
+    // three user-facing strings (unconfigured/dangling-reference/empty-
+    // layout) all say "チャート", and a failed tile can be a table/stat
+    // (not a graph at all), so "グラフ" was both inconsistent and
+    // sometimes inaccurate.
+    return buildTile(buildMessageTile("このチャートを表示できませんでした", "error"));
+  }
+}
+
+/**
+ * Shared by `mount()`'s own post-attach pass and `ResizeObserver`'s
+ * callback below (Phase 5 Major review finding) -- both walk the same
+ * canvas set and must both survive one instance's `resize()` throwing
+ * without abandoning the rest of the batch, the same per-tile blast-radius
+ * principle `renderTileSafely` applies to initial render.
+ */
+function resizeAllCanvases(container: HTMLElement): void {
+  for (const canvas of container.querySelectorAll(".hyakkei-chart-canvas")) {
+    try {
+      echarts.getInstanceByDom(canvas as HTMLElement)?.resize();
+    } catch (err) {
+      console.error("hyakkei: chart resize failed", err);
+    }
+  }
+}
+
+// Issue #68: an observer handle has no DOM-queryable trace (unlike an
+// ECharts instance, which `echarts.getInstanceByDom` can always find again
+// from the canvas element alone) -- module-state WeakMaps are what let
+// `unmount()`/a re-`observeResize()` call find and tear down a PREVIOUS
+// container's observer instead of silently accumulating one per mount.
+const resizeObservers = new WeakMap<HTMLElement, ResizeObserver>();
+const resizeDebounceTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+const RESIZE_DEBOUNCE_MS = 100;
+
+function disconnectResize(container: HTMLElement): void {
+  resizeObservers.get(container)?.disconnect();
+  resizeObservers.delete(container);
+  const timer = resizeDebounceTimers.get(container);
+  if (timer !== undefined) clearTimeout(timer);
+  resizeDebounceTimers.delete(container);
+}
+
+/**
+ * `disconnectResize` first (not just `??=`-style skip-if-present): a
+ * container mounted a second time (editor's own `useEffect([dashboard])`
+ * remount path) must not accumulate a second observer alongside the first
+ * -- every resize would then fire the debounced callback twice, doubling
+ * `resizeAllCanvases` work per resize event, unbounded with each remount.
+ */
+function observeResize(container: HTMLElement): void {
+  disconnectResize(container);
+  // /code-review (xhigh) Efficiency finding: per spec, observe() reports an
+  // initial size on any already-laid-out element -- redundant here since
+  // mount()'s own one-shot resizeAllCanvases() (just before this call)
+  // already measured that same initial size. Skipping only the FIRST
+  // notification (not every one) is what keeps every later, genuine resize
+  // debounced and handled as before.
+  let primed = false;
+  const observer = new ResizeObserver(() => {
+    if (!primed) {
+      primed = true;
+      return;
+    }
+    const existing = resizeDebounceTimers.get(container);
+    if (existing !== undefined) clearTimeout(existing);
+    resizeDebounceTimers.set(
+      container,
+      setTimeout(() => resizeAllCanvases(container), RESIZE_DEBOUNCE_MS),
+    );
+  });
+  observer.observe(container);
+  resizeObservers.set(container, observer);
 }
 
 /**
@@ -152,6 +275,7 @@ function renderTile(
  * internal call only covers "the same container gets mounted again."
  */
 export function unmount(container: HTMLElement): void {
+  disconnectResize(container);
   for (const canvas of container.querySelectorAll(".hyakkei-chart-canvas")) {
     echarts.getInstanceByDom(canvas as HTMLElement)?.dispose();
   }
@@ -173,7 +297,7 @@ export function mount(container: HTMLElement, model: RenderModel): void {
     // against a blank grid slot.
     const entry = chartsById.get(item.chart);
     const tile = entry
-      ? renderTile(entry, echartsOptions)
+      ? renderTileSafely(entry, echartsOptions)
       : buildTile(
           buildMessageTile(
             `レイアウトが存在しないチャート '${item.chart}' を参照しています`,
@@ -196,7 +320,9 @@ export function mount(container: HTMLElement, model: RenderModel): void {
   // ECharts never re-measures on its own; one explicit resize() now that
   // every tile is attached and the grid has sized it is what makes the
   // chart fill its real box.
-  for (const canvas of container.querySelectorAll(".hyakkei-chart-canvas")) {
-    echarts.getInstanceByDom(canvas as HTMLElement)?.resize();
-  }
+  resizeAllCanvases(container);
+  // Issue #68: the one-shot resize() above only covers the moment of
+  // mount -- nothing previously re-measured a chart after ITS container
+  // was resized post-mount (a maximized window, a resizable editor pane).
+  observeResize(container);
 }

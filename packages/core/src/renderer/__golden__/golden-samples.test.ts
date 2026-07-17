@@ -20,7 +20,10 @@ import { cellText } from "../dom/cell-text.js";
 import { encodingColumns } from "../encoding-columns.js";
 import { mount, unmount } from "../mount.js";
 import { normalizeAuthoring, normalizeBaked, type RenderModel } from "../render-model.js";
+import { installResizeObserverStub } from "../resize-observer-stub.js";
 import { renderOptionToSvg } from "./render-svg.js";
+
+installResizeObserverStub();
 
 const APPEARANCES = ["light", "dark"] as const;
 type Appearance = (typeof APPEARANCES)[number];
