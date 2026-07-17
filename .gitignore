@@ -57,6 +57,7 @@ credentials.json
 
 # Claude Code personal
 CLAUDE.local.md
+.claude/
 
 # OS / editor
 .DS_Store

@@ -11,11 +11,12 @@
 //
 // Requires `packages/app/dist` to already exist (root `pnpm run test` runs
 // `pnpm run build` first, per root package.json).
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const DIST_DIR = join(import.meta.dirname, "..", "dist");
+const ASSETS_DIR = join(DIST_DIR, "assets");
 // Identifier names like `GOLDEN_SAMPLES`/`goldenDashboardFromQuery` do NOT
 // survive production minification (confirmed empirically: injecting a real
 // `bake(GOLDEN_SAMPLES[0]...)` call into App.tsx changed the bundle's
@@ -38,6 +39,63 @@ function readAssets(srcs: string[]): string {
   return srcs
     .map((src) => readFileSync(join(DIST_DIR, src.replace(/^\//, "")), "utf-8"))
     .join("\n");
+}
+
+/**
+ * Strips Vite's own `__vite__mapDeps` dependency-array literal (the
+ * preload manifest a dynamic `import()` call site embeds, e.g.
+ * `__vite__mapDeps=(...,d=(m.f||(m.f=["assets/exceljs.min-<hash>.js",...])))`)
+ * before marker matching. This is expected, harmless bookkeeping — the
+ * entry chunk MUST know a lazily-loaded chunk's filename to fetch it
+ * later, and that filename can legitimately contain a forbidden marker
+ * (e.g. `exceljs.min-<hash>.js`) without any of the marker's actual
+ * library CODE being present in the entry. Verified empirically (issue
+ * #54 Stage A): this is the only source of an "exceljs" match in intake's
+ * own ~15 KB entry chunk once the data layer is truly lazy-loaded — the
+ * real exceljs code lives in its own ~1 MB chunk elsewhere, only
+ * referenced here by filename.
+ *
+ * Anchored specifically to `__vite__mapDeps=` (Codex R1 P2: the prior,
+ * unanchored `"assets\/...\.js"` pattern would have silently swallowed a
+ * forbidden marker appearing in ANY quoted asset-path-shaped string
+ * anywhere in the chunk, e.g. inside an unrelated error-message literal,
+ * not just Vite's own manifest) — `__vite__mapDeps` is Vite's own stable,
+ * never-minified-away preload-helper identifier (confirmed present
+ * verbatim in the real minified build output), so this only strips text
+ * that is provably part of Vite's dependency bookkeeping, nothing else.
+ *
+ * `js|css` (Phase 6-B adversarial review): Vite's own manifest array can
+ * legitimately mix chunk types -- a dynamically-imported module with its
+ * own associated stylesheet gets BOTH a `.js` and a `.css` entry in the
+ * SAME `__vite__mapDeps` array. This build currently emits no CSS assets
+ * (a `.js`-only pattern happens to match today), but a `.js`-only
+ * requirement here is a latent trap: if the array ever mixed extensions,
+ * this whole regex would fail to match at all (its `+` quantifier
+ * requires EVERY entry to fit the pattern), silently reverting to
+ * unstripped text and risking a false-positive `FORBIDDEN_MARKERS` CI
+ * failure the day someone adds one. `js|css` closes that gap now, before
+ * it's reachable.
+ */
+function stripChunkPathReferences(text: string): string {
+  return text.replaceAll(
+    /__vite__mapDeps=[^;]*?\[(?:"assets\/[^"]+\.(?:js|css)",?)+\]/g,
+    "__vite__mapDeps=STRIPPED",
+  );
+}
+
+/**
+ * All JS chunks Vite/Rollup actually emitted, as HTML-relative src paths
+ * (`/assets/<file>.js`) matching `scriptSrcsFromHtml`'s own format. Needed
+ * for issue #54's lazy-loaded data layer: a dynamically `import()`-ed
+ * chunk is fetched by runtime JS inside its loading chunk, never
+ * referenced by any `<script>`/`<link>` tag in the HTML itself, so it is
+ * invisible to `scriptSrcsFromHtml` and must be found by listing
+ * `dist/assets` directly instead.
+ */
+function allEmittedChunkSrcs(): string[] {
+  return readdirSync(ASSETS_DIR)
+    .filter((name) => name.endsWith(".js"))
+    .map((name) => `/assets/${name}`);
 }
 
 describe("packages/app real build output isolation (CI assert)", () => {
@@ -70,15 +128,17 @@ describe("packages/app real build output isolation (CI assert)", () => {
     expect(goldenOnlyText).toContain("golden");
   });
 
-  // D7's reverse assertion: the isolation claim above only proves
-  // duckdb/exceljs/iconv are ABSENT from index.html — it says nothing about
-  // whether PR-A1.5's self-hosted-vendoring setup regressed and silently
-  // dropped them from intake.html too (a build that isolates by accident,
-  // e.g. a broken import, would also pass every assertion above). Checking
-  // FOR the marker here is what turns "index.html doesn't have it" into
-  // "the split is real," the same purpose golden.html's own positive
-  // `toContain("golden")` check above serves.
-  it("intake.html has its own, separate entry chunk that DOES contain duckdb/exceljs/iconv (vendoring regression detector)", () => {
+  // Stage A of issue #54 (data-layer lazy-load boundary): before this,
+  // intake.html's own entry chunk STATICALLY contained duckdb/exceljs/
+  // iconv (the test this replaces asserted exactly that, as a vendoring
+  // regression detector). `IntakeApp.tsx`/`UrlPanel.tsx` now reach the data
+  // layer only through `data-layer.ts`'s `loadDataLayer()` dynamic
+  // `import()` -- so the entry chunk itself must be as clean as
+  // index.html's own (same `FORBIDDEN_MARKERS`, same reasoning): the data
+  // layer now lives in a separately-emitted chunk this entry only
+  // `import()`s at runtime, on first file drop / URL submit / warm
+  // trigger, never in the entry's own static graph.
+  it("intake.html's entry chunk does not statically contain the data layer (issue #54 Stage A: lazy boundary)", () => {
     const indexSrcs = scriptSrcsFromHtml(join(DIST_DIR, "index.html"));
     const intakeSrcs = scriptSrcsFromHtml(join(DIST_DIR, "intake.html"));
     expect(
@@ -89,14 +149,40 @@ describe("packages/app real build output isolation (CI assert)", () => {
     const intakeOnlySrcs = intakeSrcs.filter((src) => !indexSrcs.includes(src));
     expect(intakeOnlySrcs.length, `intake.html srcs: ${intakeSrcs.join(", ")}`).toBeGreaterThan(0);
 
-    // Checking all 3 markers here (not just "duckdb") is what makes this a
-    // regression detector for the FULL vendoring surface `FORBIDDEN_MARKERS`
-    // polices on index.html's side (Codex R1 P1) -- a build that dropped
-    // xlsx or encoding reachability while keeping DuckDB reachable would
-    // still have passed a duckdb-only check.
-    const intakeOnlyText = readAssets(intakeOnlySrcs);
+    const intakeOnlyText = stripChunkPathReferences(readAssets(intakeOnlySrcs));
+    const found = FORBIDDEN_MARKERS.filter((marker) => intakeOnlyText.includes(marker));
+    expect(found, "forbidden markers found in intake.html's ENTRY chunk").toEqual([]);
+  });
+
+  // D7's reverse assertion, Stage A form: the entry-chunk check above only
+  // proves duckdb/exceljs/iconv are ABSENT from intake.html's entry -- it
+  // says nothing about whether the lazy-load wiring itself regressed and
+  // silently dropped the data layer from the build entirely (a broken
+  // `import()` specifier would also pass every assertion above). Checking
+  // FOR the markers in a chunk OUTSIDE both entries' static graphs is what
+  // turns "the entry doesn't have it" into "it's still reachable, just
+  // lazily" -- this deliberately does not claim the discovered chunk is
+  // EXCLUSIVELY intake's own lazy chunk (register-harness.html's own
+  // static entry also reaches the data layer and could share a chunk with
+  // it via Rollup's dedup) -- only that the data layer wasn't silently
+  // lost from the build.
+  it("the data layer (duckdb/exceljs/iconv) is still reachable in the build output, outside both index.html's and intake.html's entries (vendoring regression detector)", () => {
+    const indexSrcs = scriptSrcsFromHtml(join(DIST_DIR, "index.html"));
+    const intakeSrcs = scriptSrcsFromHtml(join(DIST_DIR, "intake.html"));
+    const nonEntrySrcs = allEmittedChunkSrcs().filter(
+      (src) => !indexSrcs.includes(src) && !intakeSrcs.includes(src),
+    );
+    expect(
+      nonEntrySrcs.length,
+      "expected at least one chunk outside index.html's/intake.html's entries",
+    ).toBeGreaterThan(0);
+
+    const nonEntryText = readAssets(nonEntrySrcs);
     for (const marker of ["duckdb", "exceljs", "iconv"]) {
-      expect(intakeOnlyText, `intake.html's own bundle is missing "${marker}"`).toContain(marker);
+      expect(
+        nonEntryText,
+        `no chunk outside index.html's/intake.html's entries contains "${marker}"`,
+      ).toContain(marker);
     }
   });
 
