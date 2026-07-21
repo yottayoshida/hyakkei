@@ -17,6 +17,23 @@ import type { DuckDBHandle } from "./duckdb/factory.js";
  */
 export const DATA_SIZE_CEILING_BYTES = 256 * 1024 * 1024;
 
+/**
+ * Thrown when `importDataLayer()`'s dynamic `import()` itself rejects (a
+ * chunk-fetch failure, permanent for the rest of the page per the module-map
+ * doc comment below) — distinct from a `DataSourceError` (a problem with the
+ * user's file/URL). `toIntakeError` (IntakeApp.tsx) checks `instanceof` this
+ * FIRST, before the datasource-error check, so the failure is attributed to
+ * "the app failed to load its own code" rather than misclassified as
+ * `corrupt` ("the user's file is broken") — issue #91.
+ */
+export class DataLayerLoadError extends Error {
+  constructor(cause: unknown) {
+    super("failed to load the application's data layer");
+    this.name = "DataLayerLoadError";
+    this.cause = cause;
+  }
+}
+
 async function importDataLayer() {
   const [datasource, factory] = await Promise.all([
     import("@hyakkei/core/datasource"),
@@ -73,7 +90,7 @@ export function loadDataLayer(): Promise<DataLayer> {
     .catch((err: unknown) => {
       layerPromise = undefined;
       resolvedLayer = undefined;
-      throw err;
+      throw new DataLayerLoadError(err);
     });
   return layerPromise;
 }

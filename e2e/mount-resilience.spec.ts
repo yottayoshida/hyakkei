@@ -1,4 +1,8 @@
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+
+const FIXTURES_DIR = join(import.meta.dirname, "..", "spikes", "excel-fidelity", "fixtures");
+const fixturePath = (name: string) => join(FIXTURES_DIR, name);
 
 // PR-M2-1 (issues #69/#68): mount.ts resilience. jsdom does no real layout
 // (mount.test.ts's own ResizeObserver tests fire the callback manually and
@@ -53,10 +57,21 @@ test("issue #68: a container resize re-measures the chart (real ResizeObserver, 
 // a regression guard against false positives: a normal load through the
 // real built app must never itself trip the per-tile catch or the error
 // boundary.
-test("issue #69: a normal chart load never falsely trips the per-tile catch or error boundary (real built app)", async ({
+//
+// issue #11a (single-SPA editor): index.html no longer shows a chart on
+// its OWN first paint (e2e/scaffold.spec.ts covers that initial onboarding
+// state) -- the workspace (and its DashboardPreview) only exists once at
+// least one source is registered, so reaching it here means driving a real
+// file registration first, same as e2e/intake-harness.spec.ts's flows.
+test("issue #69: registering a source and entering the workspace never falsely trips the per-tile catch or error boundary (real built app)", async ({
   page,
 }) => {
   await page.goto("/index.html", { waitUntil: "networkidle" });
+  await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+
+  // The workspace's own heading appears only after a successful
+  // registration auto-enters it (issue #11a: no "確定" click needed).
+  await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
   await page.waitForSelector(".hyakkei-chart-canvas svg", { timeout: 10_000 });
 
   expect(await page.locator(".hyakkei-error-tile").count()).toBe(0);

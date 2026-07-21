@@ -1,42 +1,33 @@
 import { expect, test } from "@playwright/test";
 
-// issue #64: this was a `page.setContent()` placeholder that only proved
-// Playwright itself works, not the app -- the real-browser chart-collapse
-// bug (grid rows unsized, detached-container `echarts.init`, fixed by
-// mount.ts's gridAutoRows/resize()) passed this spec's full 3-browser
-// matrix because nothing here ever loaded the built app. This now
-// navigates to the actual index route (App.tsx's single fixed sample
-// dashboard) via the webServer this config already wires up, and pins the
-// same expected-count-first pattern golden-narrow-viewport.spec.ts uses:
-// asserting a count before iterating per-element avoids a partial-render
-// regression silently passing because `.locator(...).all()` just returns
-// fewer elements.
-test("index route (App.tsx sample dashboard) mounts a real chart with a laid-out box, a11y fallback, and no error tile", async ({
+// issue #11a (single-SPA editor, ADR-0010): index.html no longer shows
+// App.tsx's fixed SAMPLE_DASHBOARD immediately -- the editor shell's first
+// render is onboarding (data intake) until at least one source is
+// registered. The former "index route mounts a real chart" assertion this
+// spec used to make now belongs to a real registered-source flow
+// (e2e/mount-resilience.spec.ts's "workspace renders the sample dashboard"
+// test) or golden.html (e2e/golden-narrow-viewport.spec.ts already pins the
+// chart-collapse/laid-out-box regression this file used to guard, via the
+// SAME mount()/gridAutoRows code path -- golden.html and the workspace's
+// DashboardPreview call the identical `mount()`).
+test("index route starts in the onboarding state (no source registered yet) -- no chart, no error tile, the real intake UI is visible", async ({
   page,
 }) => {
   // `/index.html`, not `/` -- `serve.json`'s `cleanUrls: false` (required
   // for the other served pages' exact filenames) means this webServer does
-  // not resolve a bare `/` to `index.html`; it returns a directory
-  // listing instead (confirmed empirically). Every other spec in this
-  // directory already navigates to an explicit `.html` path for the same
-  // reason (golden.html/intake.html/register-harness.html).
+  // not resolve a bare `/` to `index.html`; it returns a directory listing
+  // instead (confirmed empirically). Every other spec in this directory
+  // already navigates to an explicit `.html` path for the same reason.
   await page.goto("/index.html", { waitUntil: "networkidle" });
-  await page.waitForSelector(".hyakkei-chart-canvas svg", { timeout: 10_000 });
 
+  // The real onboarding UI (IntakeApp in "onboard" mode) renders, not a
+  // blank shell or a stale cached view.
+  await expect(page.getByLabel("ファイルを選択")).toBeVisible();
+  await expect(page.getByLabel("データのURL")).toBeVisible();
+
+  // Nothing to preview before any source exists -- no chart, no per-tile
+  // error state, no crashed boundary.
+  expect(await page.locator(".hyakkei-chart-canvas svg").count()).toBe(0);
   expect(await page.locator(".hyakkei-error-tile").count()).toBe(0);
-
-  // App.tsx's SAMPLE_DASHBOARD declares exactly one chart (bar, ECharts-
-  // backed) -- every count below is 1 for that reason, not an arbitrary
-  // choice.
-  expect(await page.locator(".hyakkei-tile").count()).toBe(1);
-  const svgLocator = page.locator(".hyakkei-chart-canvas svg");
-  expect(await svgLocator.count()).toBe(1);
-  expect(await page.locator(".hyakkei-accessible-fallback table").count()).toBe(1);
-
-  // The chart-collapse regression this pins (mount.ts's gridAutoRows +
-  // canvas flex fix, same as golden-narrow-viewport.spec.ts): a collapsed
-  // box rendered at effectively 0 height even though the <svg> existed.
-  const box = await svgLocator.boundingBox();
-  expect(box?.width).toBeGreaterThan(0);
-  expect(box?.height).toBeGreaterThan(0);
+  expect(await page.locator('[role="alert"]').count()).toBe(0);
 });

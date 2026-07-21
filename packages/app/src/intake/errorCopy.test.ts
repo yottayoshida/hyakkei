@@ -1,14 +1,16 @@
-import type { DataSourceErrorKind, NetworkBlockedReason } from "@hyakkei/core/datasource";
+import type { NetworkBlockedReason } from "@hyakkei/core/datasource";
 import { describe, expect, it } from "vitest";
 import { describeError, type ErrorFamily } from "./errorCopy.js";
+import type { AppErrorKind } from "./types.js";
 
-// The 10 leaves `DataSourceErrorKind` declares today (types.ts) — `as const
-// satisfies` pins each listed string as a real literal AND checks it's a
-// valid kind; the `_EveryKindListed` type below (Phase 6-B adversarial
-// review: the array-literal form alone only proves every LISTED kind is
-// valid, never that the list is COMPLETE) is what actually fails the build
-// if `DataSourceErrorKind` grows an 11th leaf this list doesn't cover —
-// the real, compile-time version of the coverage claim this test makes.
+// The 10 `DataSourceErrorKind` leaves (core) plus the 2 app-only leaves
+// (`legacy-xls`/`data-layer-load`, issue #11a) — `as const satisfies` pins
+// each listed string as a real literal AND checks it's a valid kind; the
+// `_EveryKindListed` type below (Phase 6-B adversarial review: the
+// array-literal form alone only proves every LISTED kind is valid, never
+// that the list is COMPLETE) is what actually fails the build if
+// `AppErrorKind` grows a leaf this list doesn't cover — the real,
+// compile-time version of the coverage claim this test makes.
 const KNOWN_KINDS = [
   "unsupported-format",
   "corrupt",
@@ -20,9 +22,11 @@ const KNOWN_KINDS = [
   "non-csv-response",
   "aborted",
   "oom",
-] as const satisfies readonly DataSourceErrorKind[];
+  "legacy-xls",
+  "data-layer-load",
+] as const satisfies readonly AppErrorKind[];
 
-type _EveryKindListed = DataSourceErrorKind extends (typeof KNOWN_KINDS)[number] ? true : never;
+type _EveryKindListed = AppErrorKind extends (typeof KNOWN_KINDS)[number] ? true : never;
 const _everyKindListed: _EveryKindListed = true;
 void _everyKindListed;
 
@@ -54,6 +58,8 @@ const EXPECTED_FAMILY: Record<(typeof KNOWN_KINDS)[number], ErrorFamily> = {
   "network-blocked": "acquisition",
   "network-notfound": "acquisition",
   aborted: "acquisition",
+  "legacy-xls": "content",
+  "data-layer-load": "infrastructure",
 };
 
 describe("describeError", () => {
@@ -130,8 +136,20 @@ describe("describeError", () => {
   });
 
   it("a future, not-yet-recognized kind still degrades to real (non-blank) generic copy, not a blank panel", () => {
-    const copy = describeError("some-future-kind" as DataSourceErrorKind, undefined);
+    const copy = describeError("some-future-kind" as AppErrorKind, undefined);
     expect(copy.title.trim()).not.toBe("");
     expect(copy.detail.trim()).not.toBe("");
+  });
+
+  it("'data-layer-load' explicitly clears the user's file of blame (issue #91: this is the app's own code failing to load, not the user's data)", () => {
+    expect(describeError("data-layer-load", undefined).detail).toContain(
+      "お使いのファイルに問題はありません",
+    );
+  });
+
+  it("'legacy-xls' names the concrete fix (re-save as .xlsx), not the generic unsupported-format copy", () => {
+    const copy = describeError("legacy-xls", undefined);
+    expect(copy.detail).toContain(".xlsx");
+    expect(copy.title).not.toBe(describeError("unsupported-format", undefined).title);
   });
 });
