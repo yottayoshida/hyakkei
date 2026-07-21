@@ -76,7 +76,7 @@ describe("EDITOR_CSP's actual security properties (Codex Round 2 Test Adversaria
 });
 
 describe("index.html / golden.html / serve.json agree with csp.ts's EDITOR_CSP (single source of truth)", () => {
-  it.each(["index.html", "golden.html", "register-harness.html", "intake.html"])(
+  it.each(["index.html", "golden.html", "register-harness.html"])(
     "%s's CSP meta matches EDITOR_CSP and is the first meta after charset",
     (htmlFile) => {
       const html = readFileSync(join(APP_ROOT, htmlFile), "utf-8");
@@ -158,5 +158,18 @@ describe("packages/app real build output (dist/) never references a third-party 
     for (const file of VENDOR_FILES) {
       expect(existsSync(join(vendorDir, file)), `dist/vendor/${file} missing`).toBe(true);
     }
+  });
+
+  // issue #11a (Security review T-B): intake.html is gone from vite.config's
+  // build inputs, but a stale `dist/` from a build that predates this PR
+  // (or an incremental deploy that doesn't clean its output dir first) could
+  // still serve the old file, under the OLD CSP if that policy is ever
+  // tightened later without a corresponding intake.html update. This is a
+  // deployment-hygiene assertion, not a build-correctness one (Vite's
+  // `build.emptyOutDir` defaults to `true`, so a plain `vite build` already
+  // does not reproduce this on its own) -- it exists to catch the
+  // incremental-deploy case explicitly, per plan.
+  it("dist/intake.html does not exist (issue #11a: the entry was removed, not just unlinked from the router)", () => {
+    expect(existsSync(join(DIST_DIR, "intake.html"))).toBe(false);
   });
 });

@@ -5,9 +5,10 @@ import type {
   RegisterContext,
 } from "@hyakkei/core/datasource";
 import type { Source } from "@hyakkei/schema";
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, type Ref } from "react";
 import {
   DATA_SIZE_CEILING_BYTES,
+  DataLayerLoadError,
   getDuckDBHandle,
   getDuckDBHandleWithLayer,
   getResolvedDataLayer,
@@ -20,7 +21,6 @@ import { DropZone } from "./DropZone.js";
 import { ErrorPanel } from "./ErrorPanel.js";
 import { generateSourceId } from "./identifier.js";
 import { ReadingPanel } from "./ReadingPanel.js";
-import { RegisteredSummary } from "./RegisteredSummary.js";
 import { SheetPickPanel } from "./SheetPickPanel.js";
 import { INITIAL_STATE, intakeReducer, type IntakeError, type IntakeSample } from "./types.js";
 import { UrlPanel } from "./UrlPanel.js";
@@ -47,6 +47,19 @@ function fileFormatFromName(name: string): "csv" | "xlsx" | "parquet" | undefine
   if (ext === "xlsx") return "xlsx";
   if (ext === "parquet") return "parquet";
   return undefined;
+}
+
+/**
+ * issue #42: a legacy .xls (BIFF) file is genuinely common in this
+ * project's own target data (old government-distributed spreadsheets) --
+ * checked BEFORE `fileFormatFromName`'s generic `undefined` fallback so it
+ * gets its own actionable copy ("re-save as .xlsx") instead of the
+ * one-size-fits-all "対応していない形式です". v0.1 decision: reject with
+ * specific guidance (issue #42 option ①) -- a converter/BIFF reader (②/③)
+ * would add a new dependency for a format ExcelJS itself cannot read.
+ */
+function isLegacyXls(name: string): boolean {
+  return name.toLowerCase().split(".").pop() === "xls";
 }
 
 /** `UrlSource.format` is `csv | parquet` only (schema) — an unrecognized extension defaults to csv, the overwhelmingly common open-data format; a wrong guess still fails safely via the shared register path's own sniff/parse (`unsupported-format`/`non-csv-response`), not silently. */
@@ -104,6 +117,15 @@ function buildUrlSpec(id: string, format: "csv" | "parquet", url: string): UrlSo
  * unnecessary.
  */
 function toIntakeError(err: unknown): IntakeError {
+  // Checked FIRST, before the DataSourceError check (issue #91): this is
+  // the one failure mode `getResolvedDataLayer()` returning `undefined`
+  // does NOT distinguish from a genuine data-layer-load failure (both fall
+  // through to the same "corrupt" misattribution otherwise) -- a rejected
+  // `loadDataLayer()` is the app's own code failing to load, never a
+  // property of the user's file/URL.
+  if (err instanceof DataLayerLoadError) {
+    return { kind: "data-layer-load", reason: undefined, message: err.message };
+  }
   const layer = getResolvedDataLayer();
   if (layer && err instanceof layer.datasource.DataSourceError) {
     return { kind: err.kind, reason: err.reason, message: err.message };
@@ -122,27 +144,57 @@ type PendingSheetPick = {
   generation: number;
 };
 
-export function IntakeApp() {
-  // Without this, dropping a file OUTSIDE `DropZone`'s own bounds (its
-  // `onDrop` only covers its own element) falls through to the browser's
-  // native default: navigating the tab to open the dropped file, which
-  // tears down this entire page -- discarding every table already
-  // registered into DuckDB-WASM's in-memory, session-scoped database
-  // (QA review: reproducible by dragging a 2nd file anywhere onto the
-  // already-registered payoff screen, since `DropZone` itself is unmounted
-  // outside "empty" and can't intercept it there either). A native `drop`
-  // handler only suppresses the browser default if the ALSO-native
-  // `dragover` for that drop was itself prevented -- both are required.
-  useEffect(() => {
-    const preventDefault = (event: DragEvent) => event.preventDefault();
-    window.addEventListener("dragover", preventDefault);
-    window.addEventListener("drop", preventDefault);
-    return () => {
-      window.removeEventListener("dragover", preventDefault);
-      window.removeEventListener("drop", preventDefault);
-    };
-  }, []);
+/**
+ * `onboard` = the full-screen first-run state (App.tsx renders this alone,
+ * before any source exists); `panel` = the contained "add another source"
+ * affordance shown inside the workspace (App.tsx renders this over/beside
+ * the existing sources). Only chrome (heading level, trust copy) differs
+ * between modes -- the state machine and every child panel below are
+ * identical either way (issue #11a Δ3).
+ */
+export type IntakeAppMode = "onboard" | "panel";
 
+export type IntakeAppProps = {
+  mode: IntakeAppMode;
+  /**
+   * Shell-owned (App.tsx), not this component's own ref (issue #11a,
+   * mirror-review Major 3): every id this component has ever reserved must
+   * outlive ITS OWN mount/unmount, since "add another source" mounts a
+   * fresh `IntakeApp` per attempt while the shell's registered sources (and
+   * the live DuckDB tables backing them) persist across that. Mutated
+   * directly (`.add`/`.delete`) the same way the former internal ref was --
+   * only its OWNERSHIP moved, not its usage.
+   */
+  usedIds: Set<string>;
+  /**
+   * Fires once, the instant a source is registered (via an effect watching
+   * `state.phase === "registered"` -- issue #11a Δ6, chosen over an
+   * imperative call from inside `runRegistration` specifically because an
+   * effect naturally never fires if this component unmounts while still
+   * "reading" (closing the "add source" panel mid-load correctly acts as a
+   * cancel, with no extra guard needed). Must be referentially stable
+   * (`useCallback` at the call site) -- an unstable callback would refire
+   * this effect on unrelated re-renders while still in the "registered"
+   * phase. The shell is responsible for deduping by `sample.table.id`
+   * (`mergeWorkspaceSource`, App.tsx) as a defensive, cheap idempotency
+   * guarantee against any future duplicate call -- see that function's own
+   * doc for why this is NOT actually reachable via React 18 StrictMode's
+   * dev double-invoke, contrary to what an earlier version of this comment
+   * claimed.
+   */
+  onComplete: (sourceLabel: string, sample: IntakeSample) => void;
+  /**
+   * Attached to this component's onboard-mode heading only (/simplify
+   * Altitude): the shell (App.tsx) focuses this when deleting the last
+   * remaining source returns here, since this component remounts fresh in
+   * that case and none of the shell's OWN refs survive it. Optional --
+   * `mode: "panel"` never renders that heading, so a panel-mode caller has
+   * nothing to attach it to.
+   */
+  onboardHeadingRef?: Ref<HTMLHeadingElement>;
+};
+
+export function IntakeApp({ mode, usedIds, onComplete, onboardHeadingRef }: IntakeAppProps) {
   // Data-layer warm hooks (issue #54): idle-time module-only prefetch so
   // the shell/drop-zone paint is never blocked on it, plus a full
   // (DuckDB-instantiating) warm the moment a drag gesture starts, since a
@@ -174,8 +226,8 @@ export function IntakeApp() {
   // `register()` even runs, see `runRegistration`) and reclaimed only after
   // a confirmed `DROP TABLE` (see `handleRedo`) — an id sits in this set for
   // exactly as long as (or longer than, for an unabortable cancelled
-  // registration) a real table by that name might exist.
-  const usedIdsRef = useRef<Set<string>>(new Set());
+  // registration) a real table by that name might exist. Lifted to the
+  // shell (`usedIds` prop) as of issue #11a -- see IntakeAppProps' doc.
   // Bumped on every SUBMIT/CANCEL/RESET — an in-flight async step checks
   // its own captured generation against this before ever calling
   // `dispatch`, so a result that arrives after the user cancelled or
@@ -200,11 +252,11 @@ export function IntakeApp() {
       // can commit even after the user has already cancelled and this
       // call's `generation` has gone stale. Reserving late left a window
       // where that committed-but-abandoned table's id stayed absent from
-      // `usedIdsRef`, so a later identical source could regenerate the
+      // `usedIds`, so a later identical source could regenerate the
       // exact same id and collide with it (`CREATE TABLE` on an
       // already-existing name), surfacing as a misleading "corrupt" error
       // for what is actually an id-reuse bug, not a content problem.
-      usedIdsRef.current.add(id);
+      usedIds.add(id);
       try {
         // Cache hit in every real call path (startFile/startUrl already
         // awaited `loadDataLayer()` before calling this function) — this
@@ -236,13 +288,29 @@ export function IntakeApp() {
         dispatch({ type: "FAILED", error: toIntakeError(err) });
       }
     },
-    [],
+    [usedIds],
   );
 
   const startFile = useCallback(
     async (file: File) => {
       const generation = ++generationRef.current;
       dispatch({ type: "SUBMIT", sourceLabel: file.name });
+
+      // Checked before the generic unsupported-format fallback (issue #42):
+      // a plain "対応していない形式です" would tell a .xls user only that
+      // something's wrong, not what -- they genuinely do have "an Excel
+      // file", just not one this app can read.
+      if (isLegacyXls(file.name)) {
+        dispatch({
+          type: "FAILED",
+          error: {
+            kind: "legacy-xls",
+            reason: undefined,
+            message: `legacy .xls format: ${file.name}`,
+          },
+        });
+        return;
+      }
 
       const format = fileFormatFromName(file.name);
       if (!format) {
@@ -292,7 +360,7 @@ export function IntakeApp() {
           getDuckDBHandle(),
         ]);
         if (generation !== generationRef.current) return;
-        const id = generateSourceId(file.name, usedIdsRef.current);
+        const id = generateSourceId(file.name, usedIds);
         const spec = buildFileSpec(id, format, file.name);
         const source = layer.datasource.createFileSource(spec, bytes);
         const { db, conn } = handle;
@@ -312,7 +380,7 @@ export function IntakeApp() {
         dispatch({ type: "FAILED", error: toIntakeError(err) });
       }
     },
-    [runRegistration],
+    [runRegistration, usedIds],
   );
 
   const startUrl = useCallback(
@@ -321,7 +389,7 @@ export function IntakeApp() {
       dispatch({ type: "SUBMIT", sourceLabel: url });
       try {
         const format = urlFormatFromPath(url);
-        const id = generateSourceId(url, usedIdsRef.current);
+        const id = generateSourceId(url, usedIds);
         // `UrlPanel` already awaited `loadDataLayer()` for its own
         // preflight before ever calling `onUrlAccepted` (which reaches
         // here) — this is a cache hit, not a second import.
@@ -347,7 +415,7 @@ export function IntakeApp() {
         dispatch({ type: "FAILED", error: toIntakeError(err) });
       }
     },
-    [runRegistration],
+    [runRegistration, usedIds],
   );
 
   const handleSheetChosen = useCallback(
@@ -373,16 +441,27 @@ export function IntakeApp() {
     dispatch({ type: "RESET", note });
   }, []);
 
-  const handleConfirm = useCallback(() => {
-    if (state.phase !== "registered") return;
-    // Confirm and redo both return to "empty", but previously looked
-    // IDENTICAL to the user (UX review M-2, Hick's Law: a 2-choice screen
-    // whose choices produce the same visible outcome). A completion note
-    // (asymmetric with the plain, note-less reset every other path uses)
-    // is what makes "確定" actually confirm something happened, rather
-    // than just closing the screen the way "やり直す"/cancel do.
-    handleReset(`「${state.sourceLabel}」を取り込みました。`);
-  }, [state, handleReset]);
+  // issue #11a: registration success no longer waits on a "確定" click
+  // (Δ2/裁定2 — the former 2-choice "確定"/"やり直す" screen looked
+  // identical either way, a Hick's Law violation UX review M-2 flagged;
+  // the workspace now shows the persisted preview continuously, so there
+  // is nothing left to separately confirm). This effect is the ONLY
+  // trigger for `onComplete` -- deliberately not an imperative call inside
+  // `runRegistration`, so that closing the "add source" panel while still
+  // "reading" (unmounting this component before the effect ever runs with
+  // phase "registered") naturally acts as a cancel, with no extra guard
+  // (issue #11a Δ6, mirror-review shape enumeration finding A1). `state`
+  // itself (not `state.phase`) is the dep: the reducer returns the exact
+  // same `state` reference on every guarded no-op transition, so this only
+  // re-runs on a REAL transition, and never twice for the same "registered"
+  // arrival -- `onComplete`'s caller still dedupes by `table.id` as a
+  // defensive backstop (see that prop's own doc for why this is cheap
+  // insurance, not a fix for a reachable double-fire).
+  useEffect(() => {
+    if (state.phase === "registered") {
+      onComplete(state.sourceLabel, state.sample);
+    }
+  }, [state, onComplete]);
 
   const handleUrlBlocked = useCallback(
     (url: string, reason: NetworkBlockedReason | undefined, message: string) => {
@@ -422,54 +501,31 @@ export function IntakeApp() {
     dispatch({ type: "FAILED", error: toIntakeError(err) });
   }, []);
 
-  const handleRedo = useCallback(async () => {
-    if (state.phase !== "registered") return;
-    const tableId = state.sample.table.id;
-    try {
-      // A cache hit — a redo is only reachable after a prior successful
-      // registration, which already loaded the layer.
-      const {
-        layer,
-        handle: { conn },
-      } = await getDuckDBHandleWithLayer();
-      // An abandoned registration's table is otherwise dead weight for the
-      // rest of the session (M1 has no cross-session persistence to worry
-      // about) — cleaning it up here is the plan's own risk-table item
-      // ("eager registerで「やり直す」時の掃除漏れ").
-      await conn.query(`DROP TABLE IF EXISTS ${layer.datasource.quoteIdentifier(tableId)}`);
-      // Reclaimed ONLY after a confirmed drop (/code-review, 4 independent
-      // finder angles): without this, `usedIdsRef` kept every redone id
-      // reserved forever even once its table no longer existed, silently
-      // making `e2e/intake-harness.spec.ts`'s redo test pass for the wrong
-      // reason (a freshly-suffixed id never collides with anything
-      // regardless of whether the drop above ever ran) instead of the
-      // reason its own docstring claims (the SAME id being safely reused
-      // because the old table is genuinely gone).
-      usedIdsRef.current.delete(tableId);
-    } catch {
-      // Best-effort cleanup: a failure here leaves one abandoned table in
-      // DuckDB's in-memory, session-scoped catalog — not worth blocking the
-      // user's "start over" action to report, unlike every other async
-      // path in this file where failure IS the primary outcome to surface.
-      // The `catch` itself (previously absent) is what matters: without
-      // it, `handleRedo`'s rejection propagated unhandled past the
-      // `void handleRedo()` call site (/code-review, 3 independent finder
-      // angles) while `finally` below made the UI look like it had
-      // succeeded regardless.
-    } finally {
-      handleReset();
-    }
-  }, [state, handleReset]);
-
   const isEmptyPhase = state.phase === "empty";
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 24, fontFamily: "sans-serif" }}>
-      <h1 style={{ fontSize: 20 }}>データ取り込み</h1>
-      <p style={{ color: "#6b7280", fontSize: 14 }}>
-        ファイルはお使いのブラウザ内で処理されます。サーバーへ送信されません。
-        URLは同じサイト内のデータのみ読み込めます。
-      </p>
+      {mode === "onboard" ? (
+        <>
+          {/* `ref`/`tabIndex` (code review P2 #2): the shell (App.tsx) focuses
+              this heading when deleting the last remaining source returns
+              here -- this component remounts fresh in that case, so no ref
+              the shell already holds survives to target directly; this prop
+              is threaded down fresh on each such mount instead. */}
+          <h1 ref={onboardHeadingRef} tabIndex={-1} style={{ fontSize: 20 }}>
+            データ取り込み
+          </h1>
+          <p style={{ color: "#6b7280", fontSize: 14 }}>
+            ファイルはお使いのブラウザ内で処理されます。サーバーへ送信されません。
+            URLは同じサイト内のデータのみ読み込めます。
+          </p>
+        </>
+      ) : (
+        // panel mode: no second <h1> (a11y -- one per page, the workspace's
+        // own heading already exists) and no repeated trust copy (already
+        // shown once during onboarding).
+        <h2 style={{ fontSize: 16 }}>データを追加</h2>
+      )}
 
       {isEmptyPhase && (
         <>
@@ -506,14 +562,11 @@ export function IntakeApp() {
         />
       )}
 
-      {state.phase === "registered" && (
-        <RegisteredSummary
-          sourceLabel={state.sourceLabel}
-          sample={state.sample}
-          onConfirm={handleConfirm}
-          onRedo={() => void handleRedo()}
-        />
-      )}
+      {/* "registered" renders nothing of its own -- the effect above fires
+          `onComplete` the instant this phase is reached, and the shell
+          takes over all visible follow-up (workspace entry or panel close
+          + `RegisteredSummary` reused as the persistent data card). This
+          phase is transient by design. */}
 
       {state.phase === "error" && (
         <ErrorPanel

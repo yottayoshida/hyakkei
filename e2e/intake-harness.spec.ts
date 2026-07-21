@@ -1,16 +1,51 @@
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 
-// PR-B (issue #7 close-out): the real UI counterpart to
-// e2e/datasource-register.spec.ts's headless harness — this spec drives
-// intake.html through actual clicks/drops/typed URLs, not
-// `window.__hyakkeiHarness` calls, exercising the state machine
-// (packages/app/src/intake/types.ts) and its wiring in `IntakeApp.tsx`
-// that a headless harness call can't observe (D11: "登録→SELECT
-// round-tripの最終段のみ" gets a real browser; the UI layer above it gets
-// this spec).
+// PR-B (issue #7 close-out), rewritten for issue #11a (single-SPA editor,
+// ADR-0010): intake.html no longer exists -- `IntakeApp` is embedded in
+// index.html's editor shell (App.tsx). This spec drives that shell through
+// actual clicks/drops/typed URLs, exercising the state machine
+// (packages/app/src/intake/types.ts) and its wiring in `IntakeApp.tsx`/
+// `App.tsx` that a headless harness call (e2e/datasource-register.spec.ts)
+// can't observe.
 const FIXTURES_DIR = join(import.meta.dirname, "..", "spikes", "excel-fidelity", "fixtures");
 const fixturePath = (name: string) => join(FIXTURES_DIR, name);
+
+/**
+ * Registers `06-shift_jis.csv` as the workspace's first source, then opens
+ * the "add source" panel -- the first half of a two-source setup, split
+ * from the second half so a caller can inject something (e.g. a `page.route`
+ * abort) between opening the panel and the second file actually landing.
+ */
+async function registerFirstSourceAndOpenPanel(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+  await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+  await page.getByRole("button", { name: "データを追加" }).click();
+}
+
+/** Registers `05-multi-sheet.xlsx` through the already-open "add source" panel -- the second half of a two-source setup (see `registerFirstSourceAndOpenPanel`). */
+async function registerSecondSourceViaPanel(page: import("@playwright/test").Page): Promise<void> {
+  await page.locator('input[type="file"]').setInputFiles(fixturePath("05-multi-sheet.xlsx"));
+  await page.getByText("複数のシートがあります").waitFor();
+  await page.locator("ul button").first().click();
+  await expect(page.locator(".hyakkei-source-card")).toHaveCount(2);
+}
+
+/**
+ * The mechanical setup 3 of the "multiple sources" tests below share
+ * verbatim (/simplify: matching this file's own existing precedent,
+ * `abortFirstAssetRequest`'s doc comment, "extracted from two
+ * near-identical inline blocks"). Only for tests that don't care about the
+ * INTERMEDIATE state this produces (panel focus mid-flow, etc.) -- the one
+ * test that specifically verifies that intermediate state keeps its own
+ * inline steps instead of calling this.
+ */
+async function registerTwoSources(page: import("@playwright/test").Page): Promise<void> {
+  await registerFirstSourceAndOpenPanel(page);
+  await registerSecondSourceViaPanel(page);
+}
 
 /**
  * Neutralizes `scheduleIdleWarm()` (data-layer.ts, issue #54) for tests
@@ -20,11 +55,8 @@ const fixturePath = (name: string) => join(FIXTURES_DIR, name);
  * if that call wins the race and succeeds before a route is even
  * registered, `loadDataLayer()`'s singleton memoizes the successful
  * result, and every later caller (a test's own URL submit / file drop)
- * silently reuses it instead of hitting the intended failure. This was
- * observed as flaky failures where the intended error never appeared
- * (the URL path instead reached real `classifyUrlTarget` and hit an
- * unrelated "blocked" outcome). `requestIdleCallback` is overridden to a
- * no-op (not deleted -- `scheduleIdleWarm`'s `typeof
+ * silently reuses it instead of hitting the intended failure. `requestIdleCallback`
+ * is overridden to a no-op (not deleted -- `scheduleIdleWarm`'s `typeof
  * requestIdleCallback === "function"` check must still hold, so it
  * doesn't fall through to the equally-racy `setTimeout` path) BEFORE any
  * page script runs (`addInitScript`), so idle warm never calls
@@ -65,27 +97,42 @@ async function abortFirstAssetRequest(
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/intake.html", { waitUntil: "domcontentloaded" });
+  await page.goto("/index.html", { waitUntil: "domcontentloaded" });
 });
 
-test.describe("PR-B intake harness: file registration", () => {
-  test("csv: drop -> Registered payoff view shows the real table, no dead-end", async ({
-    page,
-  }) => {
+test.describe("editor shell: file registration", () => {
+  test("csv: drop -> workspace shows the real table, no dead-end", async ({ page }) => {
     await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
 
-    const status = page.getByRole("status").filter({ hasText: "取り込み完了" });
-    await expect(status).toBeVisible();
-    await expect(status).toContainText("06-shift_jis.csv");
-    await expect(status).toContainText("2 行");
-    await expect(page.locator("table th")).toHaveText(["部署", "担当者", "件数"]);
-    // The payoff view IS the completion screen (D7's "eager register" —
-    // Preview and Registered are the same state) — a forward-looking
-    // completion line, not a dead end.
-    await expect(status).toContainText("グラフ作成機能は今後の更新で追加されます");
+    // issue #11a: registration success auto-enters the workspace (no
+    // "確定" click) -- the workspace's own heading is the arrival signal.
+    const heading = page.getByRole("heading", { name: "データワークスペース" });
+    await expect(heading).toBeVisible();
+    // UX review focus-management (code review): the workspace's own
+    // heading receives focus on the FIRST successful registration, so a
+    // keyboard/screen-reader user isn't left wherever the (now-gone)
+    // onboarding form used to be.
+    await expect(heading).toBeFocused();
+    const announcement = page.getByRole("status").filter({ hasText: "取り込みました" });
+    await expect(announcement).toBeVisible();
+    await expect(announcement).toContainText("06-shift_jis.csv");
+    await expect(announcement).toContainText("2行");
+
+    const card = page.locator(".hyakkei-source-card");
+    await expect(card.locator("table th")).toHaveText(["部署", "担当者", "件数"]);
+    // a11y (code review P2 #4 / WCAG 1.3.1): every `<th>` names its column
+    // for assistive tech, and the table itself carries a caption.
+    for (const th of await card.locator("table th").all()) {
+      await expect(th).toHaveAttribute("scope", "col");
+    }
+    await expect(card.locator("table caption")).toContainText("06-shift_jis.csv");
+    // The workspace's forward-looking note (D7's "not a dead end" framing,
+    // carried forward from the former terminal screen) -- now a single
+    // workspace-level note, not repeated per source card.
+    await expect(page.getByText("グラフ作成機能は今後の更新で追加されます")).toBeVisible();
   });
 
-  test("xlsx multi-sheet: SheetPick appears with all 3 sheet names, choosing one registers it", async ({
+  test("xlsx multi-sheet: SheetPick appears with all 3 sheet names, choosing one registers it and enters the workspace", async ({
     page,
   }) => {
     await page.locator('input[type="file"]').setInputFiles(fixturePath("05-multi-sheet.xlsx"));
@@ -96,12 +143,13 @@ test.describe("PR-B intake harness: file registration", () => {
     await expect(sheetButtons).toHaveText(["本庁", "支所A", "支所B"]);
 
     await sheetButtons.nth(1).click(); // 支所A
-    const status = page.getByRole("status").filter({ hasText: "取り込み完了" });
-    await expect(status).toBeVisible();
-    await expect(status).toContainText("05-multi-sheet.xlsx");
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    const announcement = page.getByRole("status").filter({ hasText: "取り込みました" });
+    await expect(announcement).toBeVisible();
+    await expect(announcement).toContainText("05-multi-sheet.xlsx");
   });
 
-  test("an unrecognized file extension fails closed with the format error, without ever reaching DuckDB (no 'reading' flash)", async ({
+  test("an unrecognized file extension fails closed with the format error, staying in onboarding (no 'reading' flash, no workspace entry)", async ({
     page,
   }) => {
     await page.locator('input[type="file"]').setInputFiles({
@@ -112,6 +160,25 @@ test.describe("PR-B intake harness: file registration", () => {
 
     await expect(page.getByRole("alert")).toContainText("対応していない形式です");
     await expect(page.getByRole("alert")).toContainText("CSV・Excel(.xlsx)・Parquet");
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toHaveCount(0);
+  });
+
+  // issue #42: a legacy .xls extension gets its own actionable copy, not
+  // the generic unsupported-format fallback -- this repo's own target
+  // persona (old government-distributed spreadsheets) frequently has these.
+  test("a legacy .xls file is rejected with the specific re-save-as-.xlsx guidance, not the generic unsupported-format copy", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "legacy.xls",
+      mimeType: "application/vnd.ms-excel",
+      buffer: Buffer.from("not a real xls file"),
+    });
+
+    const alert = page.getByRole("alert");
+    await expect(alert).toContainText("古い形式のExcelファイルです");
+    await expect(alert).toContainText(".xlsx");
+    await expect(alert).not.toContainText("対応していない形式です");
   });
 
   // Codex R1 P1: this PR (issue #54 Stage A) redesigned `toIntakeError`'s
@@ -144,28 +211,20 @@ test.describe("PR-B intake harness: file registration", () => {
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
 
-  // Phase 6-B adversarial review: this started as an attempt to prove
-  // `loadDataLayer()`'s rejection-reset lets a LATER attempt retry from
-  // scratch and succeed. It does not -- and the reason is a real browser
-  // constraint, not a bug in this PR's code: per the HTML spec's module
-  // map ("once a module map entry's result is not 'fetching', it does not
-  // change"), a failed dynamic `import()` for a given URL is cached as
-  // permanently failed for the rest of the page's lifetime. Empirically
-  // confirmed here: even though the route below lets every request AFTER
-  // the first one through, a second in-page attempt issues ZERO further
-  // network requests for the chunk -- the browser replays the cached
-  // failure. `data-layer.ts`'s own doc comment has been corrected to
-  // state this precisely; this test pins the actual, verified behavior
-  // (consistent replay, not silent recovery) instead of the originally
-  // assumed one.
-  test("a data-layer load failure is permanent for the rest of the page session (browser module-map caching, HTML spec) -- a later in-page retry consistently replays the same failure, it does not silently recover", async ({
+  // issue #91, rewritten for issue #11a's fix: a data-layer chunk-load
+  // failure used to be misattributed to the user's file ("内容を読み取れ
+  // ませんでした" / corrupt). It is now correctly attributed to the app's
+  // own code failing to load, with a reload affordance instead of the
+  // normal (never-effective, per the module-map constraint below) "はじめ
+  // からやり直す" retry.
+  test("a data-layer load failure is correctly attributed to the app (not the user's file), with a reload affordance instead of the never-effective in-page retry", async ({
     page,
   }) => {
     // Re-navigates so the init script actually takes effect (addInitScript
     // only applies from the NEXT navigation onward, not retroactively to
     // `beforeEach`'s already-completed one).
     await disableIdleWarm(page);
-    await page.goto("/intake.html", { waitUntil: "domcontentloaded" });
+    await page.goto("/index.html", { waitUntil: "domcontentloaded" });
     // QA review: confirm React/entry chunks are done loading BEFORE
     // registering the route -- otherwise, under load, "the first request"
     // `abortFirstAssetRequest` catches could be a still-in-flight
@@ -173,60 +232,127 @@ test.describe("PR-B intake harness: file registration", () => {
     // test means to fail, intermittently preventing mount entirely.
     await expect(page.getByLabel("ファイルを選択")).toBeVisible();
 
-    const chunkRequests: string[] = [];
-    page.on("request", (req) => {
-      if (/\/assets\/(index|factory)-.*\.js$/.test(req.url())) chunkRequests.push(req.url());
-    });
-
     const abortedRequest = await abortFirstAssetRequest(page);
 
     await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
-    await expect(page.getByRole("alert")).toContainText("内容を読み取れませんでした");
-    const requestCountAfterFirst = chunkRequests.length;
 
-    await page.getByRole("button", { name: "はじめからやり直す" }).click();
-    // Wait for `DropZone` to actually remount (RESET -> phase "empty") --
-    // without this, `setInputFiles` can target the previous phase's
-    // now-detaching `<input>` before React has re-rendered.
+    const alert = page.getByRole("alert");
+    await expect(alert).toContainText("アプリの読み込みに問題が発生しました");
+    // The one message this app shows at the exact moment a user's mental
+    // model of "did my data just get uploaded/corrupted" is most in
+    // question -- explicitly clearing the file of blame.
+    await expect(alert).toContainText("お使いのファイルに問題はありません");
+    // No in-page retry offered for this kind (it cannot succeed, per the
+    // module-map constraint) -- only a reload affordance.
+    await expect(page.getByRole("button", { name: "はじめからやり直す" })).toHaveCount(0);
+    const reloadButton = page.getByRole("button", { name: "ページを再読み込み" });
+    await expect(reloadButton).toBeVisible();
+
+    // Reload proceeds directly, no confirm dialog: a `data-layer-load`
+    // failure can only occur before any source is registered (this kind is
+    // architecturally unreachable once `loadDataLayer()` has ever resolved
+    // successfully -- see ADR-0010's correction note), so there is nothing
+    // a reload here could ever discard.
+    await reloadButton.click();
     await expect(page.getByLabel("ファイルを選択")).toBeVisible();
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
-
-    // Consistently the SAME failure, not a stale/blank/different one --
-    // `toIntakeError`'s `getResolvedDataLayer()` indirection (Round 1)
-    // still classifies it correctly on repeat.
-    await expect(page.getByRole("alert")).toContainText("内容を読み取れませんでした");
-    // The route now lets chunk requests through (past the first abort),
-    // yet no NEW request for the data-layer chunks was issued -- the
-    // browser's module map served the cached failure instead of
-    // re-fetching, exactly the constraint this test documents.
-    expect(
-      chunkRequests.length,
-      "a second in-page attempt issued a new network request for the data-layer chunk -- browser module-map caching behavior changed",
-    ).toBe(requestCountAfterFirst);
 
     expect(abortedRequest.wasIntercepted(), "the route interception never actually fired").toBe(
       true,
     );
   });
 
-  test("redo (やり直す) drops the abandoned table so re-registering the identical file doesn't collide (register() is a plain CREATE TABLE, not CREATE OR REPLACE)", async ({
+  // Split from the test above (not merely appended) because this second
+  // half's premise -- "a full reload re-fetches the previously-aborted
+  // chunk" -- does not hold uniformly across engines. Empirically
+  // confirmed via a network trace (2026-07-21): Chromium and Firefox both
+  // re-request the earlier-aborted chunk after `location.reload()` and the
+  // registration then succeeds. WebKit does not -- of the 3 chunks the
+  // data layer needs, the 2 that were NEVER aborted are freshly
+  // re-requested after reload, but the ONE chunk `abortFirstAssetRequest`
+  // aborted on the first attempt is never re-requested at all (no request
+  // reaches Playwright's route handler for it a second time), and the
+  // second registration attempt fails with the exact same error. This
+  // reads as WebKit scoping its failed-module-resolution record to
+  // something that survives a same-document `location.reload()` (broader
+  // than the "page's own lifetime" the other two engines implement, and
+  // broader than data-layer.ts's own doc comment assumed) -- a real,
+  // synthetic-abort-specific engine difference, not a product defect: nothing
+  // suggests a genuine (non-test-harness-induced) transient network failure
+  // would be cached the same way. Skipped on WebKit rather than asserted
+  // against a premise this engine doesn't honor.
+  test("a page reload (not the in-page retry) genuinely recovers from a data-layer load failure", async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName === "webkit",
+      "WebKit does not re-fetch a chunk whose earlier request was aborted, even across a full location.reload() -- see comment above this test",
+    );
+
+    await disableIdleWarm(page);
+    await page.goto("/index.html", { waitUntil: "domcontentloaded" });
+    await expect(page.getByLabel("ファイルを選択")).toBeVisible();
+
+    const abortedRequest = await abortFirstAssetRequest(page);
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("alert")).toContainText("アプリの読み込みに問題が発生しました");
+
+    await page.getByRole("button", { name: "ページを再読み込み" }).click();
+    await expect(page.getByLabel("ファイルを選択")).toBeVisible();
+
+    // The interception route's one-shot abort was already spent on the
+    // first attempt, so this fresh page load's own asset requests go
+    // through untouched -- proving the reload (unlike any in-page
+    // retry) genuinely recovers.
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    expect(abortedRequest.wasIntercepted(), "the route interception never actually fired").toBe(
+      true,
+    );
+  });
+
+  test("deleting a source drops its table so re-registering the identical file doesn't collide (register() is a plain CREATE TABLE, not CREATE OR REPLACE)", async ({
     page,
   }) => {
     const fileInput = page.locator('input[type="file"]');
-    const status = page.getByRole("status").filter({ hasText: "取り込み完了" });
 
     await fileInput.setInputFiles(fixturePath("06-shift_jis.csv"));
-    await expect(status).toBeVisible();
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    // The underlying table id, captured BEFORE delete (code review
+    // Mirror-Check finding): `sourceLabel`/row/column counts are identical
+    // for a same-file re-registration whether the id is genuinely reused
+    // or silently suffixed (identifier.ts's own collision-avoidance) --
+    // `data-table-id` is the one thing that actually distinguishes them.
+    const originalTableId = await page
+      .locator(".hyakkei-source-card")
+      .getAttribute("data-table-id");
+    expect(originalTableId).toBeTruthy();
 
-    await page.getByRole("button", { name: "やり直す" }).click();
-    await expect(page.getByRole("button", { name: "ファイルを選択" })).toBeVisible();
+    await page.locator(".hyakkei-source-card").getByRole("button", { name: "削除" }).click();
+    // Deleting the only source returns to onboarding (issue #11a: no
+    // sources left = no workspace), with focus and a live-region
+    // announcement following it there (code review P2 #2).
+    const onboardHeading = page.getByRole("heading", { name: "データ取り込み" });
+    await expect(onboardHeading).toBeVisible();
+    await expect(onboardHeading).toBeFocused();
+    await expect(page.getByRole("status").filter({ hasText: "削除しました" })).toContainText(
+      "06-shift_jis.csv",
+    );
 
     // Re-registering the identical file generates the identical sanitized
     // id (identifier.ts) -- this only succeeds if the first attempt's
     // table was actually dropped, not merely abandoned.
     await fileInput.setInputFiles(fixturePath("06-shift_jis.csv"));
-    await expect(status).toBeVisible();
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await expect(page.getByRole("alert")).toHaveCount(0);
+    // The decisive check: the SAME table id was reused, not a `_2`-suffixed
+    // new one -- proving the DROP TABLE genuinely ran, not merely that the
+    // UI looks the same either way.
+    await expect(page.locator(".hyakkei-source-card")).toHaveAttribute(
+      "data-table-id",
+      originalTableId!,
+    );
   });
 
   test("cancel during a slow load returns to empty immediately, and a late-arriving DuckDB init never resurrects stale state (generation guard)", async ({
@@ -257,10 +383,9 @@ test.describe("PR-B intake harness: file registration", () => {
 
     // The intercepted vendor fetch resolves ~1.5s after the drop; give
     // DuckDB init (and whatever it triggers) time to land and confirm it
-    // did NOT flip the UI back to a registered/error state behind the
-    // user's back.
+    // did NOT flip the UI to the workspace behind the user's back.
     await page.waitForTimeout(2000);
-    await expect(page.getByRole("status").filter({ hasText: "取り込み完了" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toHaveCount(0);
     await expect(page.getByRole("alert")).toHaveCount(0);
 
     // Determinism sentinel (Phase 6-B adversarial review): without this,
@@ -274,15 +399,14 @@ test.describe("PR-B intake harness: file registration", () => {
     ).toBeGreaterThan(0);
   });
 
-  test("a column named __proto__/constructor renders correctly in the payoff table and never pollutes Object.prototype (UI-layer counterpart to e2e/datasource-register.spec.ts's core-layer test)", async ({
+  test("a column named __proto__/constructor renders correctly in the workspace's data card and never pollutes Object.prototype (UI-layer counterpart to e2e/datasource-register.spec.ts's core-layer test)", async ({
     page,
   }) => {
     const before = await page.evaluate(() => Object.getOwnPropertyNames(Object.prototype));
 
     await page.locator('input[type="file"]').setInputFiles(fixturePath("18-proto-column.xlsx"));
 
-    const status = page.getByRole("status").filter({ hasText: "取り込み完了" });
-    await expect(status).toBeVisible();
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
 
     // Rendered DOM text, not a value crossing page.evaluate()'s own
     // return-value serialization boundary (which is known to drop a
@@ -290,8 +414,9 @@ test.describe("PR-B intake harness: file registration", () => {
     // browser-side object was built) -- `RegisteredSummary.tsx` renders
     // `row[name]` as plain JSX text nodes, so what a user actually SEES is
     // exactly what this checks.
-    await expect(page.locator("table th")).toHaveText(["id", "__proto__", "constructor"]);
-    const dataRow = page.locator("table tbody tr").first();
+    const card = page.locator(".hyakkei-source-card");
+    await expect(card.locator("table th")).toHaveText(["id", "__proto__", "constructor"]);
+    const dataRow = card.locator("table tbody tr").first();
     await expect(dataRow.locator("td")).toHaveText(["1", "polluted?", "also polluted?"]);
 
     const after = await page.evaluate(() => Object.getOwnPropertyNames(Object.prototype));
@@ -314,7 +439,7 @@ test.describe("PR-B intake harness: file registration", () => {
 // egress-policy.ts's 24 pure Vitest cases, plus
 // e2e/datasource-register.spec.ts's fetch-DI harness test for the shared
 // register path itself.
-test.describe("PR-B intake harness: URL registration", () => {
+test.describe("editor shell: URL registration", () => {
   test("a disallowed URL is blocked BEFORE any fetch runs (V-085: zero requests reach it), and renders as guidance, not an error", async ({
     page,
   }) => {
@@ -359,12 +484,15 @@ test.describe("PR-B intake harness: URL registration", () => {
   // Codex R1 P1: before this fix, `UrlPanel`'s own `await loadDataLayer()`
   // had no error handling at all -- a rejection here (unlike every other
   // call site in this app) was a completely silent no-op: no error, no
-  // "reading" flash, just an unresponsive button forever.
-  test("a data-layer chunk load failure on URL submit shows the retryable error UX, not silence", async ({
+  // "reading" flash, just an unresponsive button forever. issue #91: this
+  // failure is now attributed correctly (data-layer-load, reload
+  // affordance), not the generic corrupt fallback the pre-#11a version
+  // fell back to.
+  test("a data-layer chunk load failure on URL submit shows the reload-affordance error UX, not silence", async ({
     page,
   }) => {
     await disableIdleWarm(page);
-    await page.goto("/intake.html", { waitUntil: "domcontentloaded" });
+    await page.goto("/index.html", { waitUntil: "domcontentloaded" });
     // QA review: `domcontentloaded` doesn't guarantee `modulepreload`-hinted
     // chunks (`client-*.js` etc., React itself) have finished fetching --
     // under load, registering the abort-everything route immediately after
@@ -379,12 +507,10 @@ test.describe("PR-B intake harness: URL registration", () => {
     await page.getByLabel("データのURL").fill("https://example.com/x.csv");
     await page.getByRole("button", { name: "接続" }).click();
 
-    // Falls through `toIntakeError`'s generic "corrupt" classification
-    // (getResolvedDataLayer() returns undefined -- the layer never
-    // resolved), same as any other unrecognized failure in this app.
     const alert = page.getByRole("alert");
-    await expect(alert).toContainText("内容を読み取れませんでした");
-    await expect(page.getByRole("button", { name: "はじめからやり直す" })).toBeVisible();
+    await expect(alert).toContainText("アプリの読み込みに問題が発生しました");
+    await expect(alert).toContainText("お使いのファイルに問題はありません");
+    await expect(page.getByRole("button", { name: "ページを再読み込み" })).toBeVisible();
     // No lingering silent-pending state: the button was disabled only for
     // the duration of the failed attempt, not forever.
     await expect(page.getByRole("button", { name: "接続" })).toHaveCount(0);
@@ -403,7 +529,7 @@ test.describe("PR-B intake harness: URL registration", () => {
     page,
   }) => {
     await disableIdleWarm(page);
-    await page.goto("/intake.html", { waitUntil: "domcontentloaded" });
+    await page.goto("/index.html", { waitUntil: "domcontentloaded" });
     // QA review: see the "permanent failure" test above for why this must
     // come before registering the route.
     await expect(page.getByLabel("データのURL")).toBeVisible();
@@ -441,5 +567,162 @@ test.describe("PR-B intake harness: URL registration", () => {
     expect(abortedRequest.wasIntercepted(), "the route interception never actually fired").toBe(
       true,
     );
+  });
+});
+
+test.describe("editor shell: multiple sources", () => {
+  test("a second source registered via the 'データを追加' panel is added alongside the first, without disturbing it", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
+
+    const addButton = page.getByRole("button", { name: "データを追加" });
+    await addButton.click();
+    // The panel mode's own heading (not a second <h1>, a11y) confirms the
+    // contained panel opened, not a second full onboarding screen.
+    await expect(page.getByRole("heading", { name: "データを追加" })).toBeVisible();
+    // Focus moves into the newly-opened panel (code review, focus mgmt).
+    await expect(page.locator('div[tabindex="-1"]:has(h2:text("データを追加"))')).toBeFocused();
+
+    // A distinct fixture (different sanitized id) -- proves accumulation,
+    // not replacement.
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("05-multi-sheet.xlsx"));
+    await page.getByText("複数のシートがあります").waitFor();
+    await page.locator("ul button").first().click();
+
+    // The panel closes on success (issue #11a: registered -> onComplete ->
+    // merge + close), leaving both sources visible in the workspace.
+    await expect(page.getByRole("heading", { name: "データを追加" })).toHaveCount(0);
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(2);
+    // Focus returns to "データを追加" once the panel closes (code review,
+    // focus mgmt) -- whether it closed via success or cancel.
+    await expect(addButton).toBeFocused();
+    // The FIRST source's card is untouched by the second registration.
+    await expect(page.locator(".hyakkei-source-card").first().locator("table th")).toHaveText([
+      "部署",
+      "担当者",
+      "件数",
+    ]);
+  });
+
+  // R2 review: the P2 focus-hijack guard (App.tsx's `!panelOpen` check) and
+  // the aria-label distinguishability fix (RegisteredSummary.tsx) both
+  // exist specifically for the "2+ sources" case -- a single-source test
+  // can't tell them apart from their absence (Playwright's default
+  // substring name-matching finds a lone "削除" button either way, and
+  // there's no OTHER source's focus for a wayward effect to steal).
+  test("deleting one of several sources by its distinguishing label leaves the other untouched and returns focus to 'データを追加'", async ({
+    page,
+  }) => {
+    await registerTwoSources(page);
+
+    // Each card's delete button is named for ITS OWN source, not a bare
+    // "削除" both would match identically -- `exact` rules out substring
+    // overlap between the two labels.
+    const deleteFirst = page.getByRole("button", {
+      name: "「06-shift_jis.csv」を削除",
+      exact: true,
+    });
+    const deleteSecond = page.getByRole("button", {
+      name: "「05-multi-sheet.xlsx」を削除",
+      exact: true,
+    });
+    await expect(deleteFirst).toBeVisible();
+    await expect(deleteSecond).toBeVisible();
+
+    await deleteFirst.click();
+
+    // The one source that was NOT deleted survives, still showing its own
+    // data -- not just "a card count of 1", which a wrong-source delete
+    // would also produce.
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
+    await expect(deleteFirst).toHaveCount(0);
+    await expect(deleteSecond).toBeVisible();
+    // A source remains -> still the workspace, not onboarding (code review
+    // P2 #3's `!panelOpen`-guarded branch: deleting one of SEVERAL leaves
+    // others behind, distinct from the last-source-deleted path this file
+    // already covers elsewhere).
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "データを追加" })).toBeFocused();
+  });
+
+  // code review P2 #3: deleting a source while mid-interaction with the
+  // "add source" panel must not yank focus out of that panel onto a button
+  // behind it -- the `!panelOpen` guard in App.tsx's focus effect exists
+  // specifically for this. Needs TWO sources already present before the
+  // panel opens: deleting the only/last source instead would unmount the
+  // entire workspace (panel included) via the separate `curr===0` branch,
+  // proving nothing about this guard.
+  test("deleting one of several sources while the 'データを追加' panel is open does not steal focus from the panel", async ({
+    page,
+  }) => {
+    await registerTwoSources(page);
+    // Registering closes the panel (existing behavior) -- reopen it so
+    // deletion below happens WHILE it's open, the scenario under test.
+    await page.getByRole("button", { name: "データを追加" }).click();
+    const panel = page.locator('div[tabindex="-1"]:has(h2:text("データを追加"))');
+    await expect(panel).toBeFocused();
+
+    const addButton = page.getByRole("button", { name: "データを追加" });
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を削除", exact: true }).click();
+
+    // One source remains (not the last one deleted) -- the workspace, and
+    // this panel, stay mounted. The guard only PREVENTS the wrong redirect
+    // (to "データを追加", behind the panel) -- it does not itself move
+    // focus anywhere, so the deleted button's own removal from the DOM is
+    // what determines where focus actually lands (browser default, not
+    // this component's concern). What matters is that it did NOT land on
+    // the add-source button.
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
+    await expect(panel).toBeVisible();
+    await expect(addButton).not.toBeFocused();
+  });
+
+  // code review P1 #1: before this, opening the panel was a dead end --
+  // the only ways out were registering SOME source or reloading (which
+  // discards every already-registered source, DuckDB-WASM being
+  // in-memory). "閉じる" must abandon the panel without registering
+  // anything and without disturbing the source already in the workspace.
+  test("the 'データを追加' panel can be closed without registering anything, leaving the existing source untouched", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    const addButton = page.getByRole("button", { name: "データを追加" });
+    await addButton.click();
+    await expect(page.getByRole("heading", { name: "データを追加" })).toBeVisible();
+
+    await page.getByRole("button", { name: "閉じる" }).click();
+
+    await expect(page.getByRole("heading", { name: "データを追加" })).toHaveCount(0);
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await expect(addButton).toBeFocused();
+  });
+
+  // Post-implementation-review finding (ADR-0010's correction note): a
+  // `data-layer-load` failure was originally assumed reachable with
+  // sources already registered (motivating a discard-confirmation gate,
+  // since removed) -- an architecture check proved it is not.
+  // `loadDataLayer()` (data-layer.ts) memoizes permanently on success and
+  // is never re-attempted after that, and the only way any source gets
+  // registered at all is through a code path that already awaited it
+  // successfully. This proves the premise directly: forcing the SAME
+  // abort that fails a fresh page's data-layer load has no effect once a
+  // source already exists -- the panel's OWN registration attempt (reusing
+  // the already-resolved, cached layer) still succeeds.
+  test("once a source is registered, a later data-layer chunk 'failure' no longer affects new registrations -- loadDataLayer()'s cache is permanent", async ({
+    page,
+  }) => {
+    await registerFirstSourceAndOpenPanel(page);
+    await page.route("**/assets/*.js", (route) => route.abort("failed"));
+    await registerSecondSourceViaPanel(page);
+
+    await expect(page.getByRole("heading", { name: "データを追加" })).toHaveCount(0);
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(2);
+    await expect(page.getByRole("alert")).toHaveCount(0);
   });
 });

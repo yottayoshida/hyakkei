@@ -4,8 +4,20 @@ import type {
   RegisteredTable,
 } from "@hyakkei/core/datasource";
 
+/**
+ * `DataSourceErrorKind` (core) plus two app-only leaves for failures that
+ * never reach `DataSource.inspect()/register()` at all: `data-layer-load`
+ * (the dynamic-import chunk itself failed to fetch, issue #91) and
+ * `legacy-xls` (rejected by `fileFormatFromName` before any DataSource is
+ * even constructed, issue #42). Kept as a superset here, not added as a
+ * leaf to the core union — `DataSourceErrorKind`'s own contract ("leaf
+ * addition only, no reshape") is about errors `DataSource` implementations
+ * throw; these two are app-layer classification, not core layer.
+ */
+export type AppErrorKind = DataSourceErrorKind | "data-layer-load" | "legacy-xls";
+
 export type IntakeError = {
-  kind: DataSourceErrorKind;
+  kind: AppErrorKind;
   reason: NetworkBlockedReason | undefined;
   message: string;
 };

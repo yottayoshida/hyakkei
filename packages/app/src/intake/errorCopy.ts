@@ -1,6 +1,14 @@
-import type { DataSourceErrorKind, NetworkBlockedReason } from "@hyakkei/core/datasource";
+import type { NetworkBlockedReason } from "@hyakkei/core/datasource";
+import type { AppErrorKind } from "./types.js";
 
-export type ErrorFamily = "content" | "size" | "acquisition";
+/**
+ * `infrastructure` is the one family whose fix is never "try a different
+ * file/URL" — it's "reload the page" (issue #91: the failure is the app's
+ * own code failing to load, not the user's data). `ErrorPanel` branches on
+ * this family alone to decide whether to render a reload button instead of
+ * the normal retry button.
+ */
+export type ErrorFamily = "content" | "size" | "acquisition" | "infrastructure";
 export type ErrorTone = "error" | "info";
 
 export type ErrorCopy = {
@@ -63,6 +71,8 @@ const GENERIC_FALLBACK: ErrorCopy = {
  * 空白にならない）" / "技術語（encoding/BOM/CORS/origin）ユーザー可視露出0".
  * Every branch below is written to never mention DuckDB, zip, HTML, BOM,
  * origin, or CORS — the underlying mechanism, not the user-facing story.
+ * `AppErrorKind` (issue #11a) adds `legacy-xls`/`data-layer-load` to the
+ * original 10 `DataSourceErrorKind` leaves — same discipline applies.
  *
  * `default` covers a `DataSourceErrorKind` this function's own switch does
  * not (yet) recognize — `types.ts`'s own comment on the union promises
@@ -73,7 +83,7 @@ const GENERIC_FALLBACK: ErrorCopy = {
  * still-actionable message.
  */
 export function describeError(
-  kind: DataSourceErrorKind,
+  kind: AppErrorKind,
   reason: NetworkBlockedReason | undefined,
 ): ErrorCopy {
   switch (kind) {
@@ -83,6 +93,36 @@ export function describeError(
         tone: "error",
         title: "対応していない形式です",
         detail: "CSV・Excel(.xlsx)・Parquet形式のファイルでお試しください。",
+      };
+    case "legacy-xls":
+      // issue #42: a plain "対応していない形式です" leaves a .xls user
+      // (this project's own persona — old government-distributed
+      // spreadsheets are frequently .xls) unsure what's actually wrong,
+      // since they genuinely do have "an Excel file". Naming the fix
+      // directly (re-save as .xlsx) is actionable without any new
+      // dependency (issue #42's option ① — no BIFF reader, no converter).
+      return {
+        family: "content",
+        tone: "error",
+        title: "古い形式のExcelファイルです",
+        detail: "Excelでこのファイルを開き、「.xlsx」形式で保存し直してからお試しください。",
+      };
+    case "data-layer-load":
+      // issue #91: this is the app's own code failing to load (a chunk
+      // fetch that failed, permanently, per data-layer.ts's module-map
+      // doc comment) -- explicitly NOT the user's file, unlike every other
+      // kind in this function. The opening sentence exists to actively
+      // counter the misattribution `corrupt`'s copy would otherwise imply
+      // (trust-anchor: the moment a user's mental model of "did something
+      // go wrong with MY data" is most in question). In-page retry cannot
+      // succeed here (browser module-map caching) -- `ErrorPanel` renders
+      // a reload button for this kind instead of the normal retry button.
+      return {
+        family: "infrastructure",
+        tone: "error",
+        title: "アプリの読み込みに問題が発生しました",
+        detail:
+          "お使いのファイルに問題はありません。通信状態を確認し、ページを再読み込みしてください。",
       };
     case "corrupt":
       return {

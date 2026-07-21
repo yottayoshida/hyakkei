@@ -11,12 +11,11 @@
 //
 // Requires `packages/app/dist` to already exist (root `pnpm run test` runs
 // `pnpm run build` first, per root package.json).
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const DIST_DIR = join(import.meta.dirname, "..", "dist");
-const ASSETS_DIR = join(DIST_DIR, "assets");
 // Identifier names like `GOLDEN_SAMPLES`/`goldenDashboardFromQuery` do NOT
 // survive production minification (confirmed empirically: injecting a real
 // `bake(GOLDEN_SAMPLES[0]...)` call into App.tsx changed the bundle's
@@ -40,6 +39,66 @@ function readAssets(srcs: string[]): string {
     .map((src) => readFileSync(join(DIST_DIR, src.replace(/^\//, "")), "utf-8"))
     .join("\n");
 }
+
+type ManifestChunk = {
+  file: string;
+  src?: string;
+  isEntry?: boolean;
+  isDynamicEntry?: boolean;
+  imports?: string[];
+  dynamicImports?: string[];
+};
+type ViteManifest = Record<string, ManifestChunk>;
+
+function readManifest(): ViteManifest {
+  return JSON.parse(readFileSync(join(DIST_DIR, ".vite", "manifest.json"), "utf-8"));
+}
+
+/**
+ * Every manifest key reachable from `entryKey` via STATIC `imports` only
+ * (never `dynamicImports`) -- exactly "what's really in this entry's own
+ * build graph," the set a Stage B negative assert must find zero
+ * data-layer keys in.
+ */
+function staticClosure(manifest: ViteManifest, entryKey: string): Set<string> {
+  const seen = new Set<string>();
+  const stack = [entryKey];
+  while (stack.length > 0) {
+    const key = stack.pop()!;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    for (const dep of manifest[key]?.imports ?? []) stack.push(dep);
+  }
+  return seen;
+}
+
+/**
+ * Every `dynamicImports` entry reachable from a static closure -- a Stage B
+ * positive assert must find the data-layer keys here. Takes an
+ * already-computed `staticClosure(...)` result rather than an `entryKey`
+ * (/simplify Efficiency finding): callers that need both the closure itself
+ * AND its dynamic edges (as the Stage B tests below do) would otherwise
+ * recompute the same closure walk twice.
+ */
+function dynamicEdgesFrom(manifest: ViteManifest, closure: Set<string>): Set<string> {
+  const out = new Set<string>();
+  for (const key of closure) {
+    for (const dep of manifest[key]?.dynamicImports ?? []) out.add(dep);
+  }
+  return out;
+}
+
+/**
+ * The two dynamic-import specifiers `data-layer.ts`'s `importDataLayer()`
+ * uses (`@hyakkei/core/datasource`, `./duckdb/factory.js`), as Vite records
+ * them in the manifest (resolved source paths, not the specifier strings
+ * themselves). These are the keys `staticClosure`/`dynamicEdgesFrom` check
+ * against -- module-source-path-keyed, so chunk FILENAME hashes changing
+ * between builds (or a chunk being shared with `register-harness.html` via
+ * Rollup dedup) cannot cause a false match or a false negative the way a
+ * text/filename grep can.
+ */
+const DATA_LAYER_MODULE_KEYS = ["../core/dist/datasource/index.js", "src/duckdb/factory.ts"];
 
 /**
  * Strips Vite's own `__vite__mapDeps` dependency-array literal (the
@@ -83,29 +142,21 @@ function stripChunkPathReferences(text: string): string {
   );
 }
 
-/**
- * All JS chunks Vite/Rollup actually emitted, as HTML-relative src paths
- * (`/assets/<file>.js`) matching `scriptSrcsFromHtml`'s own format. Needed
- * for issue #54's lazy-loaded data layer: a dynamically `import()`-ed
- * chunk is fetched by runtime JS inside its loading chunk, never
- * referenced by any `<script>`/`<link>` tag in the HTML itself, so it is
- * invisible to `scriptSrcsFromHtml` and must be found by listing
- * `dist/assets` directly instead.
- */
-function allEmittedChunkSrcs(): string[] {
-  return readdirSync(ASSETS_DIR)
-    .filter((name) => name.endsWith(".js"))
-    .map((name) => `/assets/${name}`);
-}
-
 describe("packages/app real build output isolation (CI assert)", () => {
-  it("index.html's own bundle (the real viewer) contains no golden-harness or duckdb/exceljs markers", () => {
+  // issue #11a (single-SPA editor, ADR-0010): index.html is no longer a
+  // pure viewer with zero legitimate reason to reference the data layer --
+  // it legitimately reaches it now, but only lazily (Stage B, below). This
+  // check is narrower than the pre-#11a version: golden-harness markers
+  // (which have no reason to ever appear here) must still be genuinely
+  // absent, and any duckdb/exceljs/iconv occurrence must be nothing more
+  // than a stripped lazy-chunk filename reference, not real library code.
+  it("index.html's static bundle text contains no golden-harness markers, and no data-layer occurrence beyond a stripped lazy-chunk filename reference", () => {
     const srcs = scriptSrcsFromHtml(join(DIST_DIR, "index.html"));
     // Sentinel: a build that silently produced zero script references
     // would make every assertion below pass vacuously.
     expect(srcs.length, `index.html script/preload srcs: ${srcs.join(", ")}`).toBeGreaterThan(0);
 
-    const bundleText = readAssets(srcs);
+    const bundleText = stripChunkPathReferences(readAssets(srcs));
     const found = FORBIDDEN_MARKERS.filter((marker) => bundleText.includes(marker));
     expect(found, "forbidden markers found in index.html's bundle").toEqual([]);
   });
@@ -128,103 +179,59 @@ describe("packages/app real build output isolation (CI assert)", () => {
     expect(goldenOnlyText).toContain("golden");
   });
 
-  // Stage A of issue #54 (data-layer lazy-load boundary): before this,
-  // intake.html's own entry chunk STATICALLY contained duckdb/exceljs/
-  // iconv (the test this replaces asserted exactly that, as a vendoring
-  // regression detector). `IntakeApp.tsx`/`UrlPanel.tsx` now reach the data
-  // layer only through `data-layer.ts`'s `loadDataLayer()` dynamic
-  // `import()` -- so the entry chunk itself must be as clean as
-  // index.html's own (same `FORBIDDEN_MARKERS`, same reasoning): the data
-  // layer now lives in a separately-emitted chunk this entry only
-  // `import()`s at runtime, on first file drop / URL submit / warm
-  // trigger, never in the entry's own static graph.
-  it("intake.html's entry chunk does not statically contain the data layer (issue #54 Stage A: lazy boundary)", () => {
-    const indexSrcs = scriptSrcsFromHtml(join(DIST_DIR, "index.html"));
-    const intakeSrcs = scriptSrcsFromHtml(join(DIST_DIR, "intake.html"));
-    expect(
-      intakeSrcs.length,
-      `intake.html script/preload srcs: ${intakeSrcs.join(", ")}`,
-    ).toBeGreaterThan(0);
-
-    const intakeOnlySrcs = intakeSrcs.filter((src) => !indexSrcs.includes(src));
-    expect(intakeOnlySrcs.length, `intake.html srcs: ${intakeSrcs.join(", ")}`).toBeGreaterThan(0);
-
-    const intakeOnlyText = stripChunkPathReferences(readAssets(intakeOnlySrcs));
-    const found = FORBIDDEN_MARKERS.filter((marker) => intakeOnlyText.includes(marker));
-    expect(found, "forbidden markers found in intake.html's ENTRY chunk").toEqual([]);
+  // Stage B of issue #54 (extended by issue #11a's single-SPA rewrite):
+  // index.html IS the editor now (the former separate intake.html entry is
+  // gone) -- the entry chunk must stay as statically clean of the data
+  // layer as intake.html's Stage A entry was. Verified via Vite's own build
+  // manifest (`dist/.vite/manifest.json`) rather than chunk-text grepping:
+  // a mapDeps-array text-extraction approach (considered and rejected
+  // during this PR's review) cannot detect a chunk reachable only via a
+  // bare `import("./chunk.js")` call site with no array literal at all --
+  // empirically confirmed against this exact build, where `_App-*.js`'s
+  // `factory.ts` edge has no such array. The manifest's `imports` (static)
+  // vs `dynamicImports` (lazy) fields are Vite's own authoritative record
+  // of the same distinction, keyed by resolved module source path rather
+  // than an unstable content hash -- immune to two failure modes a
+  // text-based check has: chunk-filename hashes changing between builds,
+  // and register-harness.html sharing the same underlying chunk via
+  // Rollup's dedup (register-harness.html reaches these same two modules
+  // through its OWN `imports` field, never `dynamicImports` -- a separate
+  // manifest key entirely, so it cannot be conflated with index.html's
+  // edge either way).
+  // Manifest read + closure walk computed once and shared by both tests
+  // below (/simplify Efficiency finding) -- each was independently
+  // recomputing both (the second via its own internal call to
+  // `staticClosure`), redundant I/O and graph traversal for a value
+  // neither test mutates.
+  let manifest: ViteManifest;
+  let indexStaticClosure: Set<string>;
+  beforeAll(() => {
+    manifest = readManifest();
+    indexStaticClosure = staticClosure(manifest, "index.html");
   });
 
-  // D7's reverse assertion, Stage A form: the entry-chunk check above only
-  // proves duckdb/exceljs/iconv are ABSENT from intake.html's entry -- it
-  // says nothing about whether the lazy-load wiring itself regressed and
-  // silently dropped the data layer from the build entirely (a broken
-  // `import()` specifier would also pass every assertion above). Checking
-  // FOR the markers in a chunk OUTSIDE both entries' static graphs is what
-  // turns "the entry doesn't have it" into "it's still reachable, just
-  // lazily" -- this deliberately does not claim the discovered chunk is
-  // EXCLUSIVELY intake's own lazy chunk (register-harness.html's own
-  // static entry also reaches the data layer and could share a chunk with
-  // it via Rollup's dedup) -- only that the data layer wasn't silently
-  // lost from the build.
-  it("the data layer (duckdb/exceljs/iconv) is still reachable in the build output, outside both index.html's and intake.html's entries (vendoring regression detector)", () => {
-    const indexSrcs = scriptSrcsFromHtml(join(DIST_DIR, "index.html"));
-    const intakeSrcs = scriptSrcsFromHtml(join(DIST_DIR, "intake.html"));
-    const nonEntrySrcs = allEmittedChunkSrcs().filter(
-      (src) => !indexSrcs.includes(src) && !intakeSrcs.includes(src),
-    );
-    expect(
-      nonEntrySrcs.length,
-      "expected at least one chunk outside index.html's/intake.html's entries",
-    ).toBeGreaterThan(0);
-
-    const nonEntryText = readAssets(nonEntrySrcs);
-    for (const marker of ["duckdb", "exceljs", "iconv"]) {
+  it("index.html's entry does not STATICALLY contain the data-layer module (issue #54 Stage B / #11a: the single editor entry, not just its former intake.html sibling, must stay clean)", () => {
+    for (const key of DATA_LAYER_MODULE_KEYS) {
       expect(
-        nonEntryText,
-        `no chunk outside index.html's/intake.html's entries contains "${marker}"`,
-      ).toContain(marker);
+        [...indexStaticClosure],
+        `data-layer module "${key}" found in index.html's static closure`,
+      ).not.toContain(key);
     }
   });
 
-  // Codex R1 P1's fix (narrowing `IntakeApp.tsx`'s imports to
-  // `@hyakkei/core/datasource` instead of the root `@hyakkei/core` barrel,
-  // which also re-exports `./renderer`) has an observable, checkable
-  // consequence: intake.html must NOT pull in the same ECharts payload
-  // index.html does. Verified empirically pre-fix (an "echarts"-containing
-  // chunk WAS shared, ~1.37MB) and post-fix (it is not) -- pinned here so a
-  // future import that widens back to the root barrel regresses loudly
-  // instead of silently ballooning intake.html's real payload.
-  //
-  // Phase 6-B adversarial review: checking only the SHARED-with-index
-  // subset (as an earlier draft did) can pass vacuously two ways -- (1) if
-  // no chunks are shared at all (a chunking-strategy change unrelated to
-  // this fix), the assertion trivially holds without proving anything, and
-  // (2) if ECharts leaked into an intake-EXCLUSIVE chunk instead of a
-  // shared one, intake.html would still ship the ~1.3MB payload this test
-  // exists to catch. Three checks close both gaps: a sanity check that
-  // ECharts really is reachable from *something* in this build (so "not
-  // found" can't be explained by an unrelated build regression), a sanity
-  // check that real sharing genuinely happens (proving the shared-chunk
-  // filter itself isn't just returning empty), and the actual claim
-  // checked against intake.html's FULL bundle, not only its shared subset.
-  it("intake.html does not pull in index.html's ECharts renderer payload anywhere in its bundle (no unused ~1.3MB)", () => {
-    const indexSrcs = scriptSrcsFromHtml(join(DIST_DIR, "index.html"));
-    const intakeSrcs = scriptSrcsFromHtml(join(DIST_DIR, "intake.html"));
-
-    const indexText = readAssets(indexSrcs);
-    expect(indexText, "sanity: index.html's own bundle should contain ECharts").toContain(
-      "echarts",
-    );
-
-    const sharedSrcs = intakeSrcs.filter((src) => indexSrcs.includes(src));
-    expect(
-      sharedSrcs.length,
-      "sanity: expected at least one legitimately shared chunk (e.g. react-dom) between index.html and intake.html",
-    ).toBeGreaterThan(0);
-
-    const intakeText = readAssets(intakeSrcs);
-    expect(intakeText, "intake.html's full bundle contains ECharts somewhere").not.toContain(
-      "echarts",
-    );
+  // The static-absence check above only proves the data layer is ABSENT
+  // from index.html's static graph -- it says nothing about whether the
+  // lazy-load wiring itself regressed and silently dropped the data layer
+  // from the build entirely (a broken `import()` specifier would also pass
+  // that check). This is what turns "the entry doesn't have it" into "it's
+  // still reachable, just lazily."
+  it("index.html can still reach the data layer, but only through a dynamic-import edge (vendoring regression detector: not silently lost from the build)", () => {
+    const dynamicEdges = dynamicEdgesFrom(manifest, indexStaticClosure);
+    for (const key of DATA_LAYER_MODULE_KEYS) {
+      expect(
+        [...dynamicEdges],
+        `expected a dynamic-import edge to "${key}" reachable from index.html`,
+      ).toContain(key);
+    }
   });
 });

@@ -1,5 +1,5 @@
 import { DEFAULT_MAX_BYTES } from "@hyakkei/core/datasource";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DATA_SIZE_CEILING_BYTES, getResolvedDataLayer, loadDataLayer } from "./data-layer.js";
 
 // This test file is allowed to statically import `@hyakkei/core/datasource`
@@ -38,6 +38,17 @@ describe("data-layer.ts", () => {
     // ordering.
     const layer = await loadDataLayer();
     expect(getResolvedDataLayer()).toBe(layer);
+  });
+
+  it("loadDataLayer() wraps an import() rejection in DataLayerLoadError (issue #91), not the raw underlying error -- toIntakeError's instanceof check needs a stable, app-owned class to attribute the failure to the app, not the user's file", async () => {
+    vi.resetModules();
+    vi.doMock("@hyakkei/core/datasource", () => {
+      throw new Error("simulated chunk fetch failure");
+    });
+    const fresh = await import("./data-layer.js");
+    await expect(fresh.loadDataLayer()).rejects.toBeInstanceOf(fresh.DataLayerLoadError);
+    vi.doUnmock("@hyakkei/core/datasource");
+    vi.resetModules();
   });
 });
 
