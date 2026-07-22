@@ -12,17 +12,21 @@ import { mount, normalizeBaked, unmount } from "@hyakkei/core/renderer";
 // through `layer.datasource.*` (the lazy `loadDataLayer()` boundary) instead
 // — see `handleOverrideChange` below.
 import type { ColumnCategory } from "@hyakkei/core/datasource";
-import type { BakedDashboard } from "@hyakkei/schema";
+import type { BakedDashboard, BuilderState } from "@hyakkei/schema";
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { getDuckDBHandleWithLayer } from "./data-layer.js";
 import { IntakeApp } from "./intake/IntakeApp.js";
+import { QueryBuilder } from "./intake/QueryBuilder.js";
 import { RegisteredSummary } from "./intake/RegisteredSummary.js";
-import type {
-  ColumnOverride,
-  ColumnValidationAdvisory,
-  ColumnValidationState,
-  IntakeSample,
-  PreviewRow,
+import {
+  overrideMap,
+  type ColumnOverride,
+  type ColumnValidationAdvisory,
+  type ColumnValidationState,
+  type IntakeSample,
+  type PreviewRow,
+  type QueryDiagnostics,
+  type WorkspaceQuery,
 } from "./intake/types.js";
 
 /**
@@ -235,6 +239,11 @@ export function upsertOverride(
   return next;
 }
 
+/** A freshly added query's starting state: no filters/groupBy/measures configured yet -- compiles to `SELECT * FROM <table>` (issue #11c). */
+export function emptyBuilderState(): BuilderState {
+  return { filters: [], groupBy: [], measures: [] };
+}
+
 export function App() {
   const [sources, setSources] = useState<WorkspaceSource[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -405,6 +414,193 @@ export function App() {
   // unambiguous check.
   const previewGenerationRef = useRef<Map<string, number>>(new Map());
 
+  // Sibling state to `sources[]` (issue 11c): a query references its
+  // source by table id rather than nesting inside `WorkspaceSource` -- one
+  // source can have several queries, and #12's chart tiles will reference a
+  // query by id independently of its source. Declared here, before
+  // `handleOverrideChange`, so that handler's own cross-query refresh sweep
+  // (below) and `handleSourceDelete`'s orphan cleanup can both reference
+  // `updateQueries`/`queryGenerationRef`/`refreshQueryPreview` directly.
+  const [queries, setQueries] = useState<WorkspaceQuery[]>([]);
+  const queriesRef = useRef(queries);
+  const updateQueries = useCallback((updater: (prev: WorkspaceQuery[]) => WorkspaceQuery[]) => {
+    const next = updater(queriesRef.current);
+    queriesRef.current = next;
+    setQueries(next);
+  }, []);
+
+  // Query ids are opaque (`Query.id` is `NonEmptyString`; schema's own doc:
+  // "never embedded in generated or user-authored SQL text") -- a plain
+  // monotonic counter is sufficient. No ABA hazard to guard against the way
+  // `registrationSeqByTableId` protects a REUSED DuckDB table id: a query
+  // id is minted once here and never reused after delete.
+  const queryIdSeqRef = useRef(0);
+  // Per-query stale-result guard for the combined preview+diagnostics
+  // round-trip (same discipline as issue #11b's generation refs, collapsed
+  // to one counter since a query's preview and diagnostics always resolve
+  // together in a single `Promise.all`, not two separately-timed steps
+  // needing independent freshness tracking the way validation/preview did).
+  const queryGenerationRef = useRef<Map<string, number>>(new Map());
+
+  // Shared by both trigger paths a query's preview/diagnostics can refresh
+  // from (issue 11c): the user editing the query itself
+  // (`handleQueryBuilderChange`), and a type-override changing on the
+  // query's OWN source elsewhere (`handleOverrideChange`'s sweep below) --
+  // the latter previously left an existing query's preview silently stale
+  // (still showing the PRIOR override's cast result) until the user
+  // happened to touch that query again, missing the plan's own success
+  // metric ("category<->operator不整合をruntimeで検出し警告、silent failゼロ")
+  // for the "editing this session" scope (live PoC, 2026-07-22, confirmed
+  // via `register-harness.html`-style dry run: a stale `sum` measure kept
+  // showing its pre-override numeric result even after the referenced
+  // column was overridden away from `number`).
+  const refreshQueryPreview = useCallback(
+    async (queryId: string) => {
+      const generation = (queryGenerationRef.current.get(queryId) ?? 0) + 1;
+      queryGenerationRef.current.set(queryId, generation);
+      const isCurrent = () => queryGenerationRef.current.get(queryId) === generation;
+
+      updateQueries((prev) =>
+        prev.map((q) => (q.id === queryId ? { ...q, previewPending: true } : q)),
+      );
+
+      // Read via the refs (same reasoning as `handleOverrideChange`'s own
+      // `sourcesRef` use): both are kept synchronously current by their
+      // respective `update*` functions, unconditionally reflecting the
+      // pending-state commit above by the time this line runs. `builderState`
+      // is read off this SAME lookup (/simplify Simplification finding,
+      // issue 11c), not passed as a separate parameter -- every caller
+      // already commits the exact builderState it wants resolved to
+      // `queriesRef.current` immediately before calling this function, so a
+      // second parameter would be a second source of truth for the same
+      // value, not a genuinely independent input.
+      const query = queriesRef.current.find((q) => q.id === queryId);
+      if (!query) return;
+      const { builderState } = query;
+      const source = sourcesRef.current.find((s) => s.sample.table.id === query.sourceTableId);
+      if (!source) return;
+
+      try {
+        const { layer, handle } = await getDuckDBHandleWithLayer();
+        if (!isCurrent()) return;
+
+        const columnMeta = source.sample.table.columns;
+        const overridesMap = overrideMap(source.typeOverrides);
+        // The self-contained, LIMIT-free form -- mirrors what a persisted
+        // `Query.sql` would hold for this exact `builderState` (Codex review
+        // R1 P0). `previewSql` reuses this string directly (`+ LIMIT`)
+        // rather than a second `buildQueryPreviewSql` call (/simplify
+        // Efficiency finding, issue 11c: that call re-runs the SAME
+        // resolver walk over `builderState`/`columnMeta` a second time to
+        // produce byte-identical SQL up to the LIMIT clause).
+        const sql = layer.datasource.buildQuerySql(
+          query.sourceTableId,
+          builderState,
+          columnMeta,
+          overridesMap,
+        );
+        const previewSql = `${sql} LIMIT 50`;
+        const diagnosticsSql = layer.datasource.buildQueryDiagnosticsSql(
+          query.sourceTableId,
+          builderState,
+          columnMeta,
+          overridesMap,
+        );
+        const [previewResult, diagnosticsResult] = await Promise.all([
+          handle.conn.query(previewSql),
+          handle.conn.query(diagnosticsSql),
+        ]);
+        if (!isCurrent()) return;
+
+        // `rowToPlainObject`, not direct property access (issue #11b's own
+        // `__proto__` lesson): a groupBy/measure column can legally be
+        // named `__proto__`, and this row's keys are REAL column/alias
+        // names, unlike the diagnostics row below (whose keys are always
+        // synthetically prefixed/suffixed, so can never collide with the
+        // bare literal `"__proto__"`).
+        const previewRows = previewResult
+          .toArray()
+          .map((row) =>
+            layer.datasource.rowToPlainObject(row as unknown as Iterable<[string, unknown]>),
+          );
+        // Read from the Arrow result's OWN schema (Codex review R1 P2), not
+        // derived from `previewRows[0]`'s keys -- a real Arrow result
+        // carries field names even with zero rows, so a grouped/filtered
+        // query that legitimately matches nothing still reports its own
+        // group-by/measure-alias output columns, not the source table's.
+        const previewColumns = previewResult.schema.fields.map((field) => field.name);
+
+        // Direct property access (same established pattern as
+        // `handleOverrideChange`'s `validationRow?.uncastable_count`) --
+        // safe here specifically because every key is synthetically
+        // prefixed/suffixed (`filter_<i>_value_invalid`,
+        // `<column>_excluded_count`), so it can never equal the bare
+        // literal `"__proto__"` even if `measure.column` itself is that.
+        const diagnosticsRow = diagnosticsResult.toArray()[0];
+        const totalCount = Number(diagnosticsRow?.total_count ?? 0);
+        const matchedCount = Number(diagnosticsRow?.matched_count ?? 0);
+        const invalidFilterIndices = builderState.filters
+          .map((_, i) => i)
+          .filter((i) => diagnosticsRow?.[`filter_${i}_value_invalid`] === true);
+        // A `Map`, not a column-name-keyed plain object (Codex review R1
+        // P1): `measureExcludedCounts[measure.column] = n` would silently
+        // no-op for a column literally named `__proto__` instead of storing
+        // its count, the same prototype-accessor pitfall this codebase's
+        // `rowToPlainObject` already exists to avoid on the read side.
+        const measureExcludedCounts = new Map<string, number>();
+        for (const measure of builderState.measures) {
+          const key = `${measure.column}_excluded_count`;
+          const value = diagnosticsRow?.[key];
+          if (value !== undefined) measureExcludedCounts.set(measure.column, Number(value));
+        }
+        const diagnostics: QueryDiagnostics = {
+          totalCount,
+          matchedCount,
+          invalidFilterIndices,
+          measureExcludedCounts,
+        };
+
+        updateQueries((prev) =>
+          prev.map((q) =>
+            q.id === queryId
+              ? { ...q, sql, previewRows, previewColumns, diagnostics, previewPending: false }
+              : q,
+          ),
+        );
+      } catch (error) {
+        // `operatorSqlFor`/`aggregateFnFor`'s defensive throws (same class
+        // as `castTargetFor`'s -- an out-of-union value never reachable
+        // through this component's own `<select>`s) must not be folded
+        // into the same "just clear pending" outcome a routine DuckDB-side
+        // failure produces.
+        if (error instanceof RangeError) throw error;
+        // Clears the STALE result rather than leaving it displayed (QA
+        // Phase 8 finding): this previously only cleared `previewPending`,
+        // so a query that threw (e.g. the BOOLEAN/NULL-as-"text" filter bug
+        // this same Phase found and fixed, or any other unexpected DuckDB
+        // error) kept showing its LAST SUCCESSFUL result -- indistinguishable
+        // from "the filter/aggregate genuinely produced this," directly
+        // contradicting this PR's own "silent fail = zero" success metric.
+        if (isCurrent()) {
+          updateQueries((prev) =>
+            prev.map((q) =>
+              q.id === queryId
+                ? {
+                    ...q,
+                    previewRows: null,
+                    previewColumns: [],
+                    diagnostics: null,
+                    previewPending: false,
+                  }
+                : q,
+            ),
+          );
+        }
+      }
+    },
+    [updateQueries],
+  );
+
   const handleOverrideChange = useCallback(
     async (tableId: string, column: string, category: ColumnCategory) => {
       const seq = registrationSeqByTableId.current.get(tableId);
@@ -433,6 +629,23 @@ export function App() {
           };
         }),
       );
+
+      // Re-resolve every EXISTING query on this source against the new
+      // override (issue 11c, live PoC finding, 2026-07-22): without this, a
+      // query's preview/diagnostics kept showing the PRIOR override's cast
+      // result until the user happened to touch that query's own controls
+      // again -- a category<->operator mismatch (e.g. a `sum` measure whose
+      // column was just overridden away from `number`) went undetected
+      // rather than warned, missing this PR's own success metric. Each
+      // query's OWN `builderState` is passed unchanged -- `refreshQueryPreview`
+      // reads the fresh override via `sourcesRef` itself, and the resolver
+      // (`query-sql.ts`) already silently excludes a measure/filter that no
+      // longer fits its column's category (same rule a dangling column
+      // reference gets), so no separate `builderState` sanitization step is
+      // needed here.
+      for (const query of queriesRef.current) {
+        if (query.sourceTableId === tableId) void refreshQueryPreview(query.id);
+      }
 
       const isCurrent = () => validationGenerationRef.current.get(key) === generation;
       const isPreviewCurrent = () =>
@@ -554,9 +767,7 @@ export function App() {
         if (!isPreviewCurrent()) return;
         const source = sourcesRef.current.find((s) => s.sample.table.id === tableId);
         if (!source) return;
-        const overridesMap = new Map(
-          source.typeOverrides.map((entry) => [entry.column, entry.category]),
-        );
+        const overridesMap = overrideMap(source.typeOverrides);
         const columnNames = source.sample.table.columns.map((c) => c.name);
         const { sql, rawAliasFor } = layer.datasource.buildTypedPreviewSql(
           tableId,
@@ -620,7 +831,7 @@ export function App() {
         }
       }
     },
-    [updateSources],
+    [updateSources, refreshQueryPreview],
   );
 
   const handleSourceDelete = useCallback(
@@ -671,9 +882,65 @@ export function App() {
         // map doesn't grow by one entry per distinct table id ever used in
         // a long session (/code-review Efficiency/Simplification, confirmed).
         registrationSeqByTableId.current.delete(tableId);
+        // Deleting a source orphans any query that references it (issue
+        // #11c): `Query.source` would become a dangling FK exactly like
+        // `validateDashboardReferences` already flags for a hand-edited
+        // dashboard.json, so this source's own queries are removed too
+        // rather than left showing a table that no longer exists.
+        const orphanedQueryIds = queriesRef.current
+          .filter((q) => q.sourceTableId === tableId)
+          .map((q) => q.id);
+        if (orphanedQueryIds.length > 0) {
+          updateQueries((prev) => prev.filter((q) => q.sourceTableId !== tableId));
+          for (const queryId of orphanedQueryIds) queryGenerationRef.current.delete(queryId);
+        }
       }
     },
-    [usedIds, updateSources],
+    [usedIds, updateSources, updateQueries],
+  );
+
+  const handleAddQuery = useCallback(
+    (sourceTableId: string) => {
+      const id = `query_${++queryIdSeqRef.current}`;
+      const builderState = emptyBuilderState();
+      updateQueries((prev) => [
+        ...prev,
+        {
+          id,
+          sourceTableId,
+          builderState,
+          sql: "",
+          previewRows: null,
+          previewColumns: [],
+          diagnostics: null,
+          previewPending: false,
+        },
+      ]);
+      // A fresh query's "all empty" builderState still resolves to a real
+      // query (`SELECT * FROM <table>`, shape enumeration R1/G1) -- without
+      // this, a newly added card showed no preview at all until the user
+      // touched some control (Codex review R1 P2), even though the shape
+      // document's own claim is that this state compiles to something
+      // immediately.
+      void refreshQueryPreview(id);
+    },
+    [updateQueries, refreshQueryPreview],
+  );
+
+  const handleQueryDelete = useCallback(
+    (queryId: string) => {
+      updateQueries((prev) => prev.filter((q) => q.id !== queryId));
+      queryGenerationRef.current.delete(queryId);
+    },
+    [updateQueries],
+  );
+
+  const handleQueryBuilderChange = useCallback(
+    (queryId: string, builderState: BuilderState) => {
+      updateQueries((prev) => prev.map((q) => (q.id === queryId ? { ...q, builderState } : q)));
+      void refreshQueryPreview(queryId);
+    },
+    [updateQueries, refreshQueryPreview],
   );
 
   const hasSources = sources.length > 0;
@@ -730,24 +997,42 @@ export function App() {
 
       {sources.map(
         ({ sourceLabel, sample, typeOverrides, validation, previewRows, previewPending }) => (
-          <RegisteredSummary
-            key={sample.table.id}
-            sourceLabel={sourceLabel}
-            sample={sample}
-            typeOverrides={typeOverrides}
-            validation={validation}
-            previewRows={previewRows}
-            previewPending={previewPending}
-            // The SAME stable callback reference passed to every card,
-            // unchanged across renders (/simplify Efficiency finding --
-            // `sources.map(...)` previously allocated a fresh closure per
-            // card on every render, defeating memoization entirely).
-            // `RegisteredSummary` is `memo`-wrapped, so a card whose own
-            // props haven't changed now skips re-rendering when some OTHER
-            // source is added/removed or `announcement` updates.
-            onDelete={handleSourceDelete}
-            onOverrideChange={handleOverrideChange}
-          />
+          <div key={sample.table.id}>
+            <RegisteredSummary
+              sourceLabel={sourceLabel}
+              sample={sample}
+              typeOverrides={typeOverrides}
+              validation={validation}
+              previewRows={previewRows}
+              previewPending={previewPending}
+              // The SAME stable callback reference passed to every card,
+              // unchanged across renders (/simplify Efficiency finding --
+              // `sources.map(...)` previously allocated a fresh closure per
+              // card on every render, defeating memoization entirely).
+              // `RegisteredSummary` is `memo`-wrapped, so a card whose own
+              // props haven't changed now skips re-rendering when some OTHER
+              // source is added/removed or `announcement` updates.
+              onDelete={handleSourceDelete}
+              onOverrideChange={handleOverrideChange}
+              onAddQuery={handleAddQuery}
+            />
+            {/* Sibling to the source card, not nested inside it (issue 11c
+                UX design: a query is a first-class entity #12's chart tiles
+                reference by id, not a sub-feature of its source card). */}
+            {queries
+              .filter((q) => q.sourceTableId === sample.table.id)
+              .map((query) => (
+                <QueryBuilder
+                  key={query.id}
+                  query={query}
+                  sourceLabel={sourceLabel}
+                  columnMeta={sample.table.columns}
+                  typeOverrides={typeOverrides}
+                  onChange={handleQueryBuilderChange}
+                  onDelete={handleQueryDelete}
+                />
+              ))}
+          </div>
         ),
       )}
 

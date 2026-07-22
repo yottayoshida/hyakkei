@@ -123,6 +123,85 @@ const UrlSource = SafeObject({
 export const Source = Type.Union([FileSourceXlsx, FileSourceCsv, FileSourceParquet, UrlSource]);
 export type Source = Static<typeof Source>;
 
+/**
+ * The closed comparison-operator set the light-shaping GUI's filter builder
+ * offers (issue #11c). Like `ColumnType`, this exists so a category value
+ * never reaches the WHERE-clause operator position as free text — that
+ * position is exactly as unescapable as the CAST type position ADR-0011
+ * already established this project cannot make safe with quoting alone.
+ * `is_null`/`is_not_null` need no `value` at all (see `FilterCondition`);
+ * `contains`/`not_contains` compile to `LIKE`/`NOT LIKE` with the value
+ * escaped against SQL wildcards (`packages/core/src/datasource/
+ * query-sql.ts`'s `likePatternLiteral`).
+ */
+export const FilterOperator = Type.Union([
+  Type.Literal("eq"),
+  Type.Literal("ne"),
+  Type.Literal("lt"),
+  Type.Literal("lte"),
+  Type.Literal("gt"),
+  Type.Literal("gte"),
+  Type.Literal("contains"),
+  Type.Literal("not_contains"),
+  Type.Literal("is_null"),
+  Type.Literal("is_not_null"),
+]);
+export type FilterOperator = Static<typeof FilterOperator>;
+
+/** Closed aggregate-function set (sum/count/avg only, per PRD F2) — same closed-position rationale as `FilterOperator`. */
+export const AggregateFn = Type.Union([
+  Type.Literal("sum"),
+  Type.Literal("count"),
+  Type.Literal("avg"),
+]);
+export type AggregateFn = Static<typeof AggregateFn>;
+
+/**
+ * `value` is optional: absent means "this condition is not yet complete,
+ * exclude it from the query" for every operator that needs a value (the
+ * light-shaping GUI's own "an incomplete filter doesn't affect results yet"
+ * behavior) — `is_null`/`is_not_null` never use `value` at all, complete or
+ * not. `value: ""` (empty string) is a DIFFERENT, complete, meaningful
+ * condition ("matches a blank cell") and is never conflated with an absent
+ * value (shape enumeration G4).
+ */
+const FilterCondition = SafeObject({
+  column: NonEmptyString,
+  operator: FilterOperator,
+  value: Type.Optional(Type.String()),
+});
+export type FilterCondition = Static<typeof FilterCondition>;
+
+const Measure = SafeObject({ column: NonEmptyString, aggregate: AggregateFn });
+export type Measure = Static<typeof Measure>;
+
+/**
+ * The light-shaping GUI's structured selection state (issue #11c),
+ * compiled into `Query.sql` by `packages/core/src/datasource/query-sql.ts`.
+ * Persisted structurally (not just the compiled SQL) so a user can reopen
+ * and re-edit their filter/groupBy/measure choices later — an opaque SQL
+ * string alone cannot be safely reverse-parsed back into GUI selections
+ * (independently confirmed necessary by both the UX and security
+ * investigations for this PR).
+ *
+ * All three arrays are required (not `Type.Optional` each) — only the
+ * whole `builderState` object is optional on `Query`. This makes `{}` (all
+ * three missing) Ajv-invalid, distinct from `{filters:[],groupBy:[],
+ * measures:[]}` (all three present but empty, a legitimate "nothing
+ * configured yet" state) — shape enumeration G1.
+ *
+ * `groupBy` is an array of column-name values, never a column-name-keyed
+ * object — same array-shaped, no-JS-object-key-position principle
+ * `TypeOverrideEntry` already established, since a column can legally be
+ * named `__proto__`/`constructor`/`prototype`.
+ */
+const BuilderState = SafeObject({
+  filters: Type.Array(FilterCondition),
+  groupBy: Type.Array(NonEmptyString),
+  measures: Type.Array(Measure),
+});
+export type BuilderState = Static<typeof BuilderState>;
+
 export const Query = SafeObject({
   id: NonEmptyString,
   // `source` is a `Source.id` FK an author's own SQL text also references
@@ -141,6 +220,12 @@ export const Query = SafeObject({
   // text here — schema-level SQL sniffing would be both incomplete and a
   // false sense of security (shape enumeration AA-5).
   sql: NonEmptyString,
+  // Additive (issue #11c). When present, `sql` is its compiled output —
+  // the editor recompiles both together on every builderState edit so they
+  // never drift; a `Query` with no `builderState` is a hand-authored/
+  // pre-#11c query and is read-only from the light-shaping GUI's
+  // perspective (there is nothing to reverse-compile it from).
+  builderState: Type.Optional(BuilderState),
 });
 export type Query = Static<typeof Query>;
 

@@ -750,3 +750,383 @@ describe("dashboard.json — Source.typeOverrides (issue 11b)", () => {
     expect(parseDashboard(doc).ok).toBe(true);
   });
 });
+
+describe("dashboard.json — Query.builderState (issue 11c)", () => {
+  it("BS-1: absent builderState (legacy shape) round-trips as absent -- every pre-#11c fixture in this file has no builderState field and must keep passing untouched", () => {
+    const result = parseDashboard(minimal);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.queries[0]).not.toHaveProperty("builderState");
+  });
+
+  it("BS-2/G1: builderState: {} (all 3 arrays missing) is rejected -- filters/groupBy/measures are required, not each independently Optional", () => {
+    const doc = {
+      ...minimal,
+      queries: [{ ...minimal.queries[0], builderState: {} }],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it("BS-3/G1: builderState with all 3 arrays present-but-empty is accepted -- distinct from BS-2, the 'nothing configured yet' state", () => {
+    const doc = {
+      ...minimal,
+      queries: [
+        { ...minimal.queries[0], builderState: { filters: [], groupBy: [], measures: [] } },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.queries[0]).toMatchObject({
+        builderState: { filters: [], groupBy: [], measures: [] },
+      });
+    }
+  });
+
+  it("BS-4: a valid filter entry (column + operator + value) is accepted", () => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: {
+            filters: [{ column: "amount", operator: "gt", value: "1000" }],
+            groupBy: [],
+            measures: [],
+          },
+        },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.queries[0]).toMatchObject({
+        builderState: { filters: [{ column: "amount", operator: "gt", value: "1000" }] },
+      });
+    }
+  });
+
+  it("BS-5: is_null/is_not_null are accepted with no value field at all", () => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: {
+            filters: [
+              { column: "amount", operator: "is_null" },
+              { column: "amount", operator: "is_not_null" },
+            ],
+            groupBy: [],
+            measures: [],
+          },
+        },
+      ],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+
+  it("BS-6/G4: value: '' (empty string) is accepted and distinct from an absent value", () => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: {
+            filters: [{ column: "amount", operator: "eq", value: "" }],
+            groupBy: [],
+            measures: [],
+          },
+        },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.queries[0]).toMatchObject({
+        builderState: { filters: [{ column: "amount", operator: "eq", value: "" }] },
+      });
+    }
+  });
+
+  it.each([
+    ["eq", "eq"],
+    ["ne", "ne"],
+    ["lt", "lt"],
+    ["lte", "lte"],
+    ["gt", "gt"],
+    ["gte", "gte"],
+    ["contains", "contains"],
+    ["not_contains", "not_contains"],
+    ["is_null", "is_null"],
+    ["is_not_null", "is_not_null"],
+  ])("BS-7: operator %s is a member of the closed union", (_label, operator) => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: {
+            filters: [{ column: "x", operator, value: "y" }],
+            groupBy: [],
+            measures: [],
+          },
+        },
+      ],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+
+  // Same rationale as TO-6/ADV-1/ADV-2: the operator position is exactly as
+  // unescapable as the CAST type position, so Ajv rejecting free text here
+  // is the load-bearing control, not `quoteIdentifier`-style escaping.
+  it.each([
+    ["ADV SQL-injection-shaped string", "eq); DROP TABLE t; --"],
+    ["a raw SQL operator, not one of our 10 literals", "="],
+    ["case mismatch (closed union is case-sensitive)", "EQ"],
+    ["empty string", ""],
+    ["a property shaped like an Object.prototype member", "toString"],
+  ])("BS-8: %s is rejected as a filter operator", (_label, operator) => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: {
+            filters: [{ column: "x", operator, value: "y" }],
+            groupBy: [],
+            measures: [],
+          },
+        },
+      ],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it.each([
+    ["sum", "sum"],
+    ["count", "count"],
+    ["avg", "avg"],
+  ])("BS-9: aggregate %s is a member of the closed union", (_label, aggregate) => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: { filters: [], groupBy: [], measures: [{ column: "amount", aggregate }] },
+        },
+      ],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+
+  it.each([
+    ["ADV SQL-injection-shaped string", "sum); DROP TABLE t; --"],
+    ["a raw SQL function name, not one of our 3 literals", "SUM"],
+    ["min/max are explicitly out of scope for v1", "min"],
+    ["empty string", ""],
+  ])("BS-10: %s is rejected as an aggregate function", (_label, aggregate) => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: { filters: [], groupBy: [], measures: [{ column: "amount", aggregate }] },
+        },
+      ],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it.each([
+    ["F12-analog injection-shaped column name", 'a" ; DROP TABLE t --'],
+    ["F13-analog whitespace/newline/CJK column name", "郵便 番号\n"],
+  ])("BS-11: %s is accepted as a groupBy/filter/measure column value", (_label, column) => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: {
+            filters: [{ column, operator: "is_null" }],
+            groupBy: [column],
+            measures: [{ column, aggregate: "count" }],
+          },
+        },
+      ],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+
+  // TO-12-analog: '__proto__' as a column name VALUE (array element, never
+  // an object key) is safe and accepted -- the whole point of keeping
+  // `groupBy` array-shaped rather than a column-name-keyed Record.
+  it("BS-12/ADV-3-analog: '__proto__' as a column name VALUE (filters/groupBy/measures) is accepted -- never becomes a JS object key", () => {
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: {
+            filters: [{ column: "__proto__", operator: "is_not_null" }],
+            groupBy: ["__proto__"],
+            measures: [{ column: "__proto__", aggregate: "count" }],
+          },
+        },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.queries[0]).toMatchObject({
+        builderState: { groupBy: ["__proto__"] },
+      });
+    }
+  });
+
+  // TO-11-analog: '__proto__' as an entry's OWN property name (not a column
+  // VALUE) is rejected by the SafeObject guard, same as typeOverrides.
+  it("BS-13/ADV-8-analog: '__proto__' as a filter entry's OWN property name is rejected (SafeObject guard)", () => {
+    const withProto = JSON.parse(
+      `{"__proto__": {"polluted": true}, "column": "x", "operator": "eq", "value": "y"}`,
+    );
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: { filters: [withProto], groupBy: [], measures: [] },
+        },
+      ],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  // Codex test-adversarial review finding: BS-13 only exercised a FILTER
+  // entry's own property name -- `Measure` is a second, independent
+  // `SafeObject` and `builderState` itself is a third, neither previously
+  // pinned against the same `__proto__`/`constructor` own-property attack.
+  it("BS-13b: '__proto__' as a measure entry's OWN property name is rejected", () => {
+    const withProto = JSON.parse(
+      `{"__proto__": {"polluted": true}, "column": "x", "aggregate": "count"}`,
+    );
+    const doc = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: { filters: [], groupBy: [], measures: [withProto] },
+        },
+      ],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it("BS-13c: '__proto__' as builderState's OWN property name (alongside filters/groupBy/measures) is rejected", () => {
+    const withProto = JSON.parse(
+      `{"__proto__": {"polluted": true}, "filters": [], "groupBy": [], "measures": []}`,
+    );
+    const doc = {
+      ...minimal,
+      queries: [{ ...minimal.queries[0], builderState: withProto }],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it("BS-13d: 'constructor' as a filter/measure entry's OWN property name is rejected", () => {
+    const filterWithConstructor = JSON.parse(
+      `{"constructor": {"polluted": true}, "column": "x", "operator": "eq", "value": "y"}`,
+    );
+    const measureWithConstructor = JSON.parse(
+      `{"constructor": {"polluted": true}, "column": "x", "aggregate": "count"}`,
+    );
+    expect(
+      parseDashboard({
+        ...minimal,
+        queries: [
+          {
+            ...minimal.queries[0],
+            builderState: { filters: [filterWithConstructor], groupBy: [], measures: [] },
+          },
+        ],
+      }).ok,
+    ).toBe(false);
+    expect(
+      parseDashboard({
+        ...minimal,
+        queries: [
+          {
+            ...minimal.queries[0],
+            builderState: { filters: [], groupBy: [], measures: [measureWithConstructor] },
+          },
+        ],
+      }).ok,
+    ).toBe(false);
+  });
+
+  // TO-8-analog: the explicitly-rejected column-name-keyed object shape.
+  it("BS-14: builderState.filters/groupBy/measures as objects (not arrays) are rejected", () => {
+    const filtersAsObject = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: { filters: { amount: "gt" }, groupBy: [], measures: [] },
+        },
+      ],
+    };
+    expect(parseDashboard(filtersAsObject).ok).toBe(false);
+
+    const groupByAsObject = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: { filters: [], groupBy: { amount: true }, measures: [] },
+        },
+      ],
+    };
+    expect(parseDashboard(groupByAsObject).ok).toBe(false);
+
+    const measuresAsObject = {
+      ...minimal,
+      queries: [
+        {
+          ...minimal.queries[0],
+          builderState: { filters: [], groupBy: [], measures: { amount: "sum" } },
+        },
+      ],
+    };
+    expect(parseDashboard(measuresAsObject).ok).toBe(false);
+  });
+
+  it.each([
+    ["filter entry missing operator", { filters: [{ column: "x" }], groupBy: [], measures: [] }],
+    ["filter entry missing column", { filters: [{ operator: "eq" }], groupBy: [], measures: [] }],
+    ["measure entry missing aggregate", { filters: [], groupBy: [], measures: [{ column: "x" }] }],
+    [
+      "measure entry missing column",
+      { filters: [], groupBy: [], measures: [{ aggregate: "sum" }] },
+    ],
+    ["groupBy entry is not a string", { filters: [], groupBy: [123], measures: [] }],
+  ])("BS-15: %s is rejected", (_label, builderState) => {
+    const doc = { ...minimal, queries: [{ ...minimal.queries[0], builderState }] };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it("BS-16: a large builderState (many filters/measures) is schema-valid -- no length cap at the schema layer (mirrors TO-14/ADV-6)", () => {
+    const filters = Array.from({ length: 500 }, (_, i) => ({
+      column: `col_${i}`,
+      operator: "eq" as const,
+      value: "x",
+    }));
+    const measures = Array.from({ length: 500 }, (_, i) => ({
+      column: `col_${i}`,
+      aggregate: "count" as const,
+    }));
+    const doc = {
+      ...minimal,
+      queries: [{ ...minimal.queries[0], builderState: { filters, groupBy: [], measures } }],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+});

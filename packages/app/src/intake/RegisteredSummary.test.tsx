@@ -54,6 +54,7 @@ function baseProps(overrides: Partial<RegisteredSummaryProps> = {}): RegisteredS
     previewPending: false,
     onDelete: vi.fn(),
     onOverrideChange: vi.fn(),
+    onAddQuery: vi.fn(),
     ...overrides,
   };
 }
@@ -106,6 +107,19 @@ describe("RegisteredSummary", () => {
       button.click();
     });
     expect(onDelete).toHaveBeenCalledWith("t1", "住所一覧.csv");
+  });
+
+  it("calls onAddQuery with the source's tableId when '集計' button is clicked (issue 11c)", async () => {
+    const onAddQuery = vi.fn();
+    const { host } = await renderInJsdom(<RegisteredSummary {...baseProps({ onAddQuery })} />);
+    const button = host.querySelector(
+      'button[aria-label="「住所一覧.csv」を集計"]',
+    ) as HTMLButtonElement;
+    expect(button).not.toBeNull();
+    await act(async () => {
+      button.click();
+    });
+    expect(onAddQuery).toHaveBeenCalledWith("t1");
   });
 
   it("renders a warning message with the uncastable count when a column's validation state is 'warning' (V-001/V-003)", async () => {

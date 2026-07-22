@@ -150,6 +150,122 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
     );
   });
 
+  it("an arbitrary unknown field nested in a query is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(
+        unknownKey(new Set(["id", "source", "sql", "builderState"])),
+        unknownValue,
+        (key, value) => {
+          const base = baseDashboard();
+          const doc = { ...base, queries: [{ ...base.queries[0], [key]: value }] };
+          const result = parseDashboard(doc);
+          expect(result.ok).toBe(true);
+          if (result.ok)
+            expect((result.value.queries[0] as Record<string, unknown>)[key]).toEqual(value);
+        },
+      ),
+    );
+  });
+
+  // issue 11c: same additive guarantee one level down inside a
+  // `builderState.filters`/`measures` entry, mirroring the existing
+  // typeOverrides-entry property above.
+  it("an arbitrary unknown field nested in a builderState filter entry is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(
+        unknownKey(new Set(["column", "operator", "value"])),
+        unknownValue,
+        (key, value) => {
+          const base = baseDashboard();
+          const doc = {
+            ...base,
+            queries: [
+              {
+                ...base.queries[0],
+                builderState: {
+                  filters: [{ column: "x", operator: "eq", value: "y", [key]: value }],
+                  groupBy: [],
+                  measures: [],
+                },
+              },
+            ],
+          };
+          const result = parseDashboard(doc);
+          expect(result.ok).toBe(true);
+          if (result.ok) {
+            const entry = (
+              result.value.queries[0] as { builderState?: { filters: Record<string, unknown>[] } }
+            ).builderState?.filters[0];
+            expect(entry?.[key]).toEqual(value);
+          }
+        },
+      ),
+    );
+  });
+
+  it("an arbitrary unknown field nested in a builderState measure entry is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(unknownKey(new Set(["column", "aggregate"])), unknownValue, (key, value) => {
+        const base = baseDashboard();
+        const doc = {
+          ...base,
+          queries: [
+            {
+              ...base.queries[0],
+              builderState: {
+                filters: [],
+                groupBy: [],
+                measures: [{ column: "x", aggregate: "count", [key]: value }],
+              },
+            },
+          ],
+        };
+        const result = parseDashboard(doc);
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          const entry = (
+            result.value.queries[0] as { builderState?: { measures: Record<string, unknown>[] } }
+          ).builderState?.measures[0];
+          expect(entry?.[key]).toEqual(value);
+        }
+      }),
+    );
+  });
+
+  // Codex test-adversarial review finding: the two tests above only cover an
+  // unknown field nested INSIDE a filter/measure entry -- `builderState`
+  // itself is a THIRD, independent `SafeObject` (sibling to `filters`/
+  // `groupBy`/`measures`, not one of their entries), previously unpinned for
+  // the same additive guarantee.
+  it("an arbitrary unknown field on builderState itself (alongside filters/groupBy/measures) is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(
+        unknownKey(new Set(["filters", "groupBy", "measures"])),
+        unknownValue,
+        (key, value) => {
+          const base = baseDashboard();
+          const doc = {
+            ...base,
+            queries: [
+              {
+                ...base.queries[0],
+                builderState: { filters: [], groupBy: [], measures: [], [key]: value },
+              },
+            ],
+          };
+          const result = parseDashboard(doc);
+          expect(result.ok).toBe(true);
+          if (result.ok) {
+            const builderState = (
+              result.value.queries[0] as { builderState?: Record<string, unknown> }
+            ).builderState;
+            expect(builderState?.[key]).toEqual(value);
+          }
+        },
+      ),
+    );
+  });
+
   it("an arbitrary unknown field nested in a chart is preserved after a successful parse", () => {
     fc.assert(
       fc.property(

@@ -21,6 +21,7 @@ import {
   App,
   DashboardErrorBoundary,
   DashboardPreview,
+  emptyBuilderState,
   mergeWorkspaceSource,
   upsertOverride,
 } from "./App.js";
@@ -322,5 +323,23 @@ describe("upsertOverride", () => {
     const prev = [{ column: "amount", category: "number" as const }];
     upsertOverride(prev, "amount", "text");
     expect(prev).toEqual([{ column: "amount", category: "number" }]);
+  });
+});
+
+// issue 11c, shape enumeration G1: `{}` (all three arrays missing) is
+// Ajv-invalid; the three-empty-array shape below is the one legal "nothing
+// configured yet" state `Query.builderState` accepts.
+describe("emptyBuilderState", () => {
+  it("returns all three arrays present and empty", () => {
+    expect(emptyBuilderState()).toEqual({ filters: [], groupBy: [], measures: [] });
+  });
+
+  it("returns a fresh object each call (no shared-reference mutation across queries)", () => {
+    const a = emptyBuilderState();
+    const b = emptyBuilderState();
+    expect(a).not.toBe(b);
+    expect(a.filters).not.toBe(b.filters);
+    expect(a.groupBy).not.toBe(b.groupBy);
+    expect(a.measures).not.toBe(b.measures);
   });
 });

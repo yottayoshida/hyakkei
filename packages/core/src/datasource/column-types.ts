@@ -38,8 +38,14 @@ export const CAST_TARGET: Record<ColumnCategory, string> = {
  * check) additionally forecloses prototype-chain lookups (`"toString"`,
  * `"constructor"`, etc. all exist on `Object.prototype` and would otherwise
  * resolve to a function reference, not `undefined`, defeating this guard).
+ *
+ * Exported (issue 11c): `query-sql.ts`'s filter/aggregate SQL resolver
+ * reuses this exact function to apply the same TRY_CAST discipline at
+ * WHERE/GROUP BY/aggregate-argument positions for an overridden column —
+ * ADR-0011's "Builder responsibility split" explicitly named this as the
+ * one piece of CAST logic this PR was meant to reuse.
  */
-function castTargetFor(category: ColumnCategory): string {
+export function castTargetFor(category: ColumnCategory): string {
   if (!Object.hasOwn(CAST_TARGET, category)) {
     throw new RangeError(`unknown column category: ${JSON.stringify(category)}`);
   }
@@ -153,8 +159,15 @@ export type TypedPreviewResult = {
  * real column could legally be named exactly that. Generated against the
  * full set of real column names AND every alias already handed out in this
  * call, extending the candidate until it is provably unique among both.
+ *
+ * Exported (issue 11c): `query-sql.ts`'s measure-alias generation reuses
+ * this same collision-avoidance algorithm — a real e2e run against actual
+ * DuckDB-WASM confirmed an alias colliding with a real/groupBy column name
+ * doesn't just silently drop a value, it corrupts the result row (a raw
+ * typed-array fragment leaks through where a plain number was expected),
+ * so this is not optional hardening there either.
  */
-function uniqueRawAlias(candidate: string, taken: ReadonlySet<string>): string {
+export function uniqueRawAlias(candidate: string, taken: ReadonlySet<string>): string {
   let alias = candidate;
   while (taken.has(alias)) alias += "_";
   return alias;
