@@ -12,6 +12,40 @@ import {
 } from "./common.js";
 
 /**
+ * The 3 semantic categories a column-type override (issue #11b) can assign,
+ * mirrored exactly from `@hyakkei/core/datasource`'s `ColumnCategory` (not
+ * imported — `packages/schema` has no runtime dependency on
+ * `packages/core`, and this union's whole point is to be the one place a
+ * category value is trusted as a closed enum before it ever reaches a
+ * generated `CAST` target-type position; see that package's `column-types.ts`
+ * for the corresponding `CAST_TARGET` lookup). A category value outside this
+ * union (a raw DuckDB type name, a SQL fragment, anything free-text) is
+ * rejected by Ajv before any SQL is built — the load-bearing control, not
+ * `quoteIdentifier`-style escaping, which cannot make a *type* position safe.
+ */
+export const ColumnType = Type.Union([
+  Type.Literal("text"),
+  Type.Literal("number"),
+  Type.Literal("date"),
+]);
+export type ColumnType = Static<typeof ColumnType>;
+
+/**
+ * Delta-only (issue #11b): a source's `typeOverrides` lists only the columns
+ * a user has explicitly overridden, not every detected column — detection
+ * itself is a runtime computation (re-derived from the live registered
+ * table each session), not something this document persists, so it cannot
+ * go stale relative to data the user later swaps in. An array, not a
+ * column-name-keyed object/`SafeRecord`: column names are data (can
+ * legally be `__proto__`/`constructor`/whitespace/CJK), and keeping them out
+ * of JS-object-key position removes the prototype-pollution surface a
+ * keyed form would otherwise need a property-name guard for. Duplicate
+ * `column` entries are schema-valid (arrays permit them); the runtime
+ * resolves ambiguity as last-wins and surfaces an advisory (ADR-0011).
+ */
+const TypeOverrideEntry = SafeObject({ column: NonEmptyString, category: ColumnType });
+
+/**
  * Two discriminants: `kind` (file | url), and per kind, `format` — and per
  * *format*, the `ref` shape differs too (shape enumeration DA-7: xlsx takes an
  * optional sheet name, csv takes an optional encoding, parquet takes neither).
@@ -30,6 +64,12 @@ import {
  * excluded from v0.1 — its `ref` shape isn't designed yet, and reserving an
  * enum member the editor can't act on buys nothing now. Adding it later is a
  * standard additive change, not a special case.
+ *
+ * `typeOverrides` (issue #11b) sits at this top level, a sibling of `ref`,
+ * not nested inside it: it is format-independent shaping applied after
+ * registration, not part of any one format's own ingestion parameters —
+ * every `Source` variant (including `UrlSource` below) produces a queryable
+ * table, so all of them can carry it the same way.
  */
 function fileSource<Format extends string, Ref extends TProperties>(
   format: Format,
@@ -40,6 +80,7 @@ function fileSource<Format extends string, Ref extends TProperties>(
     kind: Type.Literal("file"),
     format: Type.Literal(format),
     ref: SafeObject(refProperties),
+    typeOverrides: Type.Optional(Type.Array(TypeOverrideEntry)),
   });
 }
 
@@ -76,6 +117,7 @@ const UrlSource = SafeObject({
     // first principles at the network chokepoint (Codex review, PR-A1).
     url: Type.String({ format: "uri", pattern: "^https://" }),
   }),
+  typeOverrides: Type.Optional(Type.Array(TypeOverrideEntry)),
 });
 
 export const Source = Type.Union([FileSourceXlsx, FileSourceCsv, FileSourceParquet, UrlSource]);

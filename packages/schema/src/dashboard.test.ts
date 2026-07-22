@@ -508,3 +508,245 @@ describe("dashboard.json — adversarial shapes rejected", () => {
     }
   });
 });
+
+describe("dashboard.json — Source.typeOverrides (issue 11b)", () => {
+  it("TO-1: absent typeOverrides (legacy shape) round-trips as absent -- every pre-#11b fixture in this file has no typeOverrides field and must keep passing untouched", () => {
+    const result = parseDashboard(minimal);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.sources[0]).not.toHaveProperty("typeOverrides");
+  });
+
+  it("TO-2: an empty typeOverrides array is accepted and round-trips as an empty array (distinct from absent)", () => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], typeOverrides: [] }],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.sources[0]).toMatchObject({ typeOverrides: [] });
+  });
+
+  it("TO-3: a valid override entry (column + one of the 3 closed categories) is accepted", () => {
+    const doc = {
+      ...minimal,
+      sources: [
+        { ...minimal.sources[0], typeOverrides: [{ column: "amount", category: "number" }] },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.sources[0]).toMatchObject({
+        typeOverrides: [{ column: "amount", category: "number" }],
+      });
+    }
+  });
+
+  // Codex review R1 (P1): TO-3 only exercises "amount" -- this would still
+  // pass even if `column` were accidentally tightened from `NonEmptyString`
+  // to `SqlIdentifier` (dashboard.ts), silently rejecting the exact
+  // injection-shaped/CJK/whitespace column names F12/F13 already document
+  // as legitimate data. Proves `column` stays unrestricted independent of
+  // that accidental-tightening risk.
+  it.each([
+    ["F12 injection-shaped column name", 'a" ; DROP TABLE t --'],
+    ["F13 whitespace/newline/CJK column name", "郵便 番号\n"],
+  ])("TO-3b: %s is accepted as a typeOverrides.column value", (_label, column) => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], typeOverrides: [{ column, category: "text" }] }],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.sources[0]).toMatchObject({
+        typeOverrides: [{ column, category: "text" }],
+      });
+    }
+  });
+
+  it("TO-4: typeOverrides is also accepted on a url-kind Source (every Source variant produces a queryable table)", () => {
+    // Codex review (Phase 6-B): found by kind, not by array index --
+    // `full.sources[2]` would silently start testing a different (file)
+    // source variant if this fixture's array order ever changed, and the
+    // assertion below would still pass without ever exercising url-kind at
+    // all. Asserting the found fixture's `kind` first makes that failure
+    // mode loud instead of silent.
+    const urlSource = full.sources.find((s) => s.kind === "url");
+    expect(urlSource?.kind).toBe("url");
+    const doc = {
+      ...full,
+      sources: [{ ...urlSource, typeOverrides: [{ column: "amount", category: "date" }] }],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+
+  it.each([
+    ["text", "text"],
+    ["number", "number"],
+    ["date", "date"],
+  ])("TO-5: category %s is a member of the closed union", (_label, category) => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], typeOverrides: [{ column: "x", category }] }],
+    };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+
+  // ADV-1/ADV-2/SEC-1/SEC-5: the whole point of `category` being a closed
+  // union rather than a free string is that neither a raw DuckDB type name
+  // nor an injection payload can ever reach the CAST target-type position
+  // this value is later used to build (`@hyakkei/core`'s `CAST_TARGET`
+  // lookup) -- Ajv must reject all of these before any SQL is ever built.
+  it.each([
+    ["ADV-1 SQL-injection-shaped string", "INTEGER); DROP TABLE t; --"],
+    ["ADV-2a a real DuckDB type name, not one of our 3 categories", "double"],
+    ["ADV-2b another real DuckDB type name", "varchar"],
+    ["case mismatch (closed union is case-sensitive)", "Number"],
+    ["empty string", ""],
+    ["unrelated known literal from elsewhere in this schema", "guidebook-blue"],
+  ])("TO-6: %s is rejected as a typeOverrides category", (_label, category) => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], typeOverrides: [{ column: "x", category }] }],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it.each([
+    ["ADV-10a category as a number", 123],
+    ["ADV-10b category as null", null],
+    ["ADV-10c category as an array", ["number"]],
+  ])("TO-7: %s (non-string category) is rejected", (_label, category) => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], typeOverrides: [{ column: "x", category }] }],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it("TO-8/ADV-4: typeOverrides as an object (column-name-keyed Record) rather than an array is rejected -- this is the explicitly-rejected alternative design (plan §技術選定)", () => {
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], typeOverrides: { amount: "number" } }],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it("TO-9/ADV-11: typeOverrides: null is rejected (Optional means absent-or-array, not null)", () => {
+    const doc = { ...minimal, sources: [{ ...minimal.sources[0], typeOverrides: null }] };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it.each([
+    ["TO-10/F5 entry is a bare string", ["number"]],
+    ["TO-10/F5 entry is null", [null]],
+    ["TO-10/F6a entry missing category", [{ column: "x" }]],
+    ["TO-10/F6b entry missing column", [{ category: "number" }]],
+    ["TO-10/F7 entry has an empty column string", [{ column: "", category: "number" }]],
+  ])("%s is rejected", (_label, typeOverrides) => {
+    const doc = { ...minimal, sources: [{ ...minimal.sources[0], typeOverrides }] };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  it("TO-11/ADV-8: '__proto__' as an entry's OWN property name is rejected (SafeObject guard, AA-12 analog)", () => {
+    // `JSON.parse`, not an object literal (AA-12's own established pattern,
+    // above): writing `{ __proto__: x }` directly in a literal is special-
+    // cased by the JS spec to set the prototype, never creating an own
+    // property named "__proto__" at all -- which would make this test
+    // accidentally assert nothing. `JSON.parse` (and the object spread
+    // used to merge it below) both go through `[[DefineOwnProperty]]`,
+    // which does create a genuine own "__proto__" property -- the same
+    // attack shape a real hand-edited/untrusted dashboard.json would take.
+    const withProto = JSON.parse(
+      `{"__proto__": {"polluted": true}, "column": "x", "category": "number"}`,
+    );
+    const doc = {
+      ...minimal,
+      sources: [{ ...minimal.sources[0], typeOverrides: [withProto] }],
+    };
+    expect(parseDashboard(doc).ok).toBe(false);
+  });
+
+  // ADV-3 (mirrors SI-A5): unlike a property NAME, `__proto__` as a plain
+  // string VALUE in an array is never assigned as a JS object key, so there
+  // is no pollution surface -- the array shape (not a column-name-keyed
+  // Record) is exactly what makes this safe to accept.
+  it("TO-12/ADV-3: '__proto__' as a column name VALUE is accepted -- the array shape means it never becomes a JS object key", () => {
+    const doc = {
+      ...minimal,
+      sources: [
+        { ...minimal.sources[0], typeOverrides: [{ column: "__proto__", category: "text" }] },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.sources[0]).toMatchObject({
+        typeOverrides: [{ column: "__proto__", category: "text" }],
+      });
+    }
+  });
+
+  // F8/ADV-5: schema-valid (arrays permit duplicates); runtime resolves
+  // ambiguity as last-wins with an advisory (ADR-0011, SEC-10) -- schema
+  // itself does not need to (and structurally cannot, without becoming the
+  // rejected Record-keyed shape) prevent this. `validateDashboardReferences`
+  // (not schema) is what surfaces the advisory (Codex review R1 P2:
+  // originally documented but not implemented).
+  it("TO-13/ADV-5: duplicate column entries in typeOverrides are schema-valid, and flagged by validateDashboardReferences as an advisory duplicate", () => {
+    const doc = {
+      ...minimal,
+      sources: [
+        {
+          ...minimal.sources[0],
+          typeOverrides: [
+            { column: "amount", category: "number" },
+            { column: "amount", category: "text" },
+          ],
+        },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateDashboardReferences(result.value);
+      expect(issues.some((i) => i.kind === "duplicate" && i.message.includes("amount"))).toBe(true);
+    }
+  });
+
+  it("TO-13b: no duplicate advisory when every override names a distinct column", () => {
+    const doc = {
+      ...minimal,
+      sources: [
+        {
+          ...minimal.sources[0],
+          typeOverrides: [
+            { column: "amount", category: "number" },
+            { column: "date", category: "date" },
+          ],
+        },
+      ],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const issues = validateDashboardReferences(result.value);
+      expect(issues.some((i) => i.kind === "duplicate")).toBe(false);
+    }
+  });
+
+  // ADV-6: schema itself never bounds array length -- SEC-6's DoS mitigation
+  // (on-change, per-column firing, never a bulk auto-fire) lives at the
+  // runtime layer, not here.
+  it("TO-14/ADV-6: a large typeOverrides array is schema-valid (no length cap at the schema layer)", () => {
+    // 5,000 entries, matching the shape enumeration's own ADV-6 size
+    // exactly (serialized-soaring-map-pr1-shapes.md), not a smaller stand-in.
+    const typeOverrides = Array.from({ length: 5000 }, (_, i) => ({
+      column: `col_${i}`,
+      category: "number",
+    }));
+    const doc = { ...minimal, sources: [{ ...minimal.sources[0], typeOverrides }] };
+    expect(parseDashboard(doc).ok).toBe(true);
+  });
+});

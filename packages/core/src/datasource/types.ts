@@ -1,5 +1,6 @@
 import type { AsyncDuckDB, AsyncDuckDBConnection } from "@duckdb/duckdb-wasm";
 import type { Source } from "@hyakkei/schema";
+import type { ColumnCategory } from "./column-types.js";
 
 /**
  * The DuckDB handle a `DataSource` needs to register a table. Provided by
@@ -40,7 +41,15 @@ export interface RegisterContext {
   egress: EgressPolicy;
 }
 
-export type ColumnMeta = { name: string; type: string };
+/**
+ * `type` is apache-arrow's own `DataType.toString()` display string (e.g.
+ * `Int64`, `Date32<DAY>`) — display-only, never branched on (see
+ * `column-types.ts`'s own doc comment on why). `category` (issue 11b) is
+ * the derived text/number/date/other bucket the editor's type-override UI
+ * actually acts on, computed once at registration time by
+ * `columnMetaFromArrowTable` so every caller sees the same classification.
+ */
+export type ColumnMeta = { name: string; type: string; category: ColumnCategory | "other" };
 
 export type RegisteredTable = {
   id: string;

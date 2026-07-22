@@ -6,12 +6,24 @@
 // (#11b/#11c/#12-16); this shell owns onboarding->workspace transition,
 // accumulated `sources[]`, and the sample dashboard preview.
 import { mount, normalizeBaked, unmount } from "@hyakkei/core/renderer";
+// `import type` only (issue #54/#11a bundle isolation): a value import from
+// `@hyakkei/core/datasource` would statically pull duckdb/exceljs/iconv into
+// this entry chunk. Every runtime call to a column-types builder goes
+// through `layer.datasource.*` (the lazy `loadDataLayer()` boundary) instead
+// — see `handleOverrideChange` below.
+import type { ColumnCategory } from "@hyakkei/core/datasource";
 import type { BakedDashboard } from "@hyakkei/schema";
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { getDuckDBHandleWithLayer } from "./data-layer.js";
 import { IntakeApp } from "./intake/IntakeApp.js";
 import { RegisteredSummary } from "./intake/RegisteredSummary.js";
-import type { IntakeSample } from "./intake/types.js";
+import type {
+  ColumnOverride,
+  ColumnValidationAdvisory,
+  ColumnValidationState,
+  IntakeSample,
+  PreviewRow,
+} from "./intake/types.js";
 
 /**
  * Last line of defense around `DashboardPreview`'s `mount()` call (issue
@@ -137,8 +149,37 @@ const SAMPLE_DASHBOARD: BakedDashboard = {
  * user actually typed/dropped is tracked separately here, alongside the
  * sample, since `IntakeApp`'s `onComplete` callback hands both over
  * distinctly.
+ *
+ * `typeOverrides` (issue #11b) is kept in the exact array shape
+ * `Source.typeOverrides` persists (plan: runtime/schema shape sync) so a
+ * future save path (F7) can project this field verbatim, no conversion
+ * layer to keep in sync separately. `validation`/`previewRows`/
+ * `previewPending` are transient, session-only UI state -- never part of
+ * what would be persisted, recomputed from `typeOverrides` + the live
+ * table whenever needed.
+ *
+ * `previewPending` (QA finding, 2026-07-22, via a live DuckDB-WASM run):
+ * source-scoped, not column-scoped, and deliberately spans a WIDER window
+ * than any single column's own `"pending"` validation status --
+ * true from the moment ANY override on this source changes, false only
+ * once the resulting whole-row preview refresh actually commits (or is
+ * skipped/abandoned). Exists because validation and preview resolve at
+ * DIFFERENT times (`handleOverrideChange` commits the validation status
+ * first, then separately awaits and commits the preview) -- without this,
+ * a stale `castFailed` marker from the PRIOR override could flash back
+ * with the NEW category's label for the one query round-trip between
+ * those two commits, since the column's own validation status has already
+ * left `"pending"` by then but its displayed `previewRows` has not yet
+ * caught up.
  */
-type WorkspaceSource = { sourceLabel: string; sample: IntakeSample };
+type WorkspaceSource = {
+  sourceLabel: string;
+  sample: IntakeSample;
+  typeOverrides: ColumnOverride[];
+  validation: Map<string, ColumnValidationState>;
+  previewRows: PreviewRow[] | null;
+  previewPending: boolean;
+};
 
 /**
  * Pure and exported so the one correctness property review couldn't verify
@@ -162,7 +203,36 @@ export function mergeWorkspaceSource(
 ): WorkspaceSource[] {
   return prev.some((existing) => existing.sample.table.id === sample.table.id)
     ? prev
-    : [...prev, { sourceLabel, sample }];
+    : [
+        ...prev,
+        {
+          sourceLabel,
+          sample,
+          typeOverrides: [],
+          validation: new Map(),
+          previewRows: null,
+          previewPending: false,
+        },
+      ];
+}
+
+/**
+ * column→category, replacing an existing entry for the same column
+ * (last-wins, ADR-0011) rather than appending a duplicate. Exported for the
+ * same reason `mergeWorkspaceSource` is (issue #11a precedent): the one
+ * correctness property worth pinning directly -- a UI-driven override
+ * change never accumulates duplicate entries for the same column -- isn't
+ * otherwise reachable through `App()`'s rendered behavior without
+ * reproducing a real `handleOverrideChange` call through React.
+ */
+export function upsertOverride(
+  overrides: ColumnOverride[],
+  column: string,
+  category: ColumnCategory,
+): ColumnOverride[] {
+  const next = overrides.filter((entry) => entry.column !== column);
+  next.push({ column, category });
+  return next;
 }
 
 export function App() {
@@ -250,13 +320,308 @@ export function App() {
     wasPanelOpenRef.current = panelOpen;
   }, [panelOpen]);
 
-  const handleSourceComplete = useCallback((sourceLabel: string, sample: IntakeSample) => {
-    setSources((prev) => mergeWorkspaceSource(prev, sourceLabel, sample));
-    setAnnouncement(
-      `「${sourceLabel}」を${sample.table.rowCount.toLocaleString("ja-JP")}行取り込みました。`,
-    );
-    setPanelOpen(false);
+  // A monotonic "which registration instance is this" tag (issue #11b,
+  // Codex review R1 P1 -- ABA hazard): `identifier.ts` can reuse the exact
+  // same table id after a delete + re-register of an identically-named
+  // file. Without this, an in-flight validation/preview query from the
+  // OLD (now-deleted) registration could resolve after the NEW
+  // registration's own first override call happens to reset a shared
+  // per-(tableId, column) counter back to the same value the old query
+  // captured, making a stale result look "current" again. Assigning a
+  // fresh, never-reused sequence number per registration and folding it
+  // into every generation key below closes this regardless of what any
+  // individual counter's value happens to be.
+  const registrationSeqRef = useRef(0);
+  const registrationSeqByTableId = useRef<Map<string, number>>(new Map());
+
+  // The authoritative "current sources" value for `handleOverrideChange`'s
+  // async continuation to read after its own `await`s (a DuckDB round-trip
+  // is many renders later) without adding `sources` to that callback's
+  // dependency array -- which would recreate it on every add/remove and
+  // defeat `RegisteredSummary`'s memo (the same efficiency concern
+  // `onDelete`/`handleSourceDelete` already resolved this way is equally
+  // real here).
+  //
+  // Three approaches were tried and rejected before this one, each caught
+  // by actual testing or review rather than assumed correct from reasoning
+  // alone:
+  // 1. A `setSources` "peek" (assign to an outer `let` from inside the
+  //    updater, then read that variable once the call returns) -- broken
+  //    by e2e: reads a stale snapshot.
+  // 2. This ref, kept in sync via `useEffect` -- Codex review (R2) flagged
+  //    that a passive effect is not *guaranteed* to run before an async
+  //    continuation resumes.
+  // 3. Mutating the ref from INSIDE a `setSources` functional updater --
+  //    Codex review (R3) flagged that React does not guarantee the
+  //    updater function itself runs synchronously at the call site either
+  //    (only on a conditional "eager state" fast path); it can be deferred
+  //    to the actual render pass, same class of problem as #2 one level
+  //    down.
+  //
+  // `updateSources` (below) sidesteps the question entirely rather than
+  // finding a 4th place to hope React runs something synchronously: it
+  // computes `next` from `sourcesRef.current` (this ref is the single
+  // source of truth this component maintains for itself) in a PLAIN,
+  // ordinary JS statement -- no React scheduling involved at all -- then
+  // passes the already-computed VALUE to `setSources` (not a function),
+  // which needs no updater and has no timing ambiguity to have an opinion
+  // about, only "eventually re-render with this value."
+  const sourcesRef = useRef(sources);
+
+  const updateSources = useCallback((updater: (prev: WorkspaceSource[]) => WorkspaceSource[]) => {
+    const next = updater(sourcesRef.current);
+    sourcesRef.current = next;
+    setSources(next);
   }, []);
+
+  const handleSourceComplete = useCallback(
+    (sourceLabel: string, sample: IntakeSample) => {
+      registrationSeqByTableId.current.set(sample.table.id, ++registrationSeqRef.current);
+      updateSources((prev) => mergeWorkspaceSource(prev, sourceLabel, sample));
+      setAnnouncement(
+        `「${sourceLabel}」を${sample.table.rowCount.toLocaleString("ja-JP")}行取り込みました。`,
+      );
+      setPanelOpen(false);
+    },
+    [updateSources],
+  );
+
+  // Per-(tableId, registrationSeq, column) stale-result guard for override
+  // VALIDATION queries (Codex review: rapid override switching can
+  // otherwise let an earlier query's result overwrite a later one's), same
+  // discipline as `IntakeApp.tsx`'s own `generationRef` -- a `Map`, not a
+  // plain `{}` keyed by a data-derived string (column names may be
+  // `__proto__` etc., `types.ts`'s own "never key a plain object by
+  // spec.id" note applies equally to column names).
+  const validationGenerationRef = useRef<Map<string, number>>(new Map());
+  // Per-(tableId, registrationSeq) stale-result guard for the PREVIEW query
+  // specifically (Codex review R1 P1): preview re-selects the WHOLE row
+  // using every currently-active override, so its freshness cannot be
+  // tracked by a single column's own generation counter -- two different
+  // columns' override changes each kick off their own preview refresh, and
+  // whichever one is issued LAST is not necessarily the one that resolves
+  // last. A counter scoped to the source (not the column) makes "is this
+  // preview result still the most recently requested one" a single,
+  // unambiguous check.
+  const previewGenerationRef = useRef<Map<string, number>>(new Map());
+
+  const handleOverrideChange = useCallback(
+    async (tableId: string, column: string, category: ColumnCategory) => {
+      const seq = registrationSeqByTableId.current.get(tableId);
+      // A literal space safely separates the 3 parts of this key even
+      // though `column` is unrestricted data (may itself contain spaces):
+      // `tableId` is always `Source.id` (schema's `SqlIdentifier`, no space
+      // is a valid character in that pattern) and `seq` is always a plain
+      // integer, so the first two spaces are unambiguous boundaries.
+      const key = `${tableId} ${seq} ${column}`;
+      const previewKey = `${tableId} ${seq}`;
+      const generation = (validationGenerationRef.current.get(key) ?? 0) + 1;
+      validationGenerationRef.current.set(key, generation);
+      const previewGeneration = (previewGenerationRef.current.get(previewKey) ?? 0) + 1;
+      previewGenerationRef.current.set(previewKey, previewGeneration);
+
+      updateSources((prev) =>
+        prev.map((source) => {
+          if (source.sample.table.id !== tableId) return source;
+          const nextValidation = new Map(source.validation);
+          nextValidation.set(column, { status: "pending" });
+          return {
+            ...source,
+            typeOverrides: upsertOverride(source.typeOverrides, column, category),
+            validation: nextValidation,
+            previewPending: true,
+          };
+        }),
+      );
+
+      const isCurrent = () => validationGenerationRef.current.get(key) === generation;
+      const isPreviewCurrent = () =>
+        previewGenerationRef.current.get(previewKey) === previewGeneration;
+
+      // Validation and preview are two INDEPENDENT failure domains
+      // (/code-review Phase 6-C: CONFIRMED by 3 independent finder angles).
+      // A single try/catch here previously let a preview-refresh-only
+      // failure silently overwrite a validation outcome the user had
+      // already seen -- e.g. a correct "1件変換不可" warning, computed and
+      // committed successfully, replaced by a blanket "failed" purely
+      // because the SEPARATE preview re-query afterward happened to throw.
+      // Each domain now runs its own try/catch and commits its own outcome.
+      let layer: Awaited<ReturnType<typeof getDuckDBHandleWithLayer>>["layer"];
+      let handle: Awaited<ReturnType<typeof getDuckDBHandleWithLayer>>["handle"];
+      try {
+        ({ layer, handle } = await getDuckDBHandleWithLayer());
+        if (!isCurrent()) return;
+
+        // The 3rd diagnostic query is category-specific (a "number" override
+        // risks DOUBLE precision loss, a "date" override risks discarding a
+        // UTC offset -- /code-review Angle D, confirmed) and simply `null`
+        // for "text", where neither risk applies. `Promise.all` resolves a
+        // plain (non-promise) array element immediately, so this stays one
+        // round-trip regardless of category.
+        const advisoryQuery =
+          category === "number"
+            ? handle.conn.query(layer.datasource.buildNumberPrecisionCheckSql(tableId, column))
+            : category === "date"
+              ? handle.conn.query(layer.datasource.buildDateOffsetCheckSql(tableId, column))
+              : null;
+        const [validationResult, sampleResult, advisoryResult] = await Promise.all([
+          handle.conn.query(layer.datasource.buildCastValidationSql(tableId, column, category)),
+          handle.conn.query(layer.datasource.buildCastSampleSql(tableId, column, category, 5)),
+          advisoryQuery,
+        ]);
+        if (!isCurrent()) return;
+
+        const validationRow = validationResult.toArray()[0];
+        const nonNullCount = Number(validationRow?.non_null_count ?? 0);
+        const uncastableCount = Number(validationRow?.uncastable_count ?? 0);
+        const samples = sampleResult.toArray().map((row) => ({
+          original: String(row.original ?? ""),
+          parsed: row.parsed === null ? null : String(row.parsed),
+        }));
+
+        let advisory: ColumnValidationAdvisory | undefined;
+        if (category === "number" && advisoryResult) {
+          const count = Number(advisoryResult.toArray()[0]?.precision_lossy_count ?? 0);
+          if (count > 0) advisory = { kind: "precision-loss", count };
+        } else if (category === "date" && advisoryResult) {
+          const count = Number(advisoryResult.toArray()[0]?.offset_discarded_count ?? 0);
+          if (count > 0) advisory = { kind: "date-offset-discarded", count };
+        }
+
+        updateSources((prev) =>
+          prev.map((source) => {
+            if (source.sample.table.id !== tableId) return source;
+            const nextValidation = new Map(source.validation);
+            nextValidation.set(
+              column,
+              uncastableCount > 0
+                ? { status: "warning", nonNullCount, uncastableCount, samples, advisory }
+                : { status: "valid", samples, advisory },
+            );
+            return { ...source, validation: nextValidation };
+          }),
+        );
+      } catch (error) {
+        // `castTargetFor`'s defensive throw (an out-of-union category --
+        // never reachable through this component's own <select>, only via a
+        // future dashboard.json-driven override or a corrupted `as` cast) is
+        // an invariant violation, not a routine per-user-data cast failure
+        // (/code-review Altitude finding, confirmed) -- folding it into the
+        // same "failed" UI state a user's own messy data produces would
+        // mask a real programmer bug as an ordinary data-quality warning.
+        if (error instanceof RangeError) throw error;
+        if (!isCurrent()) return;
+        // DuckDB-side failure (SEC-8): classify as a per-column state, not a
+        // raw exception -- e.g. an override on an "other"-category column
+        // (list/struct/binary) hand-edited into a shared dashboard.json.
+        updateSources((prev) =>
+          prev.map((source) => {
+            if (source.sample.table.id !== tableId) return source;
+            const nextValidation = new Map(source.validation);
+            nextValidation.set(column, { status: "failed" });
+            // No preview attempt follows (see below) -- clear the flag here
+            // so it doesn't stay stuck suppressing markers indefinitely.
+            return { ...source, validation: nextValidation, previewPending: false };
+          }),
+        );
+        // Validation itself failed -- the preview re-cast below would fail
+        // for the identical reason, so don't attempt it.
+        return;
+      }
+
+      // Refresh the preview using ALL currently-active overrides for this
+      // source (not just the one that just changed), so a second override
+      // on the same card doesn't clobber the first's cast. Gated on
+      // `isPreviewCurrent()` (source-scoped), not `isCurrent()`
+      // (column-scoped): a DIFFERENT column's override changing after
+      // this preview was requested, but before it resolves, must still
+      // be able to supersede it.
+      //
+      // Read via `sourcesRef` (see its own comment above: kept in sync
+      // synchronously by `updateSources`, unconditionally reflecting the
+      // pending-state `updateSources` call above by the time this line
+      // runs), not the `sources` variable this closure captured at
+      // creation time -- `sources` here would still be the value from
+      // whenever this specific `handleOverrideChange` call started.
+      //
+      // Its own try/catch, independent of validation's above: a failure
+      // here must never overwrite the validation status just committed
+      // (/code-review, confirmed conflation bug) -- on failure this
+      // silently leaves the previous previewRows in place, the same
+      // "abandon, don't corrupt" discipline `handleSourceDelete`'s own
+      // best-effort DROP TABLE already uses.
+      try {
+        if (!isPreviewCurrent()) return;
+        const source = sourcesRef.current.find((s) => s.sample.table.id === tableId);
+        if (!source) return;
+        const overridesMap = new Map(
+          source.typeOverrides.map((entry) => [entry.column, entry.category]),
+        );
+        const columnNames = source.sample.table.columns.map((c) => c.name);
+        const { sql, rawAliasFor } = layer.datasource.buildTypedPreviewSql(
+          tableId,
+          columnNames,
+          overridesMap,
+          5,
+        );
+        const previewResult = await handle.conn.query(sql);
+        if (!isPreviewCurrent()) return;
+        const previewRows: PreviewRow[] = previewResult.toArray().map((row) => {
+          const plain = layer.datasource.rowToPlainObject(
+            row as unknown as Iterable<[string, unknown]>,
+          );
+          const castFailed = new Set<string>();
+          // `Object.fromEntries`, not bracket assignment onto a plain `{}`
+          // (code review, Phase 6-B: found by an independent finder angle
+          // during this same review, CONFIRMED via repro): a column
+          // literally named `__proto__` is exactly the case
+          // `rowToPlainObject` (register-path.ts) exists to make safe on
+          // the READ side (`plain` above already reads it correctly) --
+          // but `values[name] = plain[name]` on the WRITE side goes
+          // through the inherited `Object.prototype.__proto__` accessor
+          // setter instead of creating a real own property: a non-object
+          // value silently no-ops (the cell then renders
+          // `String(Object.prototype)` = "[object Object]"), and a `null`
+          // value actually reassigns this row object's own prototype.
+          // `Object.fromEntries` uses `CreateDataPropertyOrThrow`
+          // internally (the same mechanism `rowToPlainObject` itself
+          // relies on), which never triggers that setter.
+          const values = Object.fromEntries(
+            columnNames.map((name) => {
+              const rawAlias = rawAliasFor.get(name);
+              if (!rawAlias) return [name, plain[name]];
+              if (plain[name] === null && plain[rawAlias] !== null) {
+                castFailed.add(name);
+                return [name, plain[rawAlias]];
+              }
+              return [name, plain[name]];
+            }),
+          );
+          return { values, castFailed };
+        });
+        updateSources((current) =>
+          current.map((s) =>
+            s.sample.table.id === tableId ? { ...s, previewRows, previewPending: false } : s,
+          ),
+        );
+      } catch (error) {
+        if (error instanceof RangeError) throw error;
+        // best-effort -- see the comment above this try block. Only clears
+        // the flag if THIS attempt is still the current one: a newer
+        // override (which already reset `previewPending: true` for its own
+        // attempt) must not have its own in-flight suppression cut short by
+        // an older, now-stale attempt's failure.
+        if (isPreviewCurrent()) {
+          updateSources((current) =>
+            current.map((s) =>
+              s.sample.table.id === tableId ? { ...s, previewPending: false } : s,
+            ),
+          );
+        }
+      }
+    },
+    [updateSources],
+  );
 
   const handleSourceDelete = useCallback(
     async (tableId: string, sourceLabel: string) => {
@@ -274,11 +639,41 @@ export function App() {
       } catch {
         // best-effort cleanup
       } finally {
-        setSources((prev) => prev.filter((s) => s.sample.table.id !== tableId));
+        updateSources((prev) => prev.filter((s) => s.sample.table.id !== tableId));
         setAnnouncement(`「${sourceLabel}」を削除しました。`);
+        // 4th point (issue #11b, V-004): generation-tracking entries for
+        // this table live outside `sources[]` (refs, not state). This sweep
+        // IS load-bearing for correctness, not just hygiene (/code-review,
+        // confirmed -- a prior version of this comment claimed otherwise):
+        // `registrationSeq` namespacing keeps two DIFFERENT registrations'
+        // generation KEYS from colliding, but the state-commit callbacks in
+        // `handleOverrideChange` still match `updateSources`'s target
+        // source by `tableId` ALONE. If this table id is later reused (a
+        // same-named file re-registered after this delete), an old,
+        // never-superseded generation entry for THIS deleted registration
+        // would still read back as "current" (nothing incremented that
+        // specific stale key) -- and its late-resolving query would then
+        // patch its stale result onto the NEW registration's state, purely
+        // because they share the same table id. Deleting every entry whose
+        // key starts with this table id closes that window: a stale key can
+        // never be found "current" again once it no longer exists at all.
+        const prefix = `${tableId} `;
+        for (const key of validationGenerationRef.current.keys()) {
+          if (key.startsWith(prefix)) validationGenerationRef.current.delete(key);
+        }
+        for (const key of previewGenerationRef.current.keys()) {
+          if (key.startsWith(prefix)) previewGenerationRef.current.delete(key);
+        }
+        // Not load-bearing for correctness the way the two sweeps above are
+        // (a fresh registration overwrites this map's entry for the same
+        // table id unconditionally, via `handleSourceComplete`, before
+        // anything could read a stale value) -- pruned anyway purely so this
+        // map doesn't grow by one entry per distinct table id ever used in
+        // a long session (/code-review Efficiency/Simplification, confirmed).
+        registrationSeqByTableId.current.delete(tableId);
       }
     },
-    [usedIds],
+    [usedIds, updateSources],
   );
 
   const hasSources = sources.length > 0;
@@ -333,21 +728,28 @@ export function App() {
         </DashboardErrorBoundary>
       </div>
 
-      {sources.map(({ sourceLabel, sample }) => (
-        <RegisteredSummary
-          key={sample.table.id}
-          sourceLabel={sourceLabel}
-          sample={sample}
-          // The SAME stable callback reference passed to every card,
-          // unchanged across renders (/simplify Efficiency finding --
-          // `sources.map(...)` previously allocated a fresh closure per
-          // card on every render, defeating memoization entirely).
-          // `RegisteredSummary` is `memo`-wrapped, so a card whose own
-          // props haven't changed now skips re-rendering when some OTHER
-          // source is added/removed or `announcement` updates.
-          onDelete={handleSourceDelete}
-        />
-      ))}
+      {sources.map(
+        ({ sourceLabel, sample, typeOverrides, validation, previewRows, previewPending }) => (
+          <RegisteredSummary
+            key={sample.table.id}
+            sourceLabel={sourceLabel}
+            sample={sample}
+            typeOverrides={typeOverrides}
+            validation={validation}
+            previewRows={previewRows}
+            previewPending={previewPending}
+            // The SAME stable callback reference passed to every card,
+            // unchanged across renders (/simplify Efficiency finding --
+            // `sources.map(...)` previously allocated a fresh closure per
+            // card on every render, defeating memoization entirely).
+            // `RegisteredSummary` is `memo`-wrapped, so a card whose own
+            // props haven't changed now skips re-rendering when some OTHER
+            // source is added/removed or `announcement` updates.
+            onDelete={handleSourceDelete}
+            onOverrideChange={handleOverrideChange}
+          />
+        ),
+      )}
 
       <div style={{ marginTop: 16 }}>
         <button

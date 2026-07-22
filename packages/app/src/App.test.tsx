@@ -17,7 +17,13 @@ vi.mock("@hyakkei/core/renderer", async (importOriginal) => {
   return { ...actual, mount: mountSpy, unmount: unmountSpy };
 });
 
-import { App, DashboardErrorBoundary, DashboardPreview, mergeWorkspaceSource } from "./App.js";
+import {
+  App,
+  DashboardErrorBoundary,
+  DashboardPreview,
+  mergeWorkspaceSource,
+  upsertOverride,
+} from "./App.js";
 import type { IntakeSample } from "./intake/types.js";
 
 const SAMPLE: BakedDashboard = {
@@ -235,8 +241,24 @@ describe("DashboardPreview / DashboardErrorBoundary", () => {
 
 function sample(id: string, rowCount = 1): IntakeSample {
   return {
-    table: { id, columns: [{ name: "category", type: "VARCHAR" }], rowCount },
+    table: { id, columns: [{ name: "category", type: "VARCHAR", category: "text" }], rowCount },
     rows: [{ category: "A" }],
+  };
+}
+
+// issue #11b: `mergeWorkspaceSource`'s `prev` parameter is `WorkspaceSource[]`,
+// which now carries override/validation/preview state alongside the sample --
+// this helper fills in the same empty defaults `mergeWorkspaceSource` itself
+// uses for a freshly-merged source, so these dedup-focused tests don't need
+// to restate that shape at every call site.
+function workspaceSource(sourceLabel: string, intakeSample: IntakeSample) {
+  return {
+    sourceLabel,
+    sample: intakeSample,
+    typeOverrides: [],
+    validation: new Map(),
+    previewRows: null,
+    previewPending: false,
   };
 }
 
@@ -246,13 +268,13 @@ function sample(id: string, rowCount = 1): IntakeSample {
 // function specifically so this property is directly testable without one.
 describe("mergeWorkspaceSource", () => {
   it("appends a source with a new table id", () => {
-    const prev = [{ sourceLabel: "a.csv", sample: sample("a") }];
+    const prev = [workspaceSource("a.csv", sample("a"))];
     const next = mergeWorkspaceSource(prev, "b.csv", sample("b"));
     expect(next.map((s) => s.sample.table.id)).toEqual(["a", "b"]);
   });
 
   it("is a no-op when the table id already exists -- the guarantee onComplete's dedup exists for", () => {
-    const prev = [{ sourceLabel: "a.csv", sample: sample("a", 5) }];
+    const prev = [workspaceSource("a.csv", sample("a", 5))];
     // Same table.id, different rowCount/sourceLabel -- a genuine duplicate
     // onComplete call always carries the SAME registration's own sample, so
     // the dedup must key on identity (table.id) alone, not deep-equality.
@@ -262,8 +284,43 @@ describe("mergeWorkspaceSource", () => {
   });
 
   it("does not mutate its input array", () => {
-    const prev = [{ sourceLabel: "a.csv", sample: sample("a") }];
+    const prev = [workspaceSource("a.csv", sample("a"))];
     mergeWorkspaceSource(prev, "b.csv", sample("b"));
     expect(prev).toHaveLength(1);
+  });
+});
+
+// issue #11b, shape enumeration F8/ADV-5: a real UI-driven duplicate (the
+// user re-picks a different category for the same column before the first
+// change's validation query even resolves) must resolve deterministically,
+// not depend on the order two async results happen to settle in.
+describe("upsertOverride", () => {
+  it("appends a new column's override", () => {
+    const next = upsertOverride([], "amount", "number");
+    expect(next).toEqual([{ column: "amount", category: "number" }]);
+  });
+
+  it("replaces (last-wins), not duplicates, an existing entry for the same column", () => {
+    const prev = [{ column: "amount", category: "number" as const }];
+    const next = upsertOverride(prev, "amount", "text");
+    expect(next).toEqual([{ column: "amount", category: "text" }]);
+  });
+
+  it("leaves other columns' overrides untouched", () => {
+    const prev = [
+      { column: "amount", category: "number" as const },
+      { column: "date", category: "date" as const },
+    ];
+    const next = upsertOverride(prev, "amount", "text");
+    expect(next).toEqual([
+      { column: "date", category: "date" },
+      { column: "amount", category: "text" },
+    ]);
+  });
+
+  it("does not mutate its input array", () => {
+    const prev = [{ column: "amount", category: "number" as const }];
+    upsertOverride(prev, "amount", "text");
+    expect(prev).toEqual([{ column: "amount", category: "number" }]);
   });
 });
