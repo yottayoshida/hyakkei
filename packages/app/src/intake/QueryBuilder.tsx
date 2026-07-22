@@ -1,6 +1,12 @@
 import { memo, useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { ColumnCategory, ColumnMeta } from "@hyakkei/core/datasource";
-import type { AggregateFn, BuilderState, FilterCondition, FilterOperator, Measure } from "@hyakkei/schema";
+import type {
+  AggregateFn,
+  BuilderState,
+  FilterCondition,
+  FilterOperator,
+  Measure,
+} from "@hyakkei/schema";
 import { CATEGORY_LABEL, overrideMap, type ColumnOverride, type WorkspaceQuery } from "./types.js";
 
 export type QueryBuilderProps = {
@@ -43,7 +49,10 @@ function effectiveCategory(
  * silently do nothing" rule issue #11b already applied to the type-override
  * `<select>`.
  */
-const FILTER_OPERATORS: Record<"text" | "number" | "date", Array<{ value: FilterOperator; label: string }>> = {
+const FILTER_OPERATORS: Record<
+  "text" | "number" | "date",
+  Array<{ value: FilterOperator; label: string }>
+> = {
   text: [
     { value: "eq", label: "等しい" },
     { value: "contains", label: "含む" },
@@ -206,14 +215,20 @@ export const QueryBuilder = memo(function QueryBuilder({
     });
   }
   function removeGroupBy(index: number) {
-    onChange(query.id, { ...builderState, groupBy: builderState.groupBy.filter((_, i) => i !== index) });
+    onChange(query.id, {
+      ...builderState,
+      groupBy: builderState.groupBy.filter((_, i) => i !== index),
+    });
     queueMicrotask(() => addGroupByButtonRef.current?.focus());
   }
 
   function addMeasure() {
     const column = measurableColumns[0]?.name;
     if (!column) return;
-    onChange(query.id, { ...builderState, measures: [...builderState.measures, newMeasure(column)] });
+    onChange(query.id, {
+      ...builderState,
+      measures: [...builderState.measures, newMeasure(column)],
+    });
     queueMicrotask(() => lastMeasureColumnRef.current?.focus());
   }
   function updateMeasure(index: number, next: Measure) {
@@ -238,7 +253,8 @@ export const QueryBuilder = memo(function QueryBuilder({
   // matches nothing still shows ITS OWN output columns (group-by/measure
   // aliases), not the raw source table's -- the `columnMeta` fallback here
   // only ever applies before the very first refresh has resolved at all.
-  const previewColumns = query.previewColumns.length > 0 ? query.previewColumns : columnMeta.map((c) => c.name);
+  const previewColumns =
+    query.previewColumns.length > 0 ? query.previewColumns : columnMeta.map((c) => c.name);
 
   return (
     <div
@@ -261,7 +277,9 @@ export const QueryBuilder = memo(function QueryBuilder({
       <fieldset style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 4, padding: 8 }}>
         <legend>絞り込み</legend>
         {builderState.filters.length > 0 && (
-          <p style={{ margin: "0 0 4px", fontSize: 12, color: "#6b7280" }}>次のすべてに一致する行</p>
+          <p style={{ margin: "0 0 4px", fontSize: 12, color: "#6b7280" }}>
+            次のすべてに一致する行
+          </p>
         )}
         {builderState.filters.map((filter, index) => {
           const category = effectiveCategory(filter.column, columnMeta, overrides);
@@ -269,7 +287,10 @@ export const QueryBuilder = memo(function QueryBuilder({
           const needsValue = filter.operator !== "is_null" && filter.operator !== "is_not_null";
           const invalid = diagnostics?.invalidFilterIndices.includes(index) ?? false;
           return (
-            <div key={index} style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 4 }}>
+            <div
+              key={index}
+              style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 4 }}
+            >
               {index > 0 && <span style={{ fontSize: 12, color: "#6b7280" }}>かつ</span>}
               <select
                 ref={index === builderState.filters.length - 1 ? lastFilterColumnRef : undefined}
@@ -280,11 +301,15 @@ export const QueryBuilder = memo(function QueryBuilder({
                   const nextCategory = effectiveCategory(column, columnMeta, overrides);
                   const validOperators =
                     nextCategory && nextCategory !== "other" ? FILTER_OPERATORS[nextCategory] : [];
-                  const operatorStillValid = validOperators.some((op) => op.value === filter.operator);
+                  const operatorStillValid = validOperators.some(
+                    (op) => op.value === filter.operator,
+                  );
                   updateFilter(index, {
                     ...filter,
                     column,
-                    operator: operatorStillValid ? filter.operator : (validOperators[0]?.value ?? "eq"),
+                    operator: operatorStillValid
+                      ? filter.operator
+                      : (validOperators[0]?.value ?? "eq"),
                   });
                 }}
               >
@@ -359,7 +384,9 @@ export const QueryBuilder = memo(function QueryBuilder({
               ref={index === builderState.groupBy.length - 1 ? lastGroupByColumnRef : undefined}
               aria-label={`集計の単位${index + 1}`}
               value={column}
-              onChange={(event: ChangeEvent<HTMLSelectElement>) => updateGroupBy(index, event.target.value)}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                updateGroupBy(index, event.target.value)
+              }
             >
               {filterableColumns.map((c) => (
                 <option key={c.name} value={c.name}>
@@ -421,7 +448,10 @@ export const QueryBuilder = memo(function QueryBuilder({
             measureWarning = `⚠ ${excludedCount}件は${CATEGORY_LABEL.number}として読み取れず除外`;
           }
           return (
-            <div key={index} style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 4 }}>
+            <div
+              key={index}
+              style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 4 }}
+            >
               <select
                 ref={index === builderState.measures.length - 1 ? lastMeasureColumnRef : undefined}
                 aria-label={`集計する値${index + 1}: 列`}
@@ -480,13 +510,19 @@ export const QueryBuilder = memo(function QueryBuilder({
 
       <div style={{ marginTop: 12, overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%" }}>
-          <caption style={{ textAlign: "left", fontSize: 12, color: "#6b7280", padding: "0 0 4px" }}>
+          <caption
+            style={{ textAlign: "left", fontSize: 12, color: "#6b7280", padding: "0 0 4px" }}
+          >
             「{sourceLabel}」の集計結果プレビュー
           </caption>
           <thead>
             <tr>
               {previewColumns.map((name) => (
-                <th key={name} scope="col" style={{ textAlign: "left", borderBottom: "1px solid #d1d5db", padding: 4 }}>
+                <th
+                  key={name}
+                  scope="col"
+                  style={{ textAlign: "left", borderBottom: "1px solid #d1d5db", padding: 4 }}
+                >
                   {name}
                 </th>
               ))}

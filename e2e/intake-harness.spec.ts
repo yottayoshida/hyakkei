@@ -1156,9 +1156,7 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   }) => {
     await registerTwoSources(page);
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計", exact: true }).click();
-    await page
-      .getByRole("button", { name: "「05-multi-sheet.xlsx」を集計", exact: true })
-      .click();
+    await page.getByRole("button", { name: "「05-multi-sheet.xlsx」を集計", exact: true }).click();
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(2);
 
     await page.getByRole("button", { name: "「06-shift_jis.csv」を削除", exact: true }).click();
@@ -1220,10 +1218,7 @@ test.describe("editor shell: query builder (issue 11c)", () => {
     await page.locator('input[type="file"]').setInputFiles({
       name: "alias-collision.csv",
       mimeType: "text/csv",
-      buffer: Buffer.from(
-        "name,count_amount,amount\nAlice,5,10\nAlice,5,20\nBob,7,30\n",
-        "utf-8",
-      ),
+      buffer: Buffer.from("name,count_amount,amount\nAlice,5,10\nAlice,5,20\nBob,7,30\n", "utf-8"),
     });
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「alias-collision.csv」を集計" }).click();
@@ -1234,9 +1229,7 @@ test.describe("editor shell: query builder (issue 11c)", () => {
     await page.getByLabel("集計する値1: 列").selectOption("amount");
     await page.getByLabel("集計する値1: 集計方法").selectOption("count");
 
-    const headers = await page
-      .locator(".hyakkei-query-card thead th")
-      .allTextContents();
+    const headers = await page.locator(".hyakkei-query-card thead th").allTextContents();
     // The real column's own alias ("count_amount") and the measure's
     // uniquified alias ("count_amount_") must both be present and DISTINCT
     // -- a collision-corrupted result would either merge them into one

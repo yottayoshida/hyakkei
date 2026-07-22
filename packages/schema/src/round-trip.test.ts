@@ -172,30 +172,34 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
   // typeOverrides-entry property above.
   it("an arbitrary unknown field nested in a builderState filter entry is preserved after a successful parse", () => {
     fc.assert(
-      fc.property(unknownKey(new Set(["column", "operator", "value"])), unknownValue, (key, value) => {
-        const base = baseDashboard();
-        const doc = {
-          ...base,
-          queries: [
-            {
-              ...base.queries[0],
-              builderState: {
-                filters: [{ column: "x", operator: "eq", value: "y", [key]: value }],
-                groupBy: [],
-                measures: [],
+      fc.property(
+        unknownKey(new Set(["column", "operator", "value"])),
+        unknownValue,
+        (key, value) => {
+          const base = baseDashboard();
+          const doc = {
+            ...base,
+            queries: [
+              {
+                ...base.queries[0],
+                builderState: {
+                  filters: [{ column: "x", operator: "eq", value: "y", [key]: value }],
+                  groupBy: [],
+                  measures: [],
+                },
               },
-            },
-          ],
-        };
-        const result = parseDashboard(doc);
-        expect(result.ok).toBe(true);
-        if (result.ok) {
-          const entry = (
-            result.value.queries[0] as { builderState?: { filters: Record<string, unknown>[] } }
-          ).builderState?.filters[0];
-          expect(entry?.[key]).toEqual(value);
-        }
-      }),
+            ],
+          };
+          const result = parseDashboard(doc);
+          expect(result.ok).toBe(true);
+          if (result.ok) {
+            const entry = (
+              result.value.queries[0] as { builderState?: { filters: Record<string, unknown>[] } }
+            ).builderState?.filters[0];
+            expect(entry?.[key]).toEqual(value);
+          }
+        },
+      ),
     );
   });
 
@@ -252,8 +256,9 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
           const result = parseDashboard(doc);
           expect(result.ok).toBe(true);
           if (result.ok) {
-            const builderState = (result.value.queries[0] as { builderState?: Record<string, unknown> })
-              .builderState;
+            const builderState = (
+              result.value.queries[0] as { builderState?: Record<string, unknown> }
+            ).builderState;
             expect(builderState?.[key]).toEqual(value);
           }
         },

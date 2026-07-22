@@ -46,7 +46,6 @@ function alignmentFor(category: ColumnCategory | "other"): "left" | "right" {
   return category === "number" ? "right" : "left";
 }
 
-
 /**
  * The workspace's persistent per-source data card (issue #11a, extended for
  * #11b). Previously this WAS the intake flow's terminal screen (D7's "eager

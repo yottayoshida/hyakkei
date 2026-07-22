@@ -585,7 +585,13 @@ export function App() {
           updateQueries((prev) =>
             prev.map((q) =>
               q.id === queryId
-                ? { ...q, previewRows: null, previewColumns: [], diagnostics: null, previewPending: false }
+                ? {
+                    ...q,
+                    previewRows: null,
+                    previewColumns: [],
+                    diagnostics: null,
+                    previewPending: false,
+                  }
                 : q,
             ),
           );
@@ -931,9 +937,7 @@ export function App() {
 
   const handleQueryBuilderChange = useCallback(
     (queryId: string, builderState: BuilderState) => {
-      updateQueries((prev) =>
-        prev.map((q) => (q.id === queryId ? { ...q, builderState } : q)),
-      );
+      updateQueries((prev) => prev.map((q) => (q.id === queryId ? { ...q, builderState } : q)));
       void refreshQueryPreview(queryId);
     },
     [updateQueries, refreshQueryPreview],

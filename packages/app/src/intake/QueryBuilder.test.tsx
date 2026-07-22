@@ -96,7 +96,11 @@ describe("QueryBuilder", () => {
       <QueryBuilder
         {...baseProps({
           query: query({
-            builderState: { filters: [{ column: "部署", operator: "eq", value: "" }], groupBy: [], measures: [] },
+            builderState: {
+              filters: [{ column: "部署", operator: "eq", value: "" }],
+              groupBy: [],
+              measures: [],
+            },
           }),
         })}
       />,
@@ -141,7 +145,11 @@ describe("QueryBuilder", () => {
       <QueryBuilder
         {...baseProps({
           query: query({
-            builderState: { filters: [{ column: "部署", operator: "eq", value: "" }], groupBy: [], measures: [] },
+            builderState: {
+              filters: [{ column: "部署", operator: "eq", value: "" }],
+              groupBy: [],
+              measures: [],
+            },
           }),
         })}
       />,
@@ -158,7 +166,11 @@ describe("QueryBuilder", () => {
       <QueryBuilder
         {...baseProps({
           query: query({
-            builderState: { filters: [{ column: "件数", operator: "eq", value: "" }], groupBy: [], measures: [] },
+            builderState: {
+              filters: [{ column: "件数", operator: "eq", value: "" }],
+              groupBy: [],
+              measures: [],
+            },
           }),
         })}
       />,
@@ -337,7 +349,9 @@ describe("QueryBuilder", () => {
     );
     const aggregateSelects = host.querySelectorAll('select[aria-label$=": 集計方法"]');
     const textOptions = [...(aggregateSelects[0] as HTMLSelectElement).options].map((o) => o.value);
-    const numberOptions = [...(aggregateSelects[1] as HTMLSelectElement).options].map((o) => o.value);
+    const numberOptions = [...(aggregateSelects[1] as HTMLSelectElement).options].map(
+      (o) => o.value,
+    );
     expect(textOptions).toEqual(["count"]);
     expect(numberOptions).toEqual(["count", "sum", "avg"]);
   });
@@ -356,7 +370,9 @@ describe("QueryBuilder", () => {
         })}
       />,
     );
-    const aggregateSelect = host.querySelector('select[aria-label$=": 集計方法"]') as HTMLSelectElement;
+    const aggregateSelect = host.querySelector(
+      'select[aria-label$=": 集計方法"]',
+    ) as HTMLSelectElement;
     expect([...aggregateSelect.options].map((o) => o.value)).toEqual(["count"]);
   });
 
@@ -366,7 +382,11 @@ describe("QueryBuilder", () => {
         {...baseProps({
           typeOverrides: [{ column: "部署", category: "number" }],
           query: query({
-            builderState: { filters: [{ column: "部署", operator: "eq", value: "" }], groupBy: [], measures: [] },
+            builderState: {
+              filters: [{ column: "部署", operator: "eq", value: "" }],
+              groupBy: [],
+              measures: [],
+            },
           }),
         })}
       />,
@@ -455,7 +475,11 @@ describe("QueryBuilder", () => {
         {...baseProps({
           onChange,
           query: query({
-            builderState: { filters: [], groupBy: [], measures: [{ column: "件数", aggregate: "sum" }] },
+            builderState: {
+              filters: [],
+              groupBy: [],
+              measures: [{ column: "件数", aggregate: "sum" }],
+            },
           }),
         })}
       />,
@@ -484,7 +508,12 @@ describe("QueryBuilder", () => {
               groupBy: [],
               measures: [],
             },
-            diagnostics: { totalCount: 2, matchedCount: 0, invalidFilterIndices: [0], measureExcludedCounts: new Map() },
+            diagnostics: {
+              totalCount: 2,
+              matchedCount: 0,
+              invalidFilterIndices: [0],
+              measureExcludedCounts: new Map(),
+            },
           }),
         })}
       />,
@@ -498,7 +527,11 @@ describe("QueryBuilder", () => {
       <QueryBuilder
         {...baseProps({
           query: query({
-            builderState: { filters: [], groupBy: [], measures: [{ column: "件数", aggregate: "sum" }] },
+            builderState: {
+              filters: [],
+              groupBy: [],
+              measures: [{ column: "件数", aggregate: "sum" }],
+            },
             diagnostics: {
               totalCount: 5,
               matchedCount: 5,
@@ -523,13 +556,24 @@ describe("QueryBuilder", () => {
       <QueryBuilder
         {...baseProps({
           query: query({
-            builderState: { filters: [], groupBy: [], measures: [{ column: "部署", aggregate: "sum" }] },
-            diagnostics: { totalCount: 5, matchedCount: 5, invalidFilterIndices: [], measureExcludedCounts: new Map() },
+            builderState: {
+              filters: [],
+              groupBy: [],
+              measures: [{ column: "部署", aggregate: "sum" }],
+            },
+            diagnostics: {
+              totalCount: 5,
+              matchedCount: 5,
+              invalidFilterIndices: [],
+              measureExcludedCounts: new Map(),
+            },
           }),
         })}
       />,
     );
-    expect(host.textContent).toContain("列の種類が変わったため、この集計は結果から除外されています");
+    expect(host.textContent).toContain(
+      "列の種類が変わったため、この集計は結果から除外されています",
+    );
     expect(host.textContent).not.toContain("として読み取れず除外");
   });
 
@@ -538,7 +582,11 @@ describe("QueryBuilder", () => {
       <QueryBuilder
         {...baseProps({
           query: query({
-            builderState: { filters: [], groupBy: [], measures: [{ column: "件数", aggregate: "sum" }] },
+            builderState: {
+              filters: [],
+              groupBy: [],
+              measures: [{ column: "件数", aggregate: "sum" }],
+            },
           }),
         })}
       />,
@@ -556,7 +604,12 @@ describe("QueryBuilder", () => {
       <QueryBuilder
         {...baseProps({
           query: query({
-            diagnostics: { totalCount: 3, matchedCount: 2, invalidFilterIndices: [], measureExcludedCounts: new Map() },
+            diagnostics: {
+              totalCount: 3,
+              matchedCount: 2,
+              invalidFilterIndices: [],
+              measureExcludedCounts: new Map(),
+            },
           }),
         })}
       />,

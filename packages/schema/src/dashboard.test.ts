@@ -1103,7 +1103,10 @@ describe("dashboard.json — Query.builderState (issue 11c)", () => {
     ["filter entry missing operator", { filters: [{ column: "x" }], groupBy: [], measures: [] }],
     ["filter entry missing column", { filters: [{ operator: "eq" }], groupBy: [], measures: [] }],
     ["measure entry missing aggregate", { filters: [], groupBy: [], measures: [{ column: "x" }] }],
-    ["measure entry missing column", { filters: [], groupBy: [], measures: [{ aggregate: "sum" }] }],
+    [
+      "measure entry missing column",
+      { filters: [], groupBy: [], measures: [{ aggregate: "sum" }] },
+    ],
     ["groupBy entry is not a string", { filters: [], groupBy: [123], measures: [] }],
   ])("BS-15: %s is rejected", (_label, builderState) => {
     const doc = { ...minimal, queries: [{ ...minimal.queries[0], builderState }] };

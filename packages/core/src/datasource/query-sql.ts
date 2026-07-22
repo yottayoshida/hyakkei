@@ -1,4 +1,10 @@
-import type { AggregateFn, BuilderState, FilterCondition, FilterOperator, Measure } from "@hyakkei/schema";
+import type {
+  AggregateFn,
+  BuilderState,
+  FilterCondition,
+  FilterOperator,
+  Measure,
+} from "@hyakkei/schema";
 import { castTargetFor, uniqueRawAlias, type ColumnCategory } from "./column-types.js";
 import { quoteIdentifier, quoteStringLiteral } from "./identifier.js";
 import type { ColumnMeta } from "./types.js";
@@ -82,10 +88,7 @@ function effectiveCategory(
  * applies consistently everywhere a column is referenced in one query --
  * never just one position.
  */
-function typedColumnRef(
-  column: string,
-  overrides: ReadonlyMap<string, ColumnCategory>,
-): string {
+function typedColumnRef(column: string, overrides: ReadonlyMap<string, ColumnCategory>): string {
   const quotedColumn = quoteIdentifier(column);
   const override = overrides.get(column);
   if (!override) return quotedColumn;

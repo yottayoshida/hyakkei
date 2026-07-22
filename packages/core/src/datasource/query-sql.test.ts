@@ -35,7 +35,11 @@ describe("buildQuerySql: degenerate/empty builderState shapes", () => {
   });
 
   it("measures with zero groupBy emits a single-row total, with NO GROUP BY clause", () => {
-    const state: BuilderState = { filters: [], groupBy: [], measures: [measure("amount", "count")] };
+    const state: BuilderState = {
+      filters: [],
+      groupBy: [],
+      measures: [measure("amount", "count")],
+    };
     const sql = buildQuerySql("t1", state, columnMeta(), noOverrides);
     expect(sql).not.toContain("GROUP BY");
     expect(sql).toContain('COUNT("amount")');
@@ -76,12 +80,19 @@ describe("buildQuerySql: filter operators", () => {
     ["lte", "<="],
     ["gt", ">"],
     ["gte", ">="],
-  ])("compiles %s to SQL operator %s against a number-overridden column", (operator, expectedOp) => {
-    const overrides = new Map<string, ColumnCategory>([["amount", "number"]]);
-    const state: BuilderState = { filters: [filter("amount", operator, "100")], groupBy: [], measures: [] };
-    const sql = buildQuerySql("t1", state, columnMeta(), overrides);
-    expect(sql).toContain(`TRY_CAST("amount" AS DOUBLE) ${expectedOp} TRY_CAST('100' AS DOUBLE)`);
-  });
+  ])(
+    "compiles %s to SQL operator %s against a number-overridden column",
+    (operator, expectedOp) => {
+      const overrides = new Map<string, ColumnCategory>([["amount", "number"]]);
+      const state: BuilderState = {
+        filters: [filter("amount", operator, "100")],
+        groupBy: [],
+        measures: [],
+      };
+      const sql = buildQuerySql("t1", state, columnMeta(), overrides);
+      expect(sql).toContain(`TRY_CAST("amount" AS DOUBLE) ${expectedOp} TRY_CAST('100' AS DOUBLE)`);
+    },
+  );
 
   it("is_null/is_not_null need no value and compile without a comparison literal", () => {
     const isNull = buildQuerySql(
@@ -102,7 +113,11 @@ describe("buildQuerySql: filter operators", () => {
 
   it("throws before any SQL is built for an out-of-union operator (castTargetFor-shaped defense-in-depth)", () => {
     const malicious = "eq); DROP TABLE t1; --" as FilterOperator;
-    const state: BuilderState = { filters: [filter("name", malicious, "x")], groupBy: [], measures: [] };
+    const state: BuilderState = {
+      filters: [filter("name", malicious, "x")],
+      groupBy: [],
+      measures: [],
+    };
     expect(() => buildQuerySql("t1", state, columnMeta(), noOverrides)).toThrow(
       /unknown filter operator/,
     );
@@ -110,7 +125,11 @@ describe("buildQuerySql: filter operators", () => {
 
   it("a category value shaped like an Object.prototype member also throws, not silently resolving to a function reference", () => {
     const malicious = "toString" as FilterOperator;
-    const state: BuilderState = { filters: [filter("name", malicious, "x")], groupBy: [], measures: [] };
+    const state: BuilderState = {
+      filters: [filter("name", malicious, "x")],
+      groupBy: [],
+      measures: [],
+    };
     expect(() => buildQuerySql("t1", state, columnMeta(), noOverrides)).toThrow(
       /unknown filter operator/,
     );
@@ -186,7 +205,11 @@ describe("buildQuerySql: TRY_CAST application (RR-2 resolution) at every positio
   const overrides = new Map<string, ColumnCategory>([["amount", "number"]]);
 
   it("WHERE position: an overridden column's filter is TRY_CAST-wrapped", () => {
-    const state: BuilderState = { filters: [filter("amount", "gt", "100")], groupBy: [], measures: [] };
+    const state: BuilderState = {
+      filters: [filter("amount", "gt", "100")],
+      groupBy: [],
+      measures: [],
+    };
     const sql = buildQuerySql("t1", state, columnMeta(), overrides);
     expect(sql).toContain('TRY_CAST("amount" AS DOUBLE)');
   });
@@ -249,7 +272,11 @@ describe("buildQuerySql: TRY_CAST application (RR-2 resolution) at every positio
 describe("buildQuerySql: count bypasses typedColumnRef (Codex plan review finding)", () => {
   it("count on an overridden column counts the RAW column, not the TRY_CAST'd one", () => {
     const overrides = new Map<string, ColumnCategory>([["amount", "number"]]);
-    const state: BuilderState = { filters: [], groupBy: [], measures: [measure("amount", "count")] };
+    const state: BuilderState = {
+      filters: [],
+      groupBy: [],
+      measures: [measure("amount", "count")],
+    };
     const sql = buildQuerySql("t1", state, columnMeta(), overrides);
     expect(sql).toContain('COUNT("amount")');
     expect(sql).not.toContain("TRY_CAST");
@@ -265,7 +292,11 @@ describe("buildQuerySql: sum/avg category gate (shape enumeration G5)", () => {
   });
 
   it("sum/avg on a date-categoried column (native or overridden) is silently dropped, not emitted", () => {
-    const state: BuilderState = { filters: [], groupBy: [], measures: [measure("created_at", "avg")] };
+    const state: BuilderState = {
+      filters: [],
+      groupBy: [],
+      measures: [measure("created_at", "avg")],
+    };
     const sql = buildQuerySql("t1", state, columnMeta(), noOverrides);
     expect(sql).not.toContain("created_at");
   });
@@ -279,7 +310,11 @@ describe("buildQuerySql: sum/avg category gate (shape enumeration G5)", () => {
 
 describe("buildQuerySql: dangling column references (shape enumeration A3)", () => {
   it("a filter referencing a nonexistent column is silently dropped, never emitted as a binder-crashing reference", () => {
-    const state: BuilderState = { filters: [filter("ghost", "eq", "x")], groupBy: [], measures: [] };
+    const state: BuilderState = {
+      filters: [filter("ghost", "eq", "x")],
+      groupBy: [],
+      measures: [],
+    };
     const sql = buildQuerySql("t1", state, columnMeta(), noOverrides);
     expect(sql).not.toContain("ghost");
     expect(sql).toBe('SELECT * FROM "t1"');
@@ -303,7 +338,11 @@ describe("buildQuerySql: dangling column references (shape enumeration A3)", () 
   // entry would have been usable anyway.
   it("a filter with BOTH a dangling column AND an out-of-union operator still throws (fail-fast is not bypassed by the drop path)", () => {
     const malicious = "eq); DROP TABLE t1; --" as FilterOperator;
-    const state: BuilderState = { filters: [filter("ghost", malicious, "x")], groupBy: [], measures: [] };
+    const state: BuilderState = {
+      filters: [filter("ghost", malicious, "x")],
+      groupBy: [],
+      measures: [],
+    };
     expect(() => buildQuerySql("t1", state, columnMeta(), noOverrides)).toThrow(
       /unknown filter operator/,
     );
@@ -311,7 +350,11 @@ describe("buildQuerySql: dangling column references (shape enumeration A3)", () 
 
   it("a measure with BOTH a dangling column AND an out-of-union aggregate still throws", () => {
     const malicious = "sum); DROP TABLE t1; --" as Measure["aggregate"];
-    const state: BuilderState = { filters: [], groupBy: [], measures: [measure("ghost", malicious)] };
+    const state: BuilderState = {
+      filters: [],
+      groupBy: [],
+      measures: [measure("ghost", malicious)],
+    };
     expect(() => buildQuerySql("t1", state, columnMeta(), noOverrides)).toThrow(
       /unknown aggregate function/,
     );
@@ -319,7 +362,11 @@ describe("buildQuerySql: dangling column references (shape enumeration A3)", () 
 
   it("a measure with BOTH an 'other'-categoried column AND an out-of-union aggregate still throws", () => {
     const malicious = "avg); DROP TABLE t1; --" as Measure["aggregate"];
-    const state: BuilderState = { filters: [], groupBy: [], measures: [measure("tags", malicious)] };
+    const state: BuilderState = {
+      filters: [],
+      groupBy: [],
+      measures: [measure("tags", malicious)],
+    };
     expect(() => buildQuerySql("t1", state, columnMeta(), noOverrides)).toThrow(
       /unknown aggregate function/,
     );
@@ -342,7 +389,11 @@ describe("buildQuerySql: measure alias collisions (shape enumeration G2, confirm
       { name: "amount", type: "Int64", category: "number" },
       { name: "count_amount", type: "Utf8", category: "text" },
     ]);
-    const state: BuilderState = { filters: [], groupBy: [], measures: [measure("amount", "count")] };
+    const state: BuilderState = {
+      filters: [],
+      groupBy: [],
+      measures: [measure("amount", "count")],
+    };
     const sql = buildQuerySql("t1", state, meta, noOverrides);
     expect(sql).toContain('AS "count_amount_"');
   });
@@ -449,14 +500,22 @@ describe("buildQueryDiagnosticsSql", () => {
 
   it("includes a filter-value-invalid check only for number/date filters with a comparison value (shape enumeration G3)", () => {
     const overrides = new Map<string, ColumnCategory>([["amount", "number"]]);
-    const state: BuilderState = { filters: [filter("amount", "gt", "abc")], groupBy: [], measures: [] };
+    const state: BuilderState = {
+      filters: [filter("amount", "gt", "abc")],
+      groupBy: [],
+      measures: [],
+    };
     const sql = buildQueryDiagnosticsSql("t1", state, columnMeta(), overrides);
     expect(sql).toContain('"filter_0_value_invalid"');
     expect(sql).toContain("IS NULL");
   });
 
   it("does not include a value-invalid check for a text filter (no typed-value parsing risk)", () => {
-    const state: BuilderState = { filters: [filter("name", "eq", "abc")], groupBy: [], measures: [] };
+    const state: BuilderState = {
+      filters: [filter("name", "eq", "abc")],
+      groupBy: [],
+      measures: [],
+    };
     const sql = buildQueryDiagnosticsSql("t1", state, columnMeta(), noOverrides);
     expect(sql).not.toContain("value_invalid");
   });
