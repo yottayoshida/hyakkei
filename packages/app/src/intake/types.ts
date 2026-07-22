@@ -4,6 +4,7 @@ import type {
   NetworkBlockedReason,
   RegisteredTable,
 } from "@hyakkei/core/datasource";
+import type { BuilderState } from "@hyakkei/schema";
 
 /**
  * `DataSourceErrorKind` (core) plus two app-only leaves for failures that
@@ -36,6 +37,36 @@ export type IntakeSample = {
  * verbatim, no separate runtime<->schema conversion to keep in sync.
  */
 export type ColumnOverride = { column: string; category: ColumnCategory };
+
+/**
+ * Exhaustive `ColumnCategory` -> display-label lookup (/code-review
+ * Simplification finding, issue #11b): a `Record<ColumnCategory, string>`
+ * makes an un-updated call site a TS compile error the day `ColumnCategory`
+ * itself ever grows, instead of a silent copy-paste bug. Shared here
+ * (/simplify Reuse finding, issue 11c) rather than re-declared per
+ * component: `RegisteredSummary.tsx` and `QueryBuilder.tsx` both need it,
+ * and a 3rd independent copy would defeat the single-source-of-truth this
+ * `Record` exists for in the first place.
+ */
+export const CATEGORY_LABEL: Record<ColumnCategory, string> = {
+  text: "文字",
+  number: "数値",
+  date: "日付",
+};
+
+export function categoryLabel(category: ColumnCategory | "other" | undefined): string {
+  return category === undefined || category === "other" ? "その他" : CATEGORY_LABEL[category];
+}
+
+/**
+ * `ColumnOverride[]` -> `Map<column, category>`, the lookup shape every
+ * consumer actually wants (/simplify Reuse finding, issue 11c): this exact
+ * transform was independently re-written in `RegisteredSummary.tsx`,
+ * `QueryBuilder.tsx`, and twice in `App.tsx` before being extracted here.
+ */
+export function overrideMap(typeOverrides: ColumnOverride[]): Map<string, ColumnCategory> {
+  return new Map(typeOverrides.map((entry) => [entry.column, entry.category]));
+}
 
 /**
  * An orthogonal diagnostic on top of the pass/fail cast outcome (/code-review
@@ -82,6 +113,73 @@ export type ColumnValidationState =
  * otherwise indistinguishable from the typed result alone).
  */
 export type PreviewRow = { values: Record<string, unknown>; castFailed: Set<string> };
+
+/**
+ * "No silently-vanishing rows" diagnostics for one query (issue #11c),
+ * mirroring `buildQueryDiagnosticsSql`'s (packages/core) three distinct
+ * causes of missing/excluded data -- kept as three separate fields rather
+ * than one opaque total so each can be surfaced with its own message.
+ */
+export type QueryDiagnostics = {
+  totalCount: number;
+  matchedCount: number;
+  /** Indices into `builderState.filters` whose typed VALUE didn't parse as that column's category (a typo, not a data problem). */
+  invalidFilterIndices: number[];
+  /**
+   * column name -> how many otherwise non-null rows failed TRY_CAST and were
+   * silently excluded from that sum/avg measure. A `Map`, not a
+   * column-name-keyed plain object (Codex review R1 P1): a column literally
+   * named `__proto__` is schema-valid, but `obj["__proto__"] = n` silently
+   * no-ops onto the inherited prototype accessor instead of creating a real
+   * own property -- the exact class of bug `rowToPlainObject`'s
+   * `Object.fromEntries` use elsewhere in this codebase already exists to
+   * avoid.
+   */
+  measureExcludedCounts: Map<string, number>;
+};
+
+/**
+ * The light-shaping GUI's per-query workspace state (issue #11c). A sibling
+ * entity to `WorkspaceSource`, not nested inside it -- one source can have
+ * several queries, and a query is the entity `#12`'s chart tiles will
+ * reference by id (`Chart.query`, `@hyakkei/schema`). `builderState` is
+ * always the query's exact schema-shaped `Query.builderState` -- no
+ * separate runtime<->schema conversion, same discipline
+ * `WorkspaceSource.typeOverrides` already established.
+ *
+ * `previewPending` here is unconditionally query-scoped -- there is no
+ * column-scoped "pending" sub-state to reconcile the way #11b's
+ * `previewPending` had to span a wider window than a single column's own
+ * validation status, since a query's preview and diagnostics are always
+ * fetched together in one round-trip, not two.
+ */
+export type WorkspaceQuery = {
+  id: string;
+  sourceTableId: string;
+  builderState: BuilderState;
+  /**
+   * The exact, self-contained SQL `builderState` compiles to (Codex review
+   * R1 P0) -- kept in lockstep with `builderState` on every refresh so this
+   * runtime state genuinely mirrors what a persisted `Query.sql` +
+   * `Query.builderState` pair would hold once F7 (save/open) exists, not
+   * just a `builderState` with no corresponding "GUI emits SQL" output at
+   * all (PRD F2 / ARCHITECTURE §4's own framing).
+   */
+  sql: string;
+  previewRows: Record<string, unknown>[] | null;
+  /**
+   * The query result's OWN output column names (Codex review R1 P2), read
+   * from the Arrow result schema -- present even when `previewRows` is
+   * empty (a real Arrow result carries field names regardless of row
+   * count). Falling back to the SOURCE table's columns for a zero-row
+   * aggregate/grouped query would show the wrong header shape entirely
+   * (raw source columns instead of the query's own group-by/measure-alias
+   * columns).
+   */
+  previewColumns: string[];
+  diagnostics: QueryDiagnostics | null;
+  previewPending: boolean;
+};
 
 /**
  * D10's 5 states (Empty/Reading/SheetPick/Preview+Registered統合/Error),

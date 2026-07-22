@@ -1036,3 +1036,295 @@ test.describe("editor shell: column type override (issue 11b)", () => {
     await expect(page.getByRole("status").filter({ hasText: "検証に失敗しました" })).toHaveCount(0);
   });
 });
+
+// issue 11c: the light-shaping GUI (filter/group-by/aggregate -> query-sql.ts
+// -> real DuckDB-WASM preview). `06-shift_jis.csv`'s 2 data rows (住民課/45,
+// 税務課/30) are small enough for exact-value assertions on the aggregated
+// result, not just row-count checks.
+test.describe("editor shell: query builder (issue 11c)", () => {
+  test("'このデータを集計' opens a query builder card as a sibling to the source card", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(0);
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
+    await expect(page.locator(".hyakkei-query-card")).toContainText("06-shift_jis.csv");
+  });
+
+  test("group-by + sum measure aggregates against real DuckDB-WASM, matching the source data exactly", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+
+    await page.getByRole("button", { name: "＋ 単位を追加" }).click();
+    await page.getByRole("button", { name: "＋ 値を追加" }).click();
+    await page.getByLabel("集計する値1: 列").selectOption("件数");
+    await page.getByLabel("集計する値1: 集計方法").selectOption("sum");
+
+    const rows = page.locator(".hyakkei-query-card tbody tr");
+    await expect(rows).toHaveCount(2);
+    await expect(page.locator(".hyakkei-query-card")).toContainText("住民課");
+    await expect(page.locator(".hyakkei-query-card")).toContainText("45");
+    await expect(page.locator(".hyakkei-query-card")).toContainText("税務課");
+    await expect(page.locator(".hyakkei-query-card")).toContainText("30");
+    await expect(page.locator(".hyakkei-query-card [role='status']")).toContainText(
+      "元のファイルは変更されません",
+    );
+  });
+
+  test("a filter condition narrows the previewed rows and the matched/total count status", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+
+    await page.getByRole("button", { name: "＋ 条件を追加" }).click();
+    await page.getByLabel("条件1: 演算子").selectOption("eq");
+    await page.getByLabel("条件1: 値").fill("住民課");
+    await page.getByLabel("条件1: 値").press("Tab");
+
+    const rows = page.locator(".hyakkei-query-card tbody tr");
+    await expect(rows).toHaveCount(1);
+    await expect(page.locator(".hyakkei-query-card")).toContainText("住民課");
+    await expect(page.locator(".hyakkei-query-card")).not.toContainText("税務課");
+    const status = page.locator(".hyakkei-query-card [role='status']");
+    await expect(status).toContainText("該当");
+    await expect(status).toContainText("全 2 行中");
+  });
+
+  // shape enumeration G3: a filter value that itself doesn't parse as the
+  // column's category (a typo, e.g. comparing a NUMBER column against
+  // non-numeric text) must not crash the query -- every row is excluded
+  // (TRY_CAST(...)=NULL never matches), and the UI must distinguish this
+  // from a legitimate "no rows matched" by marking the filter itself invalid.
+  test("a filter value that doesn't match its column's category excludes all rows without crashing, and is marked invalid", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+
+    await page.getByRole("button", { name: "＋ 条件を追加" }).click();
+    await page.getByLabel("条件1: 列").selectOption("件数");
+    await page.getByLabel("条件1: 演算子").selectOption("gt");
+    await page.getByLabel("条件1: 値").fill("abc");
+    await page.getByLabel("条件1: 値").press("Tab");
+
+    const rows = page.locator(".hyakkei-query-card tbody tr");
+    await expect(rows).toHaveCount(0);
+    await expect(
+      page.locator('.hyakkei-query-card [title="この値は列の種類として読み取れません"]'),
+    ).toBeVisible();
+    await expect(page.locator(".hyakkei-query-card [role='status']")).toContainText("該当 0 行");
+  });
+
+  test("deleting a query removes only its own card, leaving the source card and any other query intact", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(2);
+
+    await page
+      .locator(".hyakkei-query-card")
+      .first()
+      .getByRole("button", { name: "「06-shift_jis.csv」の集計を削除" })
+      .click();
+
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
+  });
+
+  // App.tsx's `handleSourceDelete` orphan-cleanup (issue 11c): a query
+  // references its source by `sourceTableId` -- deleting the source without
+  // also removing its queries would leave a dangling FK, the exact defect
+  // `validateDashboardReferences` already flags for a hand-edited
+  // dashboard.json. This must hold for the live, in-memory workspace too.
+  // Uses 2 sources (not 1) so "the query card disappeared" can only be
+  // explained by targeted orphan cleanup, not the whole workspace view
+  // unmounting because the last source was removed.
+  test("deleting one of two sources removes only its own query card, leaving the other source's query card intact", async ({
+    page,
+  }) => {
+    await registerTwoSources(page);
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計", exact: true }).click();
+    await page
+      .getByRole("button", { name: "「05-multi-sheet.xlsx」を集計", exact: true })
+      .click();
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(2);
+
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を削除", exact: true }).click();
+
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
+    await expect(page.locator(".hyakkei-query-card")).toContainText("05-multi-sheet.xlsx");
+  });
+
+  // Live PoC finding (2026-07-22): changing a column's type override does
+  // NOT go through `handleQueryBuilderChange` (the query builder's own
+  // controls were never touched) -- without a dedicated refresh, an
+  // existing query's preview kept showing the PRIOR override's numeric
+  // result even after the column was overridden away from `number`,
+  // silently wrong rather than stale-and-warned. `refreshQueryPreview`
+  // (App.tsx) is swept across every query on the affected source from
+  // `handleOverrideChange` itself; the aggregate-mismatch warning
+  // (QueryBuilder.tsx) is the visible half of the same fix.
+  test("overriding a column's type away from 数値 refreshes an existing sum-measure query, replacing its stale result with a visible mismatch warning", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "mixed.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("name,amount\nAlice,1200\nBob,999\nCarol,非公開\n", "utf-8"),
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    await page.getByLabel("「amount」の種類").selectOption("number");
+    await page.getByRole("button", { name: "「mixed.csv」を集計" }).click();
+    await page.getByRole("button", { name: "＋ 値を追加" }).click();
+    await page.getByLabel("集計する値1: 列").selectOption("amount");
+    await page.getByLabel("集計する値1: 集計方法").selectOption("sum");
+    await expect(page.locator(".hyakkei-query-card")).toContainText("sum_amount");
+    await expect(page.locator(".hyakkei-query-card")).toContainText("2199");
+
+    // Change the override elsewhere -- the query builder above is never
+    // touched directly.
+    await page.getByLabel("「amount」の種類").selectOption("text");
+
+    const warning = page.getByText("列の種類が変わったため、この集計は結果から除外されています");
+    await expect(warning).toBeVisible();
+    await expect(page.locator(".hyakkei-query-card")).not.toContainText("sum_amount");
+    await expect(page.locator(".hyakkei-query-card")).not.toContainText("2199");
+  });
+
+  // Codex test-adversarial review finding: `uniqueRawAlias`'s collision
+  // avoidance was only proven at the SQL-STRING level
+  // (query-sql.test.ts) -- this reproduces the actual live DuckDB-WASM
+  // failure mode the shape enumeration G2 finding and ADR-0012 describe (a
+  // colliding alias corrupts the result row into a raw typed-array
+  // fragment instead of a plain scalar), against a REAL executed query, not
+  // an inspected SQL string. A real column is literally named
+  // "count_amount" -- exactly the default alias `{column: "amount",
+  // aggregate: "count"}` would otherwise produce.
+  test("a measure whose default alias collides with a REAL column name (via real DuckDB-WASM execution) renders both as distinct, uncorrupted scalar values", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "alias-collision.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        "name,count_amount,amount\nAlice,5,10\nAlice,5,20\nBob,7,30\n",
+        "utf-8",
+      ),
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「alias-collision.csv」を集計" }).click();
+
+    await page.getByRole("button", { name: "＋ 単位を追加" }).click();
+    await page.getByLabel("集計の単位1", { exact: true }).selectOption("count_amount");
+    await page.getByRole("button", { name: "＋ 値を追加" }).click();
+    await page.getByLabel("集計する値1: 列").selectOption("amount");
+    await page.getByLabel("集計する値1: 集計方法").selectOption("count");
+
+    const headers = await page
+      .locator(".hyakkei-query-card thead th")
+      .allTextContents();
+    // The real column's own alias ("count_amount") and the measure's
+    // uniquified alias ("count_amount_") must both be present and DISTINCT
+    // -- a collision-corrupted result would either merge them into one
+    // column or leak a raw typed-array fragment into one of the cells
+    // below instead of a plain number.
+    expect(headers).toContain("count_amount");
+    expect(headers).toContain("count_amount_");
+
+    const row = page.locator(".hyakkei-query-card tbody tr").filter({ hasText: "5" });
+    await expect(row).toContainText("5");
+    // 2 rows (Alice x2) share count_amount=5 -- COUNT(amount) over that
+    // group is 2, a plain scalar, not `[object Object]` (the stringified
+    // form a corrupted Arrow-buffer-fragment cell would render as).
+    await expect(row).toContainText("2");
+    await expect(row).not.toContainText("[object Object]");
+  });
+
+  // Codex test-adversarial review finding: `likePatternLiteral`'s escaping
+  // (query-sql.test.ts) was only proven at the SQL-STRING level -- this
+  // proves it against a REAL DuckDB-WASM LIKE execution: a literal "50%"
+  // must match only the row containing literal "50%", not an unrelated row
+  // that happens to contain "50" as a plain substring (which an unescaped
+  // `LIKE '%50%%'` would also match).
+  test("a 'contains' filter for a literal '50%' matches only the row containing that literal text, real DuckDB-WASM LIKE execution", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "like-escape.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        "name,note\nAlice,discount is 50%\nBob,50 percent off\nCarol,unrelated\n",
+        "utf-8",
+      ),
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「like-escape.csv」を集計" }).click();
+
+    await page.getByRole("button", { name: "＋ 条件を追加" }).click();
+    await page.getByLabel("条件1: 列").selectOption("note");
+    await page.getByLabel("条件1: 演算子").selectOption("contains");
+    await page.getByLabel("条件1: 値").fill("50%");
+    await page.getByLabel("条件1: 値").press("Tab");
+
+    const rows = page.locator(".hyakkei-query-card tbody tr");
+    await expect(rows).toHaveCount(1);
+    await expect(page.locator(".hyakkei-query-card")).toContainText("discount is 50%");
+    await expect(page.locator(".hyakkei-query-card")).not.toContainText("50 percent off");
+  });
+
+  // QA Phase 8 finding (Major): a genuine Excel boolean cell (not a "true"/
+  // "false" text string -- `19-boolean-column.xlsx` was generated with a
+  // real ExcelJS boolean cell value, which this app's xlsx->JSON->
+  // `read_json_auto` registration path preserves as a native DuckDB
+  // BOOLEAN column) auto-detects as "text" category (`arrowTypeCategory`
+  // buckets BOOLEAN/NULL into "text" for display purposes, issue 11b -- no
+  // boolean category exists in this app's 3-category taxonomy). Before the
+  // fix, comparing this column against ANY string literal (including the
+  // query builder's own DEFAULT new-filter value, `{operator: "eq", value:
+  // ""}`) threw at the DuckDB layer, silently caught by `refreshQueryPreview`
+  // and left the query card's status area BLANK -- not an error message,
+  // not the prior result, nothing -- while the results table kept showing
+  // the unfiltered rows. Mutation-tested: reverting the `TRY_CAST(...AS
+  // VARCHAR)` fix reproduces exactly this (confirmed via this exact xlsx
+  // fixture through the real upload flow, not a synthetic SQL string).
+  test("a genuine Excel boolean column (auto-detected as 文字) is filterable without throwing, including the query builder's own default new-filter value", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("19-boolean-column.xlsx"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await expect(page.getByLabel("「承認済み」の種類")).toHaveValue("text");
+
+    await page.getByRole("button", { name: "「19-boolean-column.xlsx」を集計" }).click();
+    await page.getByRole("button", { name: "＋ 条件を追加" }).click();
+    await page.getByLabel("条件1: 列").selectOption("承認済み");
+
+    // The default new-filter value is "" (eq), which no boolean value ever
+    // equals -- 0 rows is the CORRECT result, not a crash or a stale
+    // unfiltered display. The status region resolving at all (not staying
+    // blank) is the actual regression signal.
+    await expect(page.locator(".hyakkei-query-card tbody tr")).toHaveCount(0);
+    await expect(page.locator(".hyakkei-query-card [role='status']")).toContainText("該当 0 行");
+
+    await page.getByLabel("条件1: 値").fill("true");
+    await page.getByLabel("条件1: 値").press("Tab");
+    const rows = page.locator(".hyakkei-query-card tbody tr");
+    await expect(rows).toHaveCount(2);
+    await expect(page.locator(".hyakkei-query-card")).toContainText("住民課");
+    await expect(page.locator(".hyakkei-query-card")).toContainText("福祉課");
+    await expect(page.locator(".hyakkei-query-card")).not.toContainText("税務課");
+  });
+});

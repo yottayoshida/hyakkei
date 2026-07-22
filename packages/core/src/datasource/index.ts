@@ -7,6 +7,11 @@ export * from "./url-source.js";
 // (`layer.datasource.buildCastValidationSql(...)`, etc.) — never a static
 // value import from `packages/app` (issue #54 bundle isolation).
 export * from "./column-types.js";
+// issue 11c: the app's light-shaping GUI reaches the query resolver
+// (`buildQuerySql`/`buildQueryPreviewSql`/`buildQueryDiagnosticsSql`)
+// through this same lazy boundary (`layer.datasource.buildQueryPreviewSql`,
+// etc.), never a static value import (issue #54 bundle isolation).
+export * from "./query-sql.js";
 // Only `rowToPlainObject` is public from register-path.ts (not `export *`)
 // — the rest (withVirtualTextFile, describeTable, classifyRegisterFailure,
 // etc.) are FileSource/UrlSource's own internal plumbing, not part of the
@@ -21,4 +26,9 @@ export { rowToPlainObject } from "./register-path.js";
 // collide with a retry using the same generated id), and that statement
 // needs the same identifier-quoting discipline `register-path.ts` already
 // applies internally.
-export { quoteIdentifier } from "./identifier.js";
+// `quoteStringLiteral` joins this exception list for issue 11c: it was
+// previously defense-in-depth only (its one caller already guaranteed a
+// safe input by construction), but issue 11c's query-sql.ts filter-value
+// literals are genuinely untrusted user text, making this function
+// load-bearing rather than optional hardening (Codex plan review finding).
+export { quoteIdentifier, quoteStringLiteral } from "./identifier.js";

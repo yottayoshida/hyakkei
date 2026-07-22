@@ -1,11 +1,13 @@
 import { memo, type ChangeEvent } from "react";
 import type { ColumnCategory } from "@hyakkei/core/datasource";
-import type {
-  ColumnOverride,
-  ColumnValidationAdvisory,
-  ColumnValidationState,
-  IntakeSample,
-  PreviewRow,
+import {
+  categoryLabel,
+  overrideMap,
+  type ColumnOverride,
+  type ColumnValidationAdvisory,
+  type ColumnValidationState,
+  type IntakeSample,
+  type PreviewRow,
 } from "./types.js";
 
 export type RegisteredSummaryProps = {
@@ -35,6 +37,8 @@ export type RegisteredSummaryProps = {
   onDelete: (tableId: string, sourceLabel: string) => void;
   /** Same stable-reference discipline as `onDelete` (issue #11b). */
   onOverrideChange: (tableId: string, column: string, category: ColumnCategory) => void;
+  /** Same stable-reference discipline as `onDelete` (issue 11c). Opens a new `QueryBuilder` for this source. */
+  onAddQuery: (tableId: string) => void;
 };
 
 /** number -> right (matches spreadsheet convention, aids magnitude comparison); date/text -> left. */
@@ -42,25 +46,6 @@ function alignmentFor(category: ColumnCategory | "other"): "left" | "right" {
   return category === "number" ? "right" : "left";
 }
 
-/**
- * Exhaustive `ColumnCategory` -> display-label lookup (/code-review
- * Simplification finding, confirmed): the 2 call sites below used to each
- * write their own `category === "number" ? "数値" : "日付"` ternary, which
- * silently mislabels "text" as "日付" (there is no "text"-branch at all) and
- * would silently mislabel any future 4th category the same way. A
- * `Record<ColumnCategory, string>` makes an un-updated call site a TS
- * compile error the day `ColumnCategory` itself ever grows, instead of a
- * silent copy-paste bug discovered by a confused user.
- */
-const CATEGORY_LABEL: Record<ColumnCategory, string> = {
-  text: "文字",
-  number: "数値",
-  date: "日付",
-};
-
-function categoryLabel(category: ColumnCategory | "other" | undefined): string {
-  return category === undefined || category === "other" ? "その他" : CATEGORY_LABEL[category];
-}
 
 /**
  * The workspace's persistent per-source data card (issue #11a, extended for
@@ -97,10 +82,11 @@ export const RegisteredSummary = memo(function RegisteredSummary({
   previewPending,
   onDelete,
   onOverrideChange,
+  onAddQuery,
 }: RegisteredSummaryProps) {
   const { table } = sample;
   const columnNames = table.columns.map((column) => column.name);
-  const overrideByColumn = new Map(typeOverrides.map((entry) => [entry.column, entry.category]));
+  const overrideByColumn = overrideMap(typeOverrides);
   // Falls back to the raw registration sample, wrapped in the same shape as
   // a typed preview row (no column overridden yet, so nothing can have
   // failed to cast) -- `RegisteredSummary` always renders `PreviewRow[]`,
@@ -159,17 +145,27 @@ export const RegisteredSummary = memo(function RegisteredSummary({
           「{sourceLabel}」（{table.rowCount.toLocaleString("ja-JP")}行 / {table.columns.length}
           列）
         </p>
-        <button
-          type="button"
-          onClick={() => onDelete(table.id, sourceLabel)}
-          // code review P2 #4: with 2+ sources, every card's button was
-          // identically named "削除" -- indistinguishable by a screen
-          // reader's control list. Tied to this card's own source.
-          aria-label={`「${sourceLabel}」を削除`}
-          style={{ minHeight: 44, padding: "0 12px", background: "transparent", flexShrink: 0 }}
-        >
-          削除
-        </button>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => onAddQuery(table.id)}
+            aria-label={`「${sourceLabel}」を集計`}
+            style={{ minHeight: 44, padding: "0 12px" }}
+          >
+            このデータを集計
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(table.id, sourceLabel)}
+            // code review P2 #4: with 2+ sources, every card's button was
+            // identically named "削除" -- indistinguishable by a screen
+            // reader's control list. Tied to this card's own source.
+            aria-label={`「${sourceLabel}」を削除`}
+            style={{ minHeight: 44, padding: "0 12px", background: "transparent" }}
+          >
+            削除
+          </button>
+        </div>
       </div>
       <div style={{ overflowX: "auto", marginTop: 8 }}>
         <table style={{ borderCollapse: "collapse", width: "100%" }}>
