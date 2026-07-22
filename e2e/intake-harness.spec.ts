@@ -119,7 +119,12 @@ test.describe("editor shell: file registration", () => {
     await expect(announcement).toContainText("2行");
 
     const card = page.locator(".hyakkei-source-card");
-    await expect(card.locator("table th")).toHaveText(["部署", "担当者", "件数"]);
+    // issue #11b: each `<th>` now also nests a category `<select>`
+    // (Playwright's `toHaveText` walks all descendant text nodes, including
+    // a closed `<select>`'s own `<option>` labels) -- scoped to the name's
+    // own wrapper `<div>` so this keeps asserting the visible column name
+    // only, not the select's internal option text.
+    await expect(card.locator("table th > div")).toHaveText(["部署", "担当者", "件数"]);
     // a11y (code review P2 #4 / WCAG 1.3.1): every `<th>` names its column
     // for assistive tech, and the table itself carries a caption.
     for (const th of await card.locator("table th").all()) {
@@ -415,7 +420,10 @@ test.describe("editor shell: file registration", () => {
     // `row[name]` as plain JSX text nodes, so what a user actually SEES is
     // exactly what this checks.
     const card = page.locator(".hyakkei-source-card");
-    await expect(card.locator("table th")).toHaveText(["id", "__proto__", "constructor"]);
+    // issue #11b: scoped to the name's own `<div>`, not the whole `<th>`
+    // (which now also nests a category `<select>`) -- see the identical
+    // note on this file's first `toHaveText(["部署", ...])` assertion.
+    await expect(card.locator("table th > div")).toHaveText(["id", "__proto__", "constructor"]);
     const dataRow = card.locator("table tbody tr").first();
     await expect(dataRow.locator("td")).toHaveText(["1", "polluted?", "also polluted?"]);
 
@@ -600,11 +608,10 @@ test.describe("editor shell: multiple sources", () => {
     // focus mgmt) -- whether it closed via success or cancel.
     await expect(addButton).toBeFocused();
     // The FIRST source's card is untouched by the second registration.
-    await expect(page.locator(".hyakkei-source-card").first().locator("table th")).toHaveText([
-      "部署",
-      "担当者",
-      "件数",
-    ]);
+    // issue #11b: scoped to `th > div` (see this file's first such note).
+    await expect(page.locator(".hyakkei-source-card").first().locator("table th > div")).toHaveText(
+      ["部署", "担当者", "件数"],
+    );
   });
 
   // R2 review: the P2 focus-hijack guard (App.tsx's `!panelOpen` check) and
@@ -724,5 +731,308 @@ test.describe("editor shell: multiple sources", () => {
     await expect(page.getByRole("heading", { name: "データを追加" })).toHaveCount(0);
     await expect(page.locator(".hyakkei-source-card")).toHaveCount(2);
     await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+});
+
+// issue #11b: column type detection UI + manual override, driving the
+// real TRY_CAST-based validation/preview loop against actual DuckDB-WASM --
+// none of this (real cast semantics, real HUGEINT-vs-plain-number surfacing,
+// real DuckDB error text) is observable from a mocked/unit test.
+test.describe("editor shell: column type override (issue 11b)", () => {
+  const MIXED_CSV = Buffer.from(
+    "name,amount,age\nAlice,1200,30\nBob,999,25\nCarol,非公開,40\n",
+    "utf-8",
+  );
+  // A genuinely-empty cell (Bob's amount), distinct from a non-null but
+  // uncastable one (Carol's) -- DuckDB's CSV reader parses an empty field
+  // as NULL by default.
+  const NULL_VS_UNCASTABLE_CSV = Buffer.from(
+    "name,amount\nAlice,1200\nBob,\nCarol,非公開\n",
+    "utf-8",
+  );
+
+  test("a mixed-content column auto-detects as 文字, and overriding it to 数値 surfaces the exact uncastable count with a trust-anchor warning (V-001/V-002/V-003)", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "mixed.csv",
+      mimeType: "text/csv",
+      buffer: MIXED_CSV,
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    const amountSelect = page.getByLabel("「amount」の種類");
+    await expect(amountSelect).toHaveValue("text");
+
+    await amountSelect.selectOption("number");
+
+    const warning = page.getByRole("status").filter({ hasText: "amount" });
+    await expect(warning).toBeVisible();
+    await expect(warning).toContainText("1件");
+    await expect(warning).toContainText("非公開");
+    // Trust anchor (T3/errorCopy.ts precedent): the user's underlying CSV
+    // was never touched by this override -- must never look like data loss.
+    await expect(warning).toContainText("元のファイルは変更されません");
+
+    // The failed cell keeps its original raw value visible (not blanked),
+    // marked non-color-dependently (WCAG 1.4.1).
+    const failedCell = page.locator("td", { hasText: "非公開" });
+    await expect(failedCell).toBeVisible();
+    await expect(failedCell).toContainText("⚠");
+  });
+
+  test("overriding a clean numeric column to 文字 (VARCHAR) succeeds with zero uncastable values -- documented as expected, not a bug (Codex review finding)", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "mixed.csv",
+      mimeType: "text/csv",
+      buffer: MIXED_CSV,
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    const ageSelect = page.getByLabel("「age」の種類");
+    await expect(ageSelect).toHaveValue("number");
+    await ageSelect.selectOption("text");
+
+    // No warning region should appear for this column at all -- CAST AS
+    // VARCHAR cannot fail on any value.
+    await expect(page.getByRole("status").filter({ hasText: "age" })).toHaveCount(0);
+    await expect(page.locator("td", { hasText: "⚠" })).toHaveCount(0);
+  });
+
+  test("deleting a source and re-registering the identical file resets the column-type UI to fresh auto-detection -- no stale override/warning survives (V-004/V-021)", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "mixed.csv",
+      mimeType: "text/csv",
+      buffer: MIXED_CSV,
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    await page.getByLabel("「amount」の種類").selectOption("number");
+    await expect(page.getByRole("status").filter({ hasText: "amount" })).toBeVisible();
+
+    await page.getByRole("button", { name: "「mixed.csv」を削除" }).click();
+    await expect(page.getByRole("heading", { name: "データ取り込み" })).toBeVisible();
+
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "mixed.csv",
+      mimeType: "text/csv",
+      buffer: MIXED_CSV,
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    await expect(page.getByLabel("「amount」の種類")).toHaveValue("text");
+    await expect(page.getByRole("status").filter({ hasText: "amount" })).toHaveCount(0);
+    await expect(page.locator("td", { hasText: "⚠" })).toHaveCount(0);
+  });
+
+  // Codex review R1/R2 (P1 preview race): overriding two DIFFERENT columns
+  // in close succession each kicks off their own validation + whole-row
+  // preview refresh -- whichever is issued LAST is not necessarily the one
+  // that resolves last. Fired via Promise.all (not sequential awaits) so
+  // both onChange handlers actually overlap in-flight, rather than the
+  // second only starting once the first has fully settled.
+  test("overriding two different columns in quick succession applies BOTH overrides to the final preview, neither clobbering the other (Codex review R1/R2: preview race)", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "mixed.csv",
+      mimeType: "text/csv",
+      buffer: MIXED_CSV,
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    await Promise.all([
+      page.getByLabel("「amount」の種類").selectOption("number"),
+      page.getByLabel("「age」の種類").selectOption("text"),
+    ]);
+
+    // Both selects reflect their own override, regardless of which
+    // validation/preview round-trip happened to resolve first.
+    await expect(page.getByLabel("「amount」の種類")).toHaveValue("number");
+    await expect(page.getByLabel("「age」の種類")).toHaveValue("text");
+
+    // "amount"'s warning (its one uncastable value) must still appear --
+    // proves the FINAL preview reflects amount's override, not just its
+    // own validation query in isolation.
+    const amountWarning = page.getByRole("status").filter({ hasText: "amount" });
+    await expect(amountWarning).toBeVisible();
+    await expect(amountWarning).toContainText("1件");
+    // "age" (cast to text) never fails, so no warning for it and no ⚠ in
+    // its own column -- proves "age"'s override also landed in the SAME
+    // final preview, not overwritten back to its pre-override state by
+    // "amount"'s refresh (or vice versa).
+    await expect(page.getByRole("status").filter({ hasText: "age" })).toHaveCount(0);
+
+    // Codex review (Phase 6-B): the assertions above are all about
+    // VALIDATION state, which is set independently of `previewRows` --
+    // they would all still pass even if the actual rendered PREVIEW had
+    // gone stale from the race (e.g. reverted to showing "amount" as if
+    // never overridden). Assert the preview table itself: "amount"'s
+    // failed cell must still show the raw value + ⚠ marker, and "age"
+    // (now cast to text) must render left-aligned like a text column, not
+    // still right-aligned as a number.
+    const failedCell = page.locator("td", { hasText: "非公開" });
+    await expect(failedCell).toContainText("⚠");
+    // Scoped to this card's own table (see the V-002 test below for why an
+    // unscoped `tbody tr` locator risks matching DashboardPreview's own
+    // accessible-fallback table instead, in the same workspace DOM).
+    const ageCells = page.locator(".hyakkei-source-card table tbody tr td:nth-child(3)");
+    await expect(ageCells.first()).toHaveCSS("text-align", "left");
+  });
+
+  // Codex review (Phase 6-B): neither the unit tests (string-match the SQL
+  // text only, never execute it) nor the other e2e tests above (whose
+  // fixture has no genuinely-empty cell) actually prove V-002 end-to-end
+  // against real DuckDB semantics: a genuinely-NULL original value must
+  // never be counted as (or displayed as) a cast failure, distinct from a
+  // non-null value that really does fail TRY_CAST.
+  test("a genuinely-empty cell is never counted or displayed as a cast failure, distinct from a non-null value that really fails TRY_CAST (V-002)", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "null-vs-uncastable.csv",
+      mimeType: "text/csv",
+      buffer: NULL_VS_UNCASTABLE_CSV,
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    await page.getByLabel("「amount」の種類").selectOption("number");
+
+    // Exactly 1 -- if the empty cell were miscounted as uncastable
+    // (e.g. `COUNT(*)` instead of `COUNT(col)`), this would read 2.
+    const warning = page.getByRole("status").filter({ hasText: "amount" });
+    await expect(warning).toContainText("1件");
+    await expect(warning).not.toContainText("2件");
+
+    // Carol's genuinely-uncastable cell: raw value + ⚠.
+    await expect(page.locator("td", { hasText: "非公開" })).toContainText("⚠");
+    // Bob's genuinely-empty cell: renders empty, with NO ⚠ marker -- proves
+    // it was never treated as a cast failure. Scoped to this card's own
+    // table (`.hyakkei-source-card`), not an unscoped `tbody tr`: the
+    // workspace also has DashboardPreview's own accessible-fallback
+    // `<table>` (the sample dashboard) in the same DOM, which an unscoped
+    // locator would silently match instead (caught empirically -- an
+    // earlier version of this assertion matched the sample's own "90" cell).
+    const rows = page.locator(".hyakkei-source-card table tbody tr");
+    const bobAmountCell = rows.nth(1).locator("td").nth(1);
+    await expect(bobAmountCell).toHaveText("");
+  });
+
+  // /code-review Angle D (confirmed, follow-up fix): TRY_CAST succeeding is
+  // not the same as preserving the exact value -- a 17-digit id overridden
+  // to 数値 rounds silently past DOUBLE's 53-bit exact integer range, with
+  // `uncastable_count` staying 0 the whole time. Real DuckDB-WASM only
+  // (`buildNumberPrecisionCheckSql`'s unit tests string-match the SQL text,
+  // never execute it).
+  test("overriding a long integer-like id column to 数値 surfaces a precision-loss advisory, distinct from the uncastable-count warning (/code-review Angle D)", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "precision.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("name,national_id\nAlice,12345678901234567\nBob,42\n", "utf-8"),
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    await page.getByLabel("「national_id」の種類").selectOption("number");
+
+    const advisory = page.getByRole("status").filter({ hasText: "精度が失われる可能性があります" });
+    await expect(advisory).toBeVisible();
+    await expect(advisory).toContainText("1件");
+    // No uncastable-count warning: both values DO cast successfully -- the
+    // advisory is an orthogonal axis, not a re-labeled uncastable count.
+    await expect(page.getByRole("status").filter({ hasText: "変換不可" })).toHaveCount(0);
+  });
+
+  // QA finding (2026-07-22, live DuckDB-WASM run): the first version of
+  // `buildNumberPrecisionCheckSql` flagged an ORDINARY decimal amount like
+  // `1200.5` as precision-lossy, purely because `TRY_CAST('1200.5' AS
+  // HUGEINT)` rounds ties in the OPPOSITE direction from the DOUBLE-cast
+  // path -- despite `1200.5` losing nothing as a DOUBLE. Real DuckDB-WASM
+  // only, on exactly the realistic content (mixed money/amount columns)
+  // this feature's own headline scenario involves.
+  test("overriding a decimal amount column to 数値 does not raise a false precision-loss advisory (QA finding: HUGEINT tie-rounding mismatch)", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "decimals.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("name,amount\nAlice,1200.5\nBob,999.99\nCarol,非公開\n", "utf-8"),
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await expect(page.getByLabel("「amount」の種類")).toHaveValue("text");
+
+    await page.getByLabel("「amount」の種類").selectOption("number");
+
+    // The uncastable-count warning for "非公開" is expected (1件) --
+    // decimals are not being asserted as uncastable, only as NOT
+    // precision-lossy.
+    const warning = page.getByRole("status").filter({ hasText: "amount" });
+    await expect(warning).toContainText("1件");
+    await expect(warning).not.toContainText("精度が失われる可能性があります");
+  });
+
+  // Sibling risk to RR-1 (date field-order misinterpretation, ADR-0011) but
+  // a distinct, deterministic mechanism: TRY_CAST AS DATE discards any
+  // embedded UTC offset without normalizing to it first. Mixed with a
+  // non-date sentinel (same trick as MIXED_CSV's "非公開") so the column
+  // auto-detects as 文字, not 日付 -- a column DuckDB's own CSV sniffer
+  // already parses as a native TIMESTAMP has already lost any offset at
+  // ingest time, before this override step runs at all (a real, distinct
+  // limitation `buildDateOffsetCheckSql`'s own doc comment records; a real
+  // PoC run against exactly that shape is what first surfaced the
+  // `CAST(... AS VARCHAR)` fix this builder now applies).
+  test("overriding a timestamp-with-offset text column to 日付 surfaces a timezone-discarded advisory (/code-review Angle D)", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "offset.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("name,logged_at\nAlice,2024-03-04T01:00:00+09:00\nBob,非公開\n", "utf-8"),
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+
+    await expect(page.getByLabel("「logged_at」の種類")).toHaveValue("text");
+    await page.getByLabel("「logged_at」の種類").selectOption("date");
+
+    const advisory = page
+      .getByRole("status")
+      .filter({ hasText: "タイムゾーン情報が含まれていました" });
+    await expect(advisory).toBeVisible();
+    await expect(advisory).toContainText("1件");
+  });
+
+  // Edge case the fix above (CAST AS VARCHAR) exists for: overriding a
+  // column DuckDB's OWN CSV sniffer already parsed as a native
+  // TIMESTAMP/DATE type must not crash the validation query outright, even
+  // though no NEW offset-discarding can be detected at this stage (it
+  // already happened at ingest, invisibly, before any override UI exists).
+  test("overriding an already-date-typed column to 日付 again does not crash validation, even for a value that originally had a UTC offset", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "already-date.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        "name,logged_at\nAlice,2024-03-04T01:00:00+09:00\nBob,2024-03-04\n",
+        "utf-8",
+      ),
+    });
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    const select = page.getByLabel("「logged_at」の種類");
+    await expect(select).toHaveValue("date");
+
+    // Round-trips through "text" first (selecting the value a native
+    // <select> is already showing does not reliably fire a change event) so
+    // the override to "date" genuinely re-triggers validation against this
+    // already-native-TIMESTAMP column.
+    await select.selectOption("text");
+    await select.selectOption("date");
+
+    await expect(page.getByRole("status").filter({ hasText: "検証に失敗しました" })).toHaveCount(0);
   });
 });

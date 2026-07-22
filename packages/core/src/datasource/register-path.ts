@@ -1,5 +1,6 @@
 import type { AsyncDuckDB, AsyncDuckDBConnection } from "@duckdb/duckdb-wasm";
 import type * as arrow from "apache-arrow";
+import { arrowTypeCategory } from "./column-types.js";
 import { quoteIdentifier, quoteStringLiteral } from "./identifier.js";
 import { DataSourceError, type ColumnMeta, type DataSourceErrorKind } from "./types.js";
 import { nextVirtualFileName } from "./virtual-file.js";
@@ -45,7 +46,11 @@ export function throwClassifiedFailure(
  * already present on every query result this codebase ever gets back.
  */
 export function columnMetaFromArrowTable(table: arrow.Table): ColumnMeta[] {
-  return table.schema.fields.map((field) => ({ name: field.name, type: field.type.toString() }));
+  return table.schema.fields.map((field) => ({
+    name: field.name,
+    type: field.type.toString(),
+    category: arrowTypeCategory(field.type),
+  }));
 }
 
 /**

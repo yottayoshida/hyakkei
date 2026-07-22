@@ -264,6 +264,40 @@ function collectIds<T>(
 }
 
 /**
+ * issue 11b, Codex review R1 (P2): the schema comment documenting
+ * `typeOverrides` (dashboard.ts) promises duplicate `column` entries are
+ * flagged as an advisory, not silently ignored -- schema itself cannot
+ * express "no two array entries share the same `column`" (JSON Schema has
+ * no cross-item uniqueness keyword scoped to one field), so this is exactly
+ * the class of check `validateDashboardReferences` exists for. A `Set`, not
+ * a plain object keyed by column name (column names are data, may be
+ * `__proto__`) -- `Set.has`/`.add` never touch the prototype chain.
+ *
+ * Not rewritten atop `collectIds` (/code-review Reuse finding, consciously
+ * not applied): `collectIds`'s generic "already declared as X" message would
+ * drop this check's more specific "the last one wins at runtime" semantics,
+ * which this schema's own doc comment promises -- not worth widening a
+ * shared, already-tested helper's signature to preserve one call site's
+ * wording.
+ */
+function checkTypeOverrideDuplicates(
+  source: DashboardT["sources"][number],
+  issues: ReferenceIssue[],
+): void {
+  const seen = new Set<string>();
+  for (const entry of source.typeOverrides ?? []) {
+    if (seen.has(entry.column)) {
+      issues.push({
+        kind: "duplicate",
+        message: `source '${source.id}' has more than one typeOverrides entry for column '${entry.column}' (the last one wins at runtime)`,
+      });
+    } else {
+      seen.add(entry.column);
+    }
+  }
+}
+
+/**
  * Checks JSON Schema structurally cannot express (shape enumeration AA-6/7/8):
  * cross-array id references, id uniqueness, and layout grid overlap. Without
  * these, a document that passes schema validation can still crash the
@@ -276,6 +310,7 @@ export function validateDashboardReferences(doc: DashboardT): ReferenceIssue[] {
     caseInsensitive: true,
   });
   for (const s of doc.sources) checkReservedWord(s.id, "source", issues);
+  for (const s of doc.sources) checkTypeOverrideDuplicates(s, issues);
 
   const queryIds = collectIds(doc.queries, (q) => q.id, "query", issues);
   for (const q of doc.queries) {

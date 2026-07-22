@@ -1,4 +1,5 @@
 import type {
+  ColumnCategory,
   DataSourceErrorKind,
   NetworkBlockedReason,
   RegisteredTable,
@@ -26,6 +27,61 @@ export type IntakeSample = {
   table: RegisteredTable;
   rows: Record<string, unknown>[];
 };
+
+/**
+ * The persisted shape (`Source.typeOverrides`, `@hyakkei/schema`) for one
+ * column's manual type override (issue #11b). App.tsx keeps
+ * `WorkspaceSource.typeOverrides` in this exact array shape (not a
+ * column-name-keyed object) so a future save path (F7) can project it
+ * verbatim, no separate runtime<->schema conversion to keep in sync.
+ */
+export type ColumnOverride = { column: string; category: ColumnCategory };
+
+/**
+ * An orthogonal diagnostic on top of the pass/fail cast outcome (/code-review
+ * Angle D, confirmed): a value can `TRY_CAST` successfully and STILL silently
+ * lose information -- a long integer-like "number" override rounding past
+ * DOUBLE's 53-bit exact range, or a "date" override discarding an explicit
+ * UTC offset. Optional and orthogonal to `status` (a column can be "valid"
+ * AND carry an advisory) because neither condition makes the cast itself
+ * fail.
+ */
+export type ColumnValidationAdvisory =
+  { kind: "precision-loss"; count: number } | { kind: "date-offset-discarded"; count: number };
+
+/**
+ * Per-column outcome of the TRY_CAST validation query an override change
+ * triggers (issue #11b). `samples` is a few `{original, parsed}` pairs
+ * shown regardless of outcome (V-001: a successful cast can still be a
+ * silent misinterpretation, e.g. date field order -- a count alone can
+ * never surface that, only inspection can).
+ */
+export type ColumnValidationState =
+  | { status: "pending" }
+  | {
+      status: "valid";
+      samples: Array<{ original: string; parsed: string | null }>;
+      advisory?: ColumnValidationAdvisory;
+    }
+  | {
+      status: "warning";
+      nonNullCount: number;
+      uncastableCount: number;
+      samples: Array<{ original: string; parsed: string | null }>;
+      advisory?: ColumnValidationAdvisory;
+    }
+  | { status: "failed" };
+
+/**
+ * One row of the editor's typed preview (issue #11b). `values` mirrors
+ * `IntakeSample.rows`' shape exactly -- for an overridden column whose
+ * `TRY_CAST` failed on this row, `values` holds the ORIGINAL raw value (not
+ * `NULL`), and `castFailed` names that column so the UI can mark it
+ * distinctly from a cell that was genuinely empty to begin with
+ * (`buildTypedPreviewSql`'s own doc: a failed cast and a true null are
+ * otherwise indistinguishable from the typed result alone).
+ */
+export type PreviewRow = { values: Record<string, unknown>; castFailed: Set<string> };
 
 /**
  * D10's 5 states (Empty/Reading/SheetPick/Preview+Registered統合/Error),

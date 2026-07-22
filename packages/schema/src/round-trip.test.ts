@@ -106,7 +106,7 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
   it("an arbitrary unknown field nested in a source is preserved after a successful parse", () => {
     fc.assert(
       fc.property(
-        unknownKey(new Set(["id", "kind", "format", "ref"])),
+        unknownKey(new Set(["id", "kind", "format", "ref", "typeOverrides"])),
         unknownValue,
         (key, value) => {
           const base = baseDashboard();
@@ -117,6 +117,36 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
             expect((result.value.sources[0] as Record<string, unknown>)[key]).toEqual(value);
         },
       ),
+    );
+  });
+
+  // issue 11b, Codex review R1 (P2): existing coverage above proves an
+  // unknown field survives on the SOURCE object itself -- this proves the
+  // SAME additive guarantee holds one level down, inside a `typeOverrides`
+  // ENTRY (`SafeObject({column, category})`, dashboard.ts). A future
+  // hyakkei version adding e.g. a per-column date-format field must not
+  // have it silently stripped when an older version opens and re-saves.
+  it("an arbitrary unknown field nested in a typeOverrides entry is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(unknownKey(new Set(["column", "category"])), unknownValue, (key, value) => {
+        const base = baseDashboard();
+        const doc = {
+          ...base,
+          sources: [
+            {
+              ...base.sources[0],
+              typeOverrides: [{ column: "x", category: "text", [key]: value }],
+            },
+          ],
+        };
+        const result = parseDashboard(doc);
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          const entry = (result.value.sources[0] as { typeOverrides?: Record<string, unknown>[] })
+            .typeOverrides?.[0];
+          expect(entry?.[key]).toEqual(value);
+        }
+      }),
     );
   });
 
