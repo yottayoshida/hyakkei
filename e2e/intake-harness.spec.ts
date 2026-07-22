@@ -1225,16 +1225,27 @@ test.describe("editor shell: query builder (issue 11c)", () => {
 
     await page.getByRole("button", { name: "＋ 単位を追加" }).click();
     await page.getByLabel("集計の単位1", { exact: true }).selectOption("count_amount");
+    // Waits for THIS edit's own async preview refresh (a real DuckDB-WASM
+    // round-trip) to resolve before the next edit fires -- without this, a
+    // slow/loaded CI runner (webkit specifically has historically been the
+    // most timing-sensitive browser in this file, e.g. the global assertion
+    // timeout bump this file's own history already required) can read the
+    // table headers before the LAST edit's refresh has actually landed,
+    // seeing a stale intermediate state rather than a genuine bug.
+    await expect(page.locator(".hyakkei-query-card thead th").first()).toHaveText("count_amount");
     await page.getByRole("button", { name: "＋ 値を追加" }).click();
     await page.getByLabel("集計する値1: 列").selectOption("amount");
     await page.getByLabel("集計する値1: 集計方法").selectOption("count");
 
-    const headers = await page.locator(".hyakkei-query-card thead th").allTextContents();
     // The real column's own alias ("count_amount") and the measure's
     // uniquified alias ("count_amount_") must both be present and DISTINCT
     // -- a collision-corrupted result would either merge them into one
     // column or leak a raw typed-array fragment into one of the cells
-    // below instead of a plain number.
+    // below instead of a plain number. `toContainText` (not a one-shot
+    // `allTextContents()` snapshot) auto-retries until the final refresh
+    // settles.
+    await expect(page.locator(".hyakkei-query-card thead")).toContainText("count_amount_");
+    const headers = await page.locator(".hyakkei-query-card thead th").allTextContents();
     expect(headers).toContain("count_amount");
     expect(headers).toContain("count_amount_");
 
