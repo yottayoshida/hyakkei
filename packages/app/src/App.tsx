@@ -5,21 +5,39 @@
 // building/grid layout/guideline nudges still land in later M2 PRs
 // (#11b/#11c/#12-16); this shell owns onboarding->workspace transition,
 // accumulated `sources[]`, and the sample dashboard preview.
-import { mount, normalizeBaked, unmount } from "@hyakkei/core/renderer";
+import { mount, normalizeBaked, unmount, type Row } from "@hyakkei/core/renderer";
 // `import type` only (issue #54/#11a bundle isolation): a value import from
 // `@hyakkei/core/datasource` would statically pull duckdb/exceljs/iconv into
 // this entry chunk. Every runtime call to a column-types builder goes
 // through `layer.datasource.*` (the lazy `loadDataLayer()` boundary) instead
 // — see `handleOverrideChange` below.
 import type { ColumnCategory } from "@hyakkei/core/datasource";
-import type { BakedDashboard, BuilderState } from "@hyakkei/schema";
-import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  GRID_WIDTHS,
+  type BakedDashboard,
+  type BuilderState,
+  type Chart,
+  type ChartVariant,
+  type JsonPrimitive,
+  type Layout,
+} from "@hyakkei/schema";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChartBuilder } from "./chart/ChartBuilder.js";
+import { appendLimit, CHART_ROW_LIMIT, isTruncated, reconcileEncoding, usableColumns } from "./chart/chart-encoding.js";
+import { CHART_DEFAULT_SIZE, nextFreeCell } from "./chart/layout-placement.js";
 import { getDuckDBHandleWithLayer } from "./data-layer.js";
+// Re-exported (not just imported) so existing consumers of `./App.js` keep
+// working unchanged -- the class body moved out (issue #12) so `chart/
+// ChartBuilder.tsx` can use the same boundary without an App.tsx <-> chart/
+// circular import.
+import { DashboardErrorBoundary } from "./dashboard-error-boundary.js";
+export { DashboardErrorBoundary };
 import { IntakeApp } from "./intake/IntakeApp.js";
 import { QueryBuilder } from "./intake/QueryBuilder.js";
 import { RegisteredSummary } from "./intake/RegisteredSummary.js";
 import {
   overrideMap,
+  type ChartRowState,
   type ColumnOverride,
   type ColumnValidationAdvisory,
   type ColumnValidationState,
@@ -28,68 +46,6 @@ import {
   type QueryDiagnostics,
   type WorkspaceQuery,
 } from "./intake/types.js";
-
-/**
- * Last line of defense around `DashboardPreview`'s `mount()` call (issue
- * #69): `mount.ts`'s own `renderTileSafely`/`resizeAllCanvases` already
- * isolate any single chart's throw to that chart's own tile -- this
- * boundary exists for whatever's OUTSIDE that per-tile scope
- * (`normalizeBaked`/`normalizeAuthoring` on an unexpected shape,
- * `buildOptions`, `gridStyle` itself) so a genuinely unexpected error still
- * degrades to a message instead of blanking the whole app (React unmounts
- * the entire tree past an uncaught render/effect-phase error).
- *
- * Catches: synchronous throws during render and inside `useEffect`
- * callbacks (React's error-boundary contract explicitly covers effects,
- * unlike event handlers/`setTimeout`/`requestAnimationFrame`). Does NOT
- * catch: errors from event handlers, or ECharts' own internal async
- * scheduling (zrender timers/rAF) -- those run outside any React-managed
- * callback entirely, a residual risk this PR records rather than closes.
- *
- * The fallback render is deliberately static text only (no dynamic value
- * interpolation) -- this IS the "double-failure" containment plan calls
- * for: a fallback that can itself throw would need a second, nested
- * boundary to catch that, but a fallback with nothing to fail on doesn't.
- *
- * Recovery from `hasError` is a `key` prop the PARENT assigns, not a method
- * on this class (issue #11a): React remounts (and re-initializes state for)
- * any component whose `key` changes, which is the standard, zero-extra-code
- * way to make an error boundary recoverable. No dashboard-swap feature
- * exists yet in this PR's scope (#11c) to exercise this organically -- this
- * PR's job is exporting the class (so it's directly unit-testable) and
- * wiring a `key` in `App()` below, so #11c's dashboard swap "just works"
- * without touching this class again.
- */
-export class DashboardErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError(): { hasError: boolean } {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: unknown): void {
-    console.error("hyakkei: dashboard preview crashed", error);
-  }
-
-  render(): ReactNode {
-    if (this.state.hasError) {
-      // UX review (Phase 8): errorCopy.ts's own discipline elsewhere in this
-      // repo is two-layer (what happened + what to do next) -- this fallback
-      // had only the first layer. A second, still-static sentence (no
-      // interpolation, so the "double-failure containment" comment above
-      // still holds) closes that gap without adding a new failure surface.
-      return (
-        <div role="alert">
-          ダッシュボードを表示できませんでした。お手数ですが、ページを再読み込みしてください。
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 export type DashboardPreviewProps = { dashboard: BakedDashboard };
 
@@ -243,6 +199,40 @@ export function upsertOverride(
 export function emptyBuilderState(): BuilderState {
   return { filters: [], groupBy: [], measures: [] };
 }
+
+/**
+ * `rowToPlainObject`'s output is `Record<string, unknown>` (already BigInt-
+ * safe, per its own `typeof value === "bigint"` conversion) -- chart rows
+ * additionally need `Record<string, JsonPrimitive>` (issue #12, plan §チャート
+ * 行データ), explicit about the values `normalizeAuthoring`'s own contract
+ * doesn't otherwise guarantee: a non-finite DOUBLE (`NaN`/`Infinity`, e.g.
+ * division by zero in a measure) and a DATE/TIMESTAMP column (which arrives
+ * as a JS `Date`, not a JSON primitive) are both real, reachable shapes a
+ * blind `as` cast would silently paper over.
+ */
+function toJsonPrimitive(value: unknown): JsonPrimitive {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "bigint") return Number(value);
+  if (value instanceof Date) return value.toISOString();
+  return String(value);
+}
+
+/** `Object.fromEntries`, not bracket assignment onto a plain `{}` (same `__proto__`-column discipline as `handleOverrideChange`'s `values` below). */
+export function toRow(plain: Record<string, unknown>): Row {
+  return Object.fromEntries(Object.entries(plain).map(([key, value]) => [key, toJsonPrimitive(value)]));
+}
+
+/**
+ * A single shared, stable fallback (code review, Angle D) -- a fresh
+ * `{status: "pending"}` object literal at the `chartRowsByQuery.get(...) ??
+ * ...` call site below would otherwise get a NEW reference on every render
+ * for any query whose chart rows haven't landed in the Map yet, defeating
+ * `ChartBuilder`'s own `memo` wrapping. Safe to share: `ChartRowState`'s
+ * `"pending"` variant carries no per-chart data.
+ */
+const PENDING_ROW_STATE: ChartRowState = { status: "pending" };
 
 export function App() {
   const [sources, setSources] = useState<WorkspaceSource[]>([]);
@@ -442,6 +432,117 @@ export function App() {
   // needing independent freshness tracking the way validation/preview did).
   const queryGenerationRef = useRef<Map<string, number>>(new Map());
 
+  // Sibling state to `queries[]` (issue #12): a chart references its query
+  // by id (`Chart.query`), never nested inside `WorkspaceQuery` -- one query
+  // may back several charts (shape enumeration CS-11). `chartsRef` mirrors
+  // the same synchronous-ref-read pattern `sourcesRef`/`queriesRef` already
+  // established (shape enumeration F5): `refreshQueryPreview`'s success path
+  // below reads it to find which charts must re-fetch, and must never see a
+  // stale snapshot captured at that callback's OWN creation time.
+  const [charts, setCharts] = useState<Chart[]>([]);
+  const chartsRef = useRef(charts);
+  const updateCharts = useCallback((updater: (prev: Chart[]) => Chart[]) => {
+    const next = updater(chartsRef.current);
+    chartsRef.current = next;
+    setCharts(next);
+  }, []);
+  const chartIdSeqRef = useRef(0);
+  // UX review (Phase 8, Major finding C-6): set right before `updateCharts`
+  // in `handleAddChart`, read by the focus-management effect below once the
+  // new card has actually mounted -- mirrors `prevSourcesCountRef`'s own
+  // "move focus once the DOM this id refers to exists" timing, just keyed
+  // on a chart id instead of a source count.
+  const focusNewChartIdRef = useRef<string | null>(null);
+
+  const [layout, setLayout] = useState<Layout>({ grid: "guidebook-12col", items: [] });
+  const layoutRef = useRef(layout);
+  const updateLayout = useCallback((updater: (prev: Layout) => Layout) => {
+    const next = updater(layoutRef.current);
+    layoutRef.current = next;
+    setLayout(next);
+  }, []);
+
+  // Chart-row fetch state, keyed by QUERY id, not chart id (shape
+  // enumeration F5): multiple charts may share one query, so keying by
+  // chart id would need a separate prune rule for "the other chart still
+  // needs these rows" -- keying by query id instead makes "delete once no
+  // chart references this query anymore" the single, uniform rule
+  // `handleChartDelete` below applies.
+  const [chartRowsByQuery, setChartRowsByQuery] = useState<Map<string, ChartRowState>>(new Map());
+  const chartRowsByQueryRef = useRef(chartRowsByQuery);
+  const updateChartRowsByQuery = useCallback(
+    (updater: (prev: Map<string, ChartRowState>) => Map<string, ChartRowState>) => {
+      const next = updater(chartRowsByQueryRef.current);
+      chartRowsByQueryRef.current = next;
+      setChartRowsByQuery(next);
+    },
+    [],
+  );
+  // Independent from `queryGenerationRef` (plan §チャート行データ, QA/Security/
+  // Codexレビュー①の3者収束): chart rows use a different LIMIT and result
+  // shape than the query preview, so sharing one counter would let either
+  // refresh spuriously cancel the other.
+  const chartGenerationRef = useRef<Map<string, number>>(new Map());
+
+  /**
+   * Re-executes `query.sql` (self-contained, LIMIT-free) with
+   * `CHART_ROW_LIMIT` appended, for every chart's live preview (issue #12).
+   * Triggered from exactly two places: `handleAddChart`'s bootstrap call
+   * (shape enumeration F3: a query already resolved before the chart existed
+   * never re-fires `refreshQueryPreview`'s own chaining below) and
+   * `refreshQueryPreview`'s own success/catch paths (below) once a query
+   * (re)resolves.
+   */
+  const refreshChartRows = useCallback(
+    async (queryId: string) => {
+      const generation = (chartGenerationRef.current.get(queryId) ?? 0) + 1;
+      chartGenerationRef.current.set(queryId, generation);
+      const isCurrent = () => chartGenerationRef.current.get(queryId) === generation;
+      const setState = (state: ChartRowState) =>
+        updateChartRowsByQuery((prev) => {
+          const next = new Map(prev);
+          next.set(queryId, state);
+          return next;
+        });
+
+      setState({ status: "pending" });
+
+      const query = queriesRef.current.find((q) => q.id === queryId);
+      const source = query && sourcesRef.current.find((s) => s.sample.table.id === query.sourceTableId);
+      // Fail-closed (code review, Angle A): both call sites today
+      // pre-validate this (handleAddChart's own guard, refreshQueryPreview's
+      // own success path only chains here once a query/source resolved),
+      // but this function's OWN contract must not leave the state stuck at
+      // "pending" forever if a future caller ever reaches it without that
+      // pre-validation.
+      if (!query || query.sql === "" || !source) {
+        setState({ status: "error" });
+        return;
+      }
+
+      try {
+        const { layer, handle } = await getDuckDBHandleWithLayer();
+        if (!isCurrent()) return;
+        const result = await handle.conn.query(appendLimit(query.sql, CHART_ROW_LIMIT));
+        if (!isCurrent()) return;
+        const rows: Row[] = result
+          .toArray()
+          .map((row) => toRow(layer.datasource.rowToPlainObject(row as unknown as Iterable<[string, unknown]>)));
+        // QA Phase 8 V-008: a result that hit CHART_ROW_LIMIT exactly may be
+        // missing rows the query would otherwise have returned.
+        setState({ status: "ready", rows, truncated: isTruncated(rows.length) });
+      } catch (error) {
+        if (error instanceof RangeError) throw error;
+        if (!isCurrent()) return;
+        // Fail-closed (SEC-4): clears to an explicit error state rather than
+        // leaving the LAST successful rows on screen, same "silent fail =
+        // zero" discipline `refreshQueryPreview`'s own catch below applies.
+        setState({ status: "error" });
+      }
+    },
+    [updateChartRowsByQuery],
+  );
+
   // Shared by both trigger paths a query's preview/diagnostics can refresh
   // from (issue 11c): the user editing the query itself
   // (`handleQueryBuilderChange`), and a type-override changing on the
@@ -567,6 +668,15 @@ export function App() {
               : q,
           ),
         );
+        // Chart-row re-fetch, one-elined here rather than at each of THIS
+        // function's own call sites (shape enumeration F3/F5, Codexレビュー②
+        // Major指摘): centralizing it in the success path means every
+        // caller (`handleQueryBuilderChange`, the override sweep,
+        // `handleAddQuery`) automatically gets "any chart referencing this
+        // query re-fetches once it resolves" for free. Read via `chartsRef`
+        // (not a `charts` closure captured at THIS callback's creation
+        // time) for the same reason `queriesRef`/`sourcesRef` exist.
+        if (chartsRef.current.some((c) => c.query === queryId)) void refreshChartRows(queryId);
       } catch (error) {
         // `operatorSqlFor`/`aggregateFnFor`'s defensive throws (same class
         // as `castTargetFor`'s -- an out-of-union value never reachable
@@ -595,10 +705,21 @@ export function App() {
                 : q,
             ),
           );
+          // Fail-closed symmetric with the preview clear above (shape
+          // enumeration F4): a query error must not leave a referencing
+          // chart showing its last-successful (now stale) rows.
+          if (chartsRef.current.some((c) => c.query === queryId)) {
+            chartGenerationRef.current.set(queryId, (chartGenerationRef.current.get(queryId) ?? 0) + 1);
+            updateChartRowsByQuery((prev) => {
+              const next = new Map(prev);
+              next.set(queryId, { status: "error" });
+              return next;
+            });
+          }
         }
       }
     },
-    [updateQueries],
+    [updateQueries, refreshChartRows, updateChartRowsByQuery],
   );
 
   const handleOverrideChange = useCallback(
@@ -834,6 +955,67 @@ export function App() {
     [updateSources, refreshQueryPreview],
   );
 
+  // Deletes one chart AND its layout item in the SAME commit (issue #12,
+  // plan §カスケード削除) -- a separate commit would let mount.ts's own
+  // "layout references an unknown chart" error tile flash transiently
+  // between the two. `chartRowsByQuery` (query-id keyed, shape enumeration
+  // F5) is pruned once NO remaining chart references that query, since
+  // another chart may still need those rows -- safe to clear early: a
+  // later chart re-added on the same query always re-fetches from scratch
+  // (`handleAddChart`'s bootstrap call), never relies on this cache being
+  // present.
+  //
+  // `chartGenerationRef` is DELIBERATELY NOT cleared here (code review,
+  // Angle E -- ABA hazard, same class of bug `registrationSeqRef`/
+  // `registrationSeqByTableId` already exists to prevent for DuckDB table
+  // id reuse, issue #11b): a query id is NOT single-use the way a chart id
+  // is -- the query itself can outlive every chart that once referenced it
+  // and later gain a NEW chart. If this deleted the counter, a fresh
+  // `refreshChartRows` call for a new chart on the SAME query would start
+  // back at generation 1 -- the exact value a still-in-flight, now-stale
+  // fetch from the JUST-DELETED chart may have captured -- letting that
+  // stale fetch's `isCurrent()` check pass and silently overwrite the new
+  // chart's fresh rows. The counter is only safe to clear once the QUERY
+  // ITSELF is gone (`handleQueryDelete` below, mirroring `queryGenerationRef`'s
+  // own "query ids are never reused after delete" invariant).
+  const handleChartDelete = useCallback(
+    (chartId: string) => {
+      const chart = chartsRef.current.find((c) => c.id === chartId);
+      updateCharts((prev) => prev.filter((c) => c.id !== chartId));
+      updateLayout((prev) => ({ ...prev, items: prev.items.filter((item) => item.chart !== chartId) }));
+      if (!chart?.query) return;
+      const queryId = chart.query;
+      if (!chartsRef.current.some((c) => c.query === queryId)) {
+        updateChartRowsByQuery((prev) => {
+          if (!prev.has(queryId)) return prev;
+          const next = new Map(prev);
+          next.delete(queryId);
+          return next;
+        });
+      }
+    },
+    [updateCharts, updateLayout, updateChartRowsByQuery],
+  );
+
+  // Cascades a query's own deletion into every chart that references it
+  // (issue #12, plan §カスケード削除): deletes each referencing chart via
+  // `handleChartDelete` first (which prunes `chartRowsByQuery` once the
+  // LAST referencing chart is gone) -- `chartGenerationRef` itself is
+  // cleared by the caller (`handleQueryDelete`/`handleSourceDelete`'s own
+  // orphan sweep), not here, since THIS function only knows charts are
+  // gone, not that the query itself is gone (see `handleChartDelete`'s own
+  // comment on the ABA hazard that distinction avoids). Shared by
+  // `handleSourceDelete`'s orphan-query sweep and `handleQueryDelete` below,
+  // rather than duplicated in both.
+  const cascadeDeleteQuery = useCallback(
+    (queryId: string) => {
+      for (const chart of chartsRef.current.filter((c) => c.query === queryId)) {
+        handleChartDelete(chart.id);
+      }
+    },
+    [handleChartDelete],
+  );
+
   const handleSourceDelete = useCallback(
     async (tableId: string, sourceLabel: string) => {
       try {
@@ -892,11 +1074,22 @@ export function App() {
           .map((q) => q.id);
         if (orphanedQueryIds.length > 0) {
           updateQueries((prev) => prev.filter((q) => q.sourceTableId !== tableId));
-          for (const queryId of orphanedQueryIds) queryGenerationRef.current.delete(queryId);
+          for (const queryId of orphanedQueryIds) {
+            queryGenerationRef.current.delete(queryId);
+            // issue #12: a chart referencing an orphaned query would
+            // otherwise dangle exactly like `validateDashboardReferences`
+            // flags for a hand-edited dashboard.json. `chartGenerationRef`
+            // is safe to clear HERE (the query itself is gone, never to be
+            // reused, same invariant `queryGenerationRef` already relies
+            // on) -- unlike `handleChartDelete`, which deliberately leaves
+            // it alone (ABA hazard, see that function's own comment).
+            chartGenerationRef.current.delete(queryId);
+            cascadeDeleteQuery(queryId);
+          }
         }
       }
     },
-    [usedIds, updateSources, updateQueries],
+    [usedIds, updateSources, updateQueries, cascadeDeleteQuery],
   );
 
   const handleAddQuery = useCallback(
@@ -929,10 +1122,18 @@ export function App() {
 
   const handleQueryDelete = useCallback(
     (queryId: string) => {
+      // Cascade first (issue #12, plan §カスケード削除): removes every chart
+      // that references this query (pruning `chartRowsByQuery`'s entry once
+      // the last one is gone). `chartGenerationRef` is cleared HERE, not by
+      // the cascade -- the query id itself is about to be gone for good
+      // (never reused, same as `queryGenerationRef`), so clearing it now
+      // carries no ABA risk (see `handleChartDelete`'s own comment).
+      cascadeDeleteQuery(queryId);
       updateQueries((prev) => prev.filter((q) => q.id !== queryId));
       queryGenerationRef.current.delete(queryId);
+      chartGenerationRef.current.delete(queryId);
     },
-    [updateQueries],
+    [updateQueries, cascadeDeleteQuery],
   );
 
   const handleQueryBuilderChange = useCallback(
@@ -942,6 +1143,84 @@ export function App() {
     },
     [updateQueries, refreshQueryPreview],
   );
+
+  const handleChartChange = useCallback(
+    (chartId: string, chart: Chart) => {
+      updateCharts((prev) => prev.map((c) => (c.id === chartId ? chart : c)));
+    },
+    [updateCharts],
+  );
+
+  const handleAddChart = useCallback(
+    (queryId: string) => {
+      const query = queriesRef.current.find((q) => q.id === queryId);
+      // Guarded here too (defense-in-depth): the "グラフ化" button itself is
+      // disabled until `previewColumns` resolves (shape enumeration V-010),
+      // so this should be unreachable, but a chart with no valid encoding
+      // must never be created regardless. `usableColumns` (Codex Round 1
+      // P2), not raw `query.previewColumns`: an empty-string Arrow field
+      // name must never reach `Chart.encoding`.
+      const columns = usableColumns(query?.previewColumns ?? []);
+      if (!query || columns.length === 0) return;
+      const id = `chart_${++chartIdSeqRef.current}`;
+      const type: ChartVariant["type"] = "bar";
+      const encoding = reconcileEncoding(undefined, type, columns);
+      const { w, h } = CHART_DEFAULT_SIZE[type];
+      const gridWidth = GRID_WIDTHS[layoutRef.current.grid];
+      const { x, y } = nextFreeCell(layoutRef.current.items, w, h, gridWidth);
+      // `as Chart`: `reconcileEncoding`'s exhaustive switch over `type`
+      // guarantees `encoding`'s shape matches `type`, a pairing TypeScript's
+      // structural typing cannot itself verify across this discriminated
+      // union (same reasoning as `ChartBuilder.tsx`'s own type-switch cast).
+      const chart = { id, type, encoding, query: queryId, options: {} } as Chart;
+      updateCharts((prev) => [...prev, chart]);
+      updateLayout((prev) => ({ ...prev, items: [...prev.items, { chart: id, x, y, w, h }] }));
+      // UX review (Phase 8, Major finding C-3/C-6): source add already
+      // announces + moves focus (`handleSourceComplete`/the focus-management
+      // effect above); chart add previously did neither, leaving keyboard/
+      // screen-reader users with no signal the operation happened and no way
+      // to reach the new card except tabbing past everything above it.
+      setAnnouncement("グラフを追加しました。");
+      focusNewChartIdRef.current = id;
+      // Bootstrap fetch (shape enumeration F3, Critical): this query is
+      // ALREADY resolved (guarded above), so `refreshQueryPreview`'s own
+      // success-path chaining will never fire again for it on its own --
+      // without this explicit call, this chart's rows would never arrive.
+      // Skipped when another chart already fetched this SAME query's rows
+      // (code review, Angle Efficiency): `chartRowsByQuery` is query-id
+      // keyed, so a query with N charts needs exactly one fetch, not N.
+      if (chartRowsByQueryRef.current.get(queryId)?.status !== "ready") {
+        void refreshChartRows(queryId);
+      }
+    },
+    [updateCharts, updateLayout, refreshChartRows],
+  );
+
+  // Wraps `handleChartDelete` with an announcement for the ChartBuilder
+  // card's own delete button ONLY (UX review, Phase 8, Major finding C-3) --
+  // NOT folded into `handleChartDelete` itself, since that function is
+  // shared with `cascadeDeleteQuery` (query/source delete cascading through
+  // N charts), where a per-chart "グラフを削除しました" would stomp the
+  // cascade's own, more meaningful announcement
+  // (`「${sourceLabel}」を削除しました。`, `handleSourceDelete` above).
+  const handleChartDeleteClick = useCallback(
+    (chartId: string) => {
+      handleChartDelete(chartId);
+      setAnnouncement("グラフを削除しました。");
+    },
+    [handleChartDelete],
+  );
+
+  // Moves focus to a newly-added chart card once it has actually mounted
+  // (UX review, Phase 8, Major finding C-6) -- same "wait for the DOM this
+  // id refers to exist, then focus it" timing as the source/onboarding
+  // focus-management effect above, keyed on a chart id instead of a count.
+  useEffect(() => {
+    const id = focusNewChartIdRef.current;
+    if (!id || !charts.some((c) => c.id === id)) return;
+    focusNewChartIdRef.current = null;
+    document.querySelector<HTMLElement>(`[data-chart-id="${id}"]`)?.focus();
+  }, [charts]);
 
   const hasSources = sources.length > 0;
 
@@ -987,7 +1266,7 @@ export function App() {
           own data -- directly protects the #16 five-minute-test's
           success criterion. */}
       <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 4 }}>
-        サンプル表示です。取り込んだデータではありません。グラフ作成機能は今後の更新で追加されます。
+        サンプル表示です。取り込んだデータではありません。
       </p>
       <div style={{ border: "1px dashed #d1d5db", borderRadius: 8, padding: 8 }}>
         <DashboardErrorBoundary key={SAMPLE_DASHBOARD.meta.title}>
@@ -1022,15 +1301,34 @@ export function App() {
             {queries
               .filter((q) => q.sourceTableId === sample.table.id)
               .map((query) => (
-                <QueryBuilder
-                  key={query.id}
-                  query={query}
-                  sourceLabel={sourceLabel}
-                  columnMeta={sample.table.columns}
-                  typeOverrides={typeOverrides}
-                  onChange={handleQueryBuilderChange}
-                  onDelete={handleQueryDelete}
-                />
+                <div key={query.id}>
+                  <QueryBuilder
+                    query={query}
+                    sourceLabel={sourceLabel}
+                    columnMeta={sample.table.columns}
+                    typeOverrides={typeOverrides}
+                    onChange={handleQueryBuilderChange}
+                    onDelete={handleQueryDelete}
+                    onAddChart={handleAddChart}
+                  />
+                  {/* Sibling to the query card, not nested inside it (issue
+                      #12 UX design: source card -> query card -> chart
+                      card, a vertical stack; one query may back several
+                      charts). */}
+                  {charts
+                    .filter((chart) => chart.query === query.id)
+                    .map((chart) => (
+                      <ChartBuilder
+                        key={chart.id}
+                        chart={chart}
+                        query={query}
+                        sourceLabel={sourceLabel}
+                        rowState={chartRowsByQuery.get(query.id) ?? PENDING_ROW_STATE}
+                        onChange={handleChartChange}
+                        onDelete={handleChartDeleteClick}
+                      />
+                    ))}
+                </div>
               ))}
           </div>
         ),

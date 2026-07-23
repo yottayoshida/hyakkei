@@ -131,10 +131,13 @@ test.describe("editor shell: file registration", () => {
       await expect(th).toHaveAttribute("scope", "col");
     }
     await expect(card.locator("table caption")).toContainText("06-shift_jis.csv");
-    // The workspace's forward-looking note (D7's "not a dead end" framing,
-    // carried forward from the former terminal screen) -- now a single
-    // workspace-level note, not repeated per source card.
-    await expect(page.getByText("グラフ作成機能は今後の更新で追加されます")).toBeVisible();
+    // The workspace-level sample-dashboard disclosure (D7's "not a dead
+    // end" framing, carried forward from the former terminal screen): chart
+    // creation is a real, present feature as of issue #12 (no longer a
+    // forward-looking "today's update" promise), so this note now states
+    // only what remains true -- the SAMPLE dashboard shown alongside real
+    // data is not the user's own.
+    await expect(page.getByText("サンプル表示です。取り込んだデータではありません。")).toBeVisible();
   });
 
   test("xlsx multi-sheet: SheetPick appears with all 3 sheet names, choosing one registers it and enters the workspace", async ({
