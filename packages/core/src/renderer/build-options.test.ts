@@ -1,5 +1,5 @@
 import type { RenderModel } from "./render-model.js";
-import { buildOptions } from "./build-options.js";
+import { buildChartOption, buildOptions } from "./build-options.js";
 import { describe, expect, it } from "vitest";
 
 const theme: RenderModel["theme"] = {
@@ -18,6 +18,34 @@ function modelOf(
     theme,
   };
 }
+
+describe("buildChartOption", () => {
+  // issue #70: buildOptions' own per-chart loop body was extracted to this
+  // function so patch() (mount.ts) can build one chart's option on demand --
+  // this pins that extraction didn't drift the two apart (buildOptions
+  // must remain a thin loop over exactly this function's output).
+  it("produces the SAME option buildOptions produces for the identical chart+theme (extraction did not drift)", () => {
+    const chart = { id: "c1", type: "bar" as const, encoding: { x: "cat", y: "val" }, options: {} };
+    const rows = [{ cat: "A", val: 1 }];
+    const model = modelOf(chart, rows);
+    const entry = model.charts[0]!;
+
+    expect(buildChartOption(entry, model.theme)).toEqual(buildOptions(model).c1);
+  });
+
+  // Phase 6-B (Codex adversarial test review, Low finding): the title said
+  // "table/stat" but only table was actually asserted -- stat is a
+  // DIFFERENT branch of buildChartOption's own type switch (it falls
+  // through the same `default: return undefined`, but a future change to
+  // the switch's case list could silently regress one without the other).
+  it.each([
+    ["table", { id: "c1", type: "table" as const, encoding: { columns: ["cat"] }, options: {} }, [{ cat: "A" }]],
+    ["stat", { id: "c1", type: "stat" as const, encoding: { value: "cat" }, options: {} }, [{ cat: "A" }]],
+  ])("returns undefined for %s (DOM-rendered, not an ECharts option)", (_label, chart, rows) => {
+    const entry: RenderModel["charts"][number] = { id: "c1", chart, rows, state: "ok" };
+    expect(buildChartOption(entry, theme)).toBeUndefined();
+  });
+});
 
 describe("buildOptions", () => {
   it("category axis always sets axisLabel.interval: 0 (PR-0 CJK-clipping regression guard)", () => {

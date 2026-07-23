@@ -27,8 +27,21 @@ export type Row = Record<string, JsonPrimitive>;
  * mid-edit state (DA-9) distinct from a query that ran and returned zero
  * rows. `normalizeBaked` can never produce it -- `BakedChart` has no `query`
  * field to be absent, only `rows`, which is either populated or empty.
+ *
+ * `"pending"`/`"error"` (issue #70/#12(B)) exist only for a caller assembling
+ * a `RenderModel` from several charts that share one live-editing session
+ * (`AuthoringDashboardPreview`, app package): unlike a single-chart preview
+ * (`ChartPreview.tsx`), which simply skips calling `mount()`/`patch()` at all
+ * while its one query is unresolved, a multi-chart grid must still render
+ * the OTHER, already-resolved charts while one query is still pending or
+ * failed -- `normalizeAuthoring` itself never produces these two states (its
+ * `rowsByQuery: Record<string, Row[]>` contract has no room for "pending"/
+ * "error" as a value), a caller must overwrite the affected `RenderChart`s'
+ * `state` after calling it. `normalizeBaked` can never produce either, for
+ * the same reason as `"unconfigured"` -- a baked snapshot is always
+ * fully-resolved.
  */
-export type ChartState = "ok" | "empty" | "unconfigured";
+export type ChartState = "ok" | "empty" | "unconfigured" | "pending" | "error";
 
 export type RenderChart = {
   id: string;

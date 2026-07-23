@@ -3,10 +3,11 @@
 // buildOptions) stays pure; mount() is where a RenderModel finally becomes
 // pixels. Framework-independent (plain `echarts.init`, plan §技術選定) so
 // editor preview, export, and CLI can all call it the same way.
-import { GRID_WIDTHS, type Layout } from "@hyakkei/schema";
+import { GRID_WIDTHS, type ChartVariant, type Layout } from "@hyakkei/schema";
 import * as echarts from "echarts";
+import type { EChartsOption } from "echarts";
 import { buildAccessibleDataTable, wrapAccessibleFallback } from "./accessible-table.js";
-import { buildOptions } from "./build-options.js";
+import { buildChartOption, buildOptions } from "./build-options.js";
 import { buildMessageTile } from "./dom/message-tile.js";
 import { buildStatElement } from "./dom/stat.js";
 import { buildTableElement } from "./dom/table.js";
@@ -79,10 +80,12 @@ function missingColumns(chart: RenderChart["chart"], rows: RenderChart["rows"]):
   return encodingColumns(chart).filter((column) => !present.has(column));
 }
 
-function renderChartBody(
-  entry: RenderChart,
-  echartsOptions: Record<string, echarts.EChartsOption>,
-): HTMLElement {
+/** Chart types ECharts itself renders (as opposed to `table`/`stat`, plain DOM). */
+function isEchartsType(type: ChartVariant["type"]): boolean {
+  return type !== "table" && type !== "stat";
+}
+
+function renderChartBody(entry: RenderChart, option: EChartsOption | undefined): HTMLElement {
   if (entry.chart.type === "table") return buildTableElement(entry.chart, entry.rows);
   if (entry.chart.type === "stat") return buildStatElement(entry.chart, entry.rows);
 
@@ -96,7 +99,6 @@ function renderChartBody(
   canvas.style.flex = "1 1 auto";
   canvas.style.minHeight = "0";
   const instance = echarts.init(canvas, undefined, { renderer: "svg" });
-  const option = echartsOptions[entry.id];
   if (option) {
     // Codex proxy R1 / /code-review (xhigh) finding (4 independent angles):
     // `echarts.init` registers `instance` in ECharts' own module-level
@@ -122,17 +124,39 @@ function renderChartBody(
 /**
  * Branches on `entry.state` first (the type-level axis ADR-0008 introduced),
  * then checks `missingColumns` only inside the `"ok"` case -- `"empty"`/
- * `"unconfigured"` always have zero rows, so `missingColumns` would always
- * return `[]` for them anyway (/simplify Simplification finding: making
- * that structurally visible instead of relying on a reader to notice it).
+ * `"unconfigured"`/`"pending"`/`"error"` always have zero rows or no
+ * meaningful rows yet, so `missingColumns` would always return `[]` for them
+ * anyway (/simplify Simplification finding: making that structurally visible
+ * instead of relying on a reader to notice it).
+ *
+ * Takes the single `EChartsOption` this one chart needs, not the whole
+ * `Record<string, EChartsOption>` map `buildOptions` used to produce (issue
+ * #70): `patch()`'s differential path builds an option for at most a
+ * handful of changed charts per call, never the whole model -- a shared
+ * record forced every caller to have already built options for charts it
+ * has no intention of touching.
  */
-function renderTile(
-  entry: RenderChart,
-  echartsOptions: Record<string, echarts.EChartsOption>,
-): HTMLElement {
+function renderTile(entry: RenderChart, option: EChartsOption | undefined): HTMLElement {
   switch (entry.state) {
     case "unconfigured":
       return buildTile(buildMessageTile("このチャートはまだデータに接続されていません", "info"));
+
+    case "pending":
+      // issue #70/#12(B): a chart whose query hasn't resolved yet, in a
+      // multi-chart grid where OTHER charts must still render. Mirrors (A)
+      // `ChartPreview.tsx`'s own "計算中…" copy -- that component never
+      // reaches mount() at all while pending, so this is the first place
+      // this exact state needs its own tile.
+      return buildTile(buildMessageTile("計算中…", "info"));
+
+    case "error":
+      // issue #70/#12(B): the query behind this chart failed. Mirrors (A)
+      // `ChartPreview.tsx`'s post-Phase-8 error copy (recovery guidance,
+      // not just "something broke") -- kept word-for-word identical so the
+      // same failure reads the same way in both surfaces.
+      return buildTile(
+        buildMessageTile("プレビューを表示できませんでした。集計の内容を確認してください。", "error"),
+      );
 
     case "empty":
       // Still append the (header-only) accessible fallback (Codex R1 P2): a
@@ -150,7 +174,7 @@ function renderTile(
           buildMessageTile(`データに列が見つかりません: ${missing.join(", ")}`, "error"),
         );
       }
-      const body = renderChartBody(entry, echartsOptions);
+      const body = renderChartBody(entry, option);
       // The OTHER orphan path renderChartBody's own try/catch can't cover:
       // by the time body returns, echarts.init already succeeded and
       // registered a live instance -- if buildAccessibleDataTable throws
@@ -180,12 +204,9 @@ function renderTile(
  * content in user-facing text) + the existing generic message-tile is the
  * degrade path, not a new UI primitive.
  */
-function renderTileSafely(
-  entry: RenderChart,
-  echartsOptions: Record<string, echarts.EChartsOption>,
-): HTMLElement {
+function renderTileSafely(entry: RenderChart, option: EChartsOption | undefined): HTMLElement {
   try {
-    return renderTile(entry, echartsOptions);
+    return renderTile(entry, option);
   } catch (err) {
     console.error(`hyakkei: chart "${entry.id}" failed to render`, err);
     // UX review (Phase 8): "チャート", not "グラフ" -- this file's other
@@ -205,9 +226,19 @@ function renderTileSafely(
  * principle `renderTileSafely` applies to initial render.
  */
 function resizeAllCanvases(container: HTMLElement): void {
+  const instances: echarts.ECharts[] = [];
   for (const canvas of container.querySelectorAll(".hyakkei-chart-canvas")) {
+    const instance = echarts.getInstanceByDom(canvas as HTMLElement);
+    if (instance) instances.push(instance);
+  }
+  resizeInstances(instances);
+}
+
+/** Per-instance containment (one instance's `resize()` throwing must never skip the rest), for `patch()`'s own targeted resize set (issue #70) -- only the specific instances a diff actually touched, not every canvas in the container. `resizeAllCanvases` above delegates here too (/simplify Reuse+Simplification finding: both were independently re-implementing this same try/catch loop). */
+function resizeInstances(instances: Iterable<echarts.ECharts>): void {
+  for (const instance of instances) {
     try {
-      echarts.getInstanceByDom(canvas as HTMLElement)?.resize();
+      instance.resize();
     } catch (err) {
       console.error("hyakkei: chart resize failed", err);
     }
@@ -264,30 +295,89 @@ function observeResize(container: HTMLElement): void {
 }
 
 /**
- * A remount (editor swapping the previewed dashboard, plan's App.tsx
- * `useEffect(..., [dashboard])`) must not leak the previous mount's ECharts
- * instances (Codex R1 P3): `replaceChildren()` alone discards the DOM nodes
- * an instance is attached to without releasing the instance's own internal
- * state (event listeners, zrender scheduling) -- `echarts.dispose()` is the
- * one API that actually releases it. Exported as `unmount()` too
- * (/simplify Efficiency finding) so a component whose *own* lifecycle ends
- * (not just its dashboard prop changing) has a disposal path -- `mount()`'s
- * internal call only covers "the same container gets mounted again."
+ * A live ECharts instance `patch()` (issue #70) is tracking for one chart
+ * id, paired with the outer tile DOM node currently representing it (so a
+ * "completely unchanged" chart can be re-attached to the container without
+ * rebuilding any DOM) and the chart type the instance was actually built
+ * for (so a same-id type change -- even bar->pie, both ECharts-backed -- is
+ * never mistaken for a reusable instance, plan §差分キー). `instance`/`type`
+ * are both absent for a tile with no live ECharts instance (message tile,
+ * `table`/`stat`).
  */
-export function unmount(container: HTMLElement): void {
-  disconnectResize(container);
-  for (const canvas of container.querySelectorAll(".hyakkei-chart-canvas")) {
-    echarts.getInstanceByDom(canvas as HTMLElement)?.dispose();
-  }
+type Held = { tile: HTMLElement; instance?: echarts.ECharts; type?: ChartVariant["type"] };
+
+/**
+ * Per-container differential-update state (issue #70): container-scoped,
+ * never a global chart-id-keyed map (Security review) -- (A) `ChartPreview`
+ * (per-card) and (B) `AuthoringDashboardPreview` (grid) can mount the SAME
+ * chart id into two DIFFERENT containers at once, and disposing one must
+ * never reach into the other. Mirrors `resizeObservers`/`resizeDebounceTimers`
+ * above (container-scoped `WeakMap`), extended to a 1:N (container -> many
+ * charts) shape those two 1:1 precedents didn't need.
+ */
+const mountStates = new WeakMap<HTMLElement, { held: Map<string, Held>; model: RenderModel }>();
+
+function themeEqual(
+  a: RenderModel["theme"],
+  b: RenderModel["theme"],
+): boolean {
+  return (
+    a.backgroundColor === b.backgroundColor &&
+    a.textStyle.color === b.textStyle.color &&
+    a.color.length === b.color.length &&
+    a.color.every((value, index) => value === b.color[index])
+  );
 }
 
-export function mount(container: HTMLElement, model: RenderModel): void {
-  unmount(container);
+/**
+ * A `layout.items` entry referencing a chart id absent from `model.charts`
+ * (dangling reference, shapes.md finding: `validateLayoutReferences` is
+ * advisory only and never throws) -- the renderer's last line of defense
+ * against a blank grid slot. Shared by `buildFullyFromScratch` and `patch()`'s
+ * own dangling-reference branch (/simplify Reuse finding: this literal was
+ * independently duplicated at both call sites).
+ */
+function buildDanglingReferenceTile(chartId: string): HTMLElement {
+  return buildTile(
+    buildMessageTile(`レイアウトが存在しないチャート '${chartId}' を参照しています`, "error"),
+  );
+}
+
+/**
+ * Re-derives the `Held` entry for a tile just built for `entry` (/simplify
+ * Simplification finding: `buildFullyFromScratch` and `patch()`'s full-rebuild
+ * branch each re-implemented this independently). Returns `undefined` when
+ * `entry` is ECharts-backed and "ok" but no live instance was actually found
+ * on the tile (`renderTileSafely` fell back to an error tile) -- callers must
+ * skip adding a registry entry in that case rather than fabricating a
+ * tile-only one for a chart type that should always have an instance.
+ */
+function deriveHeld(tile: HTMLElement, entry: RenderChart): Held | undefined {
+  if (entry.state !== "ok" || !isEchartsType(entry.chart.type)) return { tile };
+  const canvas = tile.querySelector(".hyakkei-chart-canvas");
+  const instance = canvas ? echarts.getInstanceByDom(canvas as HTMLElement) : undefined;
+  return instance ? { tile, instance, type: entry.chart.type } : undefined;
+}
+
+/**
+ * Builds every tile from scratch into `container` (shared by `mount()` and
+ * `patch()`'s initial/degrade-to-full-rebuild paths, issue #70) -- the exact
+ * construction loop `mount()` always had, extracted so `patch()` can reuse
+ * it byte-for-byte instead of drifting into a second, independently
+ * -maintained copy. Additionally returns a `Held` map (one entry per
+ * ECharts-backed "ok" chart actually placed) so a caller building
+ * differential-update state has something to seed it with; `mount()` itself
+ * discards this return value -- callers that only ever call `mount()`
+ * (bake/CLI/static `DashboardPreview`) never pay for or need to know about
+ * `patch()`'s own registry.
+ */
+function buildFullyFromScratch(container: HTMLElement, model: RenderModel): Map<string, Held> {
   container.replaceChildren();
   gridStyle(container, model.layout);
 
   const echartsOptions = buildOptions(model);
   const chartsById = new Map(model.charts.map((entry) => [entry.id, entry]));
+  const held = new Map<string, Held>();
 
   for (const item of model.layout.items) {
     // A `layout.items` entry referencing a chart id absent from
@@ -297,16 +387,16 @@ export function mount(container: HTMLElement, model: RenderModel): void {
     // against a blank grid slot.
     const entry = chartsById.get(item.chart);
     const tile = entry
-      ? renderTileSafely(entry, echartsOptions)
-      : buildTile(
-          buildMessageTile(
-            `レイアウトが存在しないチャート '${item.chart}' を参照しています`,
-            "error",
-          ),
-        );
+      ? renderTileSafely(entry, echartsOptions[item.chart])
+      : buildDanglingReferenceTile(item.chart);
 
     tileStyle(tile, item.x, item.y, item.w, item.h);
     container.appendChild(tile);
+
+    if (entry) {
+      const derived = deriveHeld(tile, entry);
+      if (derived) held.set(entry.id, derived);
+    }
   }
 
   if (model.layout.items.length === 0) {
@@ -325,4 +415,231 @@ export function mount(container: HTMLElement, model: RenderModel): void {
   // mount -- nothing previously re-measured a chart after ITS container
   // was resized post-mount (a maximized window, a resizable editor pane).
   observeResize(container);
+
+  return held;
+}
+
+/**
+ * A remount (editor swapping the previewed dashboard, plan's App.tsx
+ * `useEffect(..., [dashboard])`) must not leak the previous mount's ECharts
+ * instances (Codex R1 P3): `replaceChildren()` alone discards the DOM nodes
+ * an instance is attached to without releasing the instance's own internal
+ * state (event listeners, zrender scheduling) -- `echarts.dispose()` is the
+ * one API that actually releases it. Exported as `unmount()` too
+ * (/simplify Efficiency finding) so a component whose *own* lifecycle ends
+ * (not just its dashboard prop changing) has a disposal path -- `mount()`'s
+ * internal call only covers "the same container gets mounted again."
+ *
+ * Also clears `patch()`'s own `mountStates` entry for this container (issue
+ * #70, Codex review Major): `mount()`'s own contract ("shed every prior
+ * instance for this container") stays unchanged, but a container that was
+ * previously driven by `patch()` must not leave stale differential-update
+ * state (and the disposed instances it references) behind once `unmount()`
+ * runs -- whether `unmount()` is called directly (a component's own final
+ * teardown) or implicitly via `mount()`'s first line (a caller that always
+ * uses `mount()`, never `patch()`, for this container).
+ */
+export function unmount(container: HTMLElement): void {
+  const state = mountStates.get(container);
+  if (state) {
+    for (const held of state.held.values()) held.instance?.dispose();
+    mountStates.delete(container);
+  }
+  disconnectResize(container);
+  for (const canvas of container.querySelectorAll(".hyakkei-chart-canvas")) {
+    echarts.getInstanceByDom(canvas as HTMLElement)?.dispose();
+  }
+}
+
+export function mount(container: HTMLElement, model: RenderModel): void {
+  unmount(container);
+  buildFullyFromScratch(container, model);
+}
+
+/**
+ * Differential update (issue #70/#12(B)): reuses a surviving ECharts
+ * instance via `setOption(option, {notMerge:true})` when a chart's id AND
+ * `chart.type` both match the previous `patch()` call, and only
+ * dispose+re-inits tiles whose id/type/state actually changed. A chart
+ * whose `chart`/`rows` references, `state`, and the model's `theme`
+ * (structural, not reference, comparison -- `buildEChartsTheme` returns a
+ * fresh object every call) are ALL unchanged from the previous call is
+ * reused with NO ECharts interaction at all -- not even `setOption`.
+ *
+ * `mount()` itself is untouched by this function's existence: a caller that
+ * only ever calls `mount()` for a container (bake/CLI/static
+ * `DashboardPreview`) never triggers this differential path, and that
+ * container never accumulates an entry in `mountStates`.
+ */
+export function patch(container: HTMLElement, model: RenderModel): void {
+  // shape enumeration A1: `layout.items` may reference the same chart id
+  // more than once (schema's own `validateLayoutReferences` only checks
+  // dangling/out-of-bounds/overlap, never duplicate chart-id references).
+  // A chart-id-keyed registry cannot represent "one id, several live
+  // instances" -- computed BEFORE checking for prior state (Codex review
+  // Round 2: a duplicate can appear on the very FIRST `patch()` call for a
+  // container too, not only on a transition from a previously-unique
+  // model; checking this only inside the "prev exists" branch missed that
+  // case entirely).
+  const seenIds = new Set<string>();
+  let hasDuplicateChartId = false;
+  for (const item of model.layout.items) {
+    if (seenIds.has(item.chart)) {
+      hasDuplicateChartId = true;
+      break;
+    }
+    seenIds.add(item.chart);
+  }
+
+  const prev = mountStates.get(container);
+  if (!prev || hasDuplicateChartId) {
+    // Codex review Round 1 P1: this container may already hold live,
+    // untracked ECharts instances (a prior plain `mount()` call, a prior
+    // `patch()` call, or none at all) -- `unmount()`'s own DOM
+    // `querySelectorAll` fallback disposes them regardless of
+    // `mountStates` tracking, so this call is required even when
+    // `mountStates` itself has nothing to clear.
+    unmount(container);
+    const held = buildFullyFromScratch(container, model);
+    if (hasDuplicateChartId) {
+      // Codex review Round 1 P0: `buildFullyFromScratch`'s `held` map can
+      // only track ONE instance per chart id (`Map` semantics) -- a
+      // duplicate id's "extra" instance(s) render correctly but would be
+      // silently untracked if seeded into `mountStates` here. Deliberately
+      // NOT seeding it -- the next `patch()` call for this container
+      // always takes THIS SAME branch again (no `mountStates` entry to
+      // find), which calls `unmount()` first regardless of whether that
+      // model is still duplicated or has resolved to unique, closing the
+      // gap on either transition.
+      return;
+    }
+    mountStates.set(container, { held, model });
+    return;
+  }
+
+  const prevChartsById = new Map(prev.model.charts.map((entry) => [entry.id, entry]));
+  const nextChartsById = new Map(model.charts.map((entry) => [entry.id, entry]));
+  const prevItemsByChart = new Map(prev.model.layout.items.map((item) => [item.chart, item]));
+  const themeChanged = !themeEqual(prev.model.theme, model.theme);
+  if (prev.model.layout.grid !== model.layout.grid) gridStyle(container, model.layout);
+
+  const nextHeld = new Map<string, Held>();
+  const tiles: HTMLElement[] = [];
+  const processedIds = new Set<string>();
+  const toResize: echarts.ECharts[] = [];
+
+  for (const item of model.layout.items) {
+    processedIds.add(item.chart);
+    const entry = nextChartsById.get(item.chart);
+    if (!entry) {
+      const tile = buildDanglingReferenceTile(item.chart);
+      tileStyle(tile, item.x, item.y, item.w, item.h);
+      tiles.push(tile);
+      continue;
+    }
+
+    const prevEntry = prevChartsById.get(item.chart);
+    const prevItem = prevItemsByChart.get(item.chart);
+    const prevTile = prev.held.get(item.chart);
+    const samePosition =
+      prevItem !== undefined &&
+      prevItem.x === item.x &&
+      prevItem.y === item.y &&
+      prevItem.w === item.w &&
+      prevItem.h === item.h;
+
+    // Completely unchanged: chart/rows references, state, and theme must
+    // ALL hold -- `chart` includes `options` (title etc.), so a title-only
+    // edit already produces a new `chart` reference upstream (App.tsx) and
+    // never lands here (V-010).
+    if (
+      prevTile !== undefined &&
+      prevEntry !== undefined &&
+      !themeChanged &&
+      prevEntry.chart === entry.chart &&
+      prevEntry.rows === entry.rows &&
+      prevEntry.state === entry.state
+    ) {
+      if (!samePosition) {
+        tileStyle(prevTile.tile, item.x, item.y, item.w, item.h);
+        // A layout-only w/h change resizes this tile's own box without
+        // necessarily resizing `container` itself (e.g. a fixed-height grid
+        // where only one item's column/row span changed) -- the
+        // ResizeObserver on `container` won't fire, so the reused instance
+        // must be resized explicitly (Codex review, Phase 6-C).
+        if (prevTile.instance) toResize.push(prevTile.instance);
+      }
+      tiles.push(prevTile.tile);
+      nextHeld.set(item.chart, prevTile);
+      continue;
+    }
+
+    // Same id AND same type or both non-ECharts (table/stat has no
+    // instance to reuse) with the current chart in a live-rendering state:
+    // reuse the existing ECharts instance via setOption(notMerge), rebuild
+    // only the accessible-fallback table (QA V-006 -- a stale fallback next
+    // to a fresh canvas is its own silent-stale bug), and re-tag the tile.
+    if (
+      prevTile?.instance !== undefined &&
+      prevTile.type !== undefined &&
+      entry.state === "ok" &&
+      isEchartsType(entry.chart.type) &&
+      prevTile.type === entry.chart.type &&
+      missingColumns(entry.chart, entry.rows).length === 0
+    ) {
+      try {
+        const option = buildChartOption(entry, model.theme)!;
+        prevTile.instance.setOption(option, { notMerge: true, lazyUpdate: false });
+        const canvas = prevTile.tile.querySelector(".hyakkei-chart-canvas") as HTMLElement;
+        const tile = buildTile(
+          canvas,
+          wrapAccessibleFallback(buildAccessibleDataTable(entry.chart, entry.rows)),
+        );
+        tileStyle(tile, item.x, item.y, item.w, item.h);
+        tiles.push(tile);
+        nextHeld.set(item.chart, { tile, instance: prevTile.instance, type: entry.chart.type });
+        toResize.push(prevTile.instance);
+        continue;
+      } catch (err) {
+        console.error(`hyakkei: chart "${item.chart}" failed to update`, err);
+        prevTile.instance.dispose();
+        const tile = buildTile(buildMessageTile("このチャートを表示できませんでした", "error"));
+        tileStyle(tile, item.x, item.y, item.w, item.h);
+        tiles.push(tile);
+        // No `nextHeld` entry: the next patch() sees no prior instance for
+        // this id and treats it as a fresh build (Codex review Major --
+        // a failed slot's registry entry must never linger).
+        continue;
+      }
+    }
+
+    // Everything else (new chart id, type change, state transition, or a
+    // missing-column tile) -- full rebuild for this one chart. Disposing
+    // whatever instance the previous tile held (if any) first.
+    prevTile?.instance?.dispose();
+    const option = entry.state === "ok" ? buildChartOption(entry, model.theme) : undefined;
+    const tile = renderTileSafely(entry, option);
+    tileStyle(tile, item.x, item.y, item.w, item.h);
+    tiles.push(tile);
+    const derived = deriveHeld(tile, entry);
+    if (derived) {
+      nextHeld.set(item.chart, derived);
+      if (derived.instance) toResize.push(derived.instance);
+    }
+  }
+
+  // Any chart id the previous patch() held but the current layout.items
+  // walk never visited at all (truly removed, not just changed in place).
+  for (const [id, held] of prev.held) {
+    if (!processedIds.has(id)) held.instance?.dispose();
+  }
+
+  container.replaceChildren(...tiles);
+  if (model.layout.items.length === 0) {
+    container.appendChild(buildMessageTile("配置されたチャートがありません", "info"));
+  }
+  resizeInstances(toResize);
+  observeResize(container);
+
+  mountStates.set(container, { held: nextHeld, model });
 }

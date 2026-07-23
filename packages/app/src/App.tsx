@@ -22,6 +22,7 @@ import {
   type Layout,
 } from "@hyakkei/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AuthoringDashboardPreview } from "./chart/AuthoringDashboardPreview.js";
 import { ChartBuilder } from "./chart/ChartBuilder.js";
 import {
   appendLimit,
@@ -1270,26 +1271,40 @@ export function App() {
       </h1>
       {announcementRegion}
 
-      {/* UX review (post-implementation, H-1): before #11a, index.html
-          showed ONLY this sample -- no real user data ever shared the page
-          with it, so there was nothing to mistake it FOR. #11a's own
-          integration creates the confusing juxtaposition (a first-time,
-          non-technical user's real data card sitting right next to a
-          chart that looks equally authoritative but has nothing to do
-          with it) -- a new risk this PR introduces, not one it merely
-          inherits. The label goes ABOVE the chart (not a de-emphasized
-          note below it, the prior placement) so it's read before the
-          chart itself, and states plainly that this is not the user's
-          own data -- directly protects the #16 five-minute-test's
-          success criterion. */}
-      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 4 }}>
-        サンプル表示です。取り込んだデータではありません。
-      </p>
-      <div style={{ border: "1px dashed #d1d5db", borderRadius: 8, padding: 8 }}>
-        <DashboardErrorBoundary key={SAMPLE_DASHBOARD.meta.title}>
-          <DashboardPreview dashboard={SAMPLE_DASHBOARD} />
-        </DashboardErrorBoundary>
-      </div>
+      {/* issue #70/#12(B): once at least one real chart exists, the
+          static sample dashboard is replaced by a live preview of the
+          user's OWN charts arranged by the same auto-placement (A)
+          ChartBuilder cards use -- the sample's whole reason to exist
+          (giving a 0-chart user something to look at) no longer applies,
+          and the H-1 confusion below (real data card next to a
+          look-alike chart that has nothing to do with it) gets WORSE, not
+          better, once real charts exist alongside it. */}
+      {charts.length > 0 ? (
+        <AuthoringDashboardPreview charts={charts} layout={layout} chartRowsByQuery={chartRowsByQuery} />
+      ) : (
+        <>
+          {/* UX review (post-implementation, H-1): before #11a, index.html
+              showed ONLY this sample -- no real user data ever shared the page
+              with it, so there was nothing to mistake it FOR. #11a's own
+              integration creates the confusing juxtaposition (a first-time,
+              non-technical user's real data card sitting right next to a
+              chart that looks equally authoritative but has nothing to do
+              with it) -- a new risk this PR introduces, not one it merely
+              inherits. The label goes ABOVE the chart (not a de-emphasized
+              note below it, the prior placement) so it's read before the
+              chart itself, and states plainly that this is not the user's
+              own data -- directly protects the #16 five-minute-test's
+              success criterion. */}
+          <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 4 }}>
+            サンプル表示です。取り込んだデータではありません。
+          </p>
+          <div style={{ border: "1px dashed #d1d5db", borderRadius: 8, padding: 8 }}>
+            <DashboardErrorBoundary key={SAMPLE_DASHBOARD.meta.title}>
+              <DashboardPreview dashboard={SAMPLE_DASHBOARD} />
+            </DashboardErrorBoundary>
+          </div>
+        </>
+      )}
 
       {sources.map(
         ({ sourceLabel, sample, typeOverrides, validation, previewRows, previewPending }) => (

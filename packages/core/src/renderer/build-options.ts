@@ -6,6 +6,7 @@
 import type { BakedChart, Chart } from "@hyakkei/schema";
 import type { EChartsOption } from "echarts";
 import { cellText } from "./dom/cell-text.js";
+import type { EChartsThemeObject } from "../theme/echarts-theme.js";
 import type { RenderChart, RenderModel } from "./render-model.js";
 
 type LegendPosition = "top" | "bottom" | "left" | "right";
@@ -171,6 +172,44 @@ function pieOption(entry: RenderChart): EChartsOption {
   };
 }
 
+/**
+ * One chart's full (theme-merged) option, extracted from `buildOptions`'
+ * former per-entry loop body (issue #70, plan §buildOptions分割) so `patch()`
+ * (mount.ts) can build a single chart's option on demand -- reusing this
+ * exact function keeps `buildOptions`' own output byte-identical (same merge
+ * order, same `table`/`stat` `undefined` short-circuit) instead of drifting
+ * into a second, independently-maintained per-chart builder.
+ */
+export function buildChartOption(
+  entry: RenderChart,
+  theme: EChartsThemeObject,
+): EChartsOption | undefined {
+  const built = ((): EChartsOption | undefined => {
+    switch (entry.chart.type) {
+      case "bar":
+      case "line":
+      case "area":
+        return xyOption(entry, entry.chart.type);
+      case "scatter":
+        return scatterOption(entry);
+      case "pie":
+        return pieOption(entry);
+      default:
+        return undefined; // table/stat render as DOM, not ECharts options
+    }
+  })();
+  if (!built) return undefined;
+  return {
+    backgroundColor: theme.backgroundColor,
+    color: theme.color,
+    textStyle: theme.textStyle,
+    animation: false,
+    aria: { enabled: true, decal: { show: true } },
+    tooltip: { show: true },
+    ...built,
+  };
+}
+
 export function buildOptions(model: RenderModel): Record<string, EChartsOption> {
   // `Object.create(null)`, not `{}` (issue #57 sibling, issue #58):
   // `Chart.id` is an unrestricted NonEmptyString, and on a plain object
@@ -183,31 +222,8 @@ export function buildOptions(model: RenderModel): Record<string, EChartsOption> 
   const options: Record<string, EChartsOption> = Object.create(null);
 
   for (const entry of model.charts) {
-    const built = ((): EChartsOption | undefined => {
-      switch (entry.chart.type) {
-        case "bar":
-        case "line":
-        case "area":
-          return xyOption(entry, entry.chart.type);
-        case "scatter":
-          return scatterOption(entry);
-        case "pie":
-          return pieOption(entry);
-        default:
-          return undefined; // table/stat render as DOM, not ECharts options
-      }
-    })();
-
-    if (!built) continue;
-    options[entry.id] = {
-      backgroundColor: model.theme.backgroundColor,
-      color: model.theme.color,
-      textStyle: model.theme.textStyle,
-      animation: false,
-      aria: { enabled: true, decal: { show: true } },
-      tooltip: { show: true },
-      ...built,
-    };
+    const option = buildChartOption(entry, model.theme);
+    if (option) options[entry.id] = option;
   }
 
   return options;
