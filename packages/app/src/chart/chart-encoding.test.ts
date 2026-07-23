@@ -62,12 +62,13 @@ describe("reconcileEncoding", () => {
   it("a single-column query reuses that one column for both slots of every type (shape enumeration CS-13)", () => {
     for (const type of ALL_TYPES) {
       const encoding = reconcileEncoding(undefined, type, ["only_col"]);
-      const values = Object.values(encoding as Record<string, string | string[] | undefined>).flatMap(
-        (v) => (v === undefined ? [] : Array.isArray(v) ? v : [v]),
-      );
-      expect(values.every((v) => v === "only_col"), `${type}: ${JSON.stringify(encoding)}`).toBe(
-        true,
-      );
+      const values = Object.values(
+        encoding as Record<string, string | string[] | undefined>,
+      ).flatMap((v) => (v === undefined ? [] : Array.isArray(v) ? v : [v]));
+      expect(
+        values.every((v) => v === "only_col"),
+        `${type}: ${JSON.stringify(encoding)}`,
+      ).toBe(true);
     }
   });
 
@@ -92,11 +93,7 @@ describe("reconcileEncoding", () => {
   });
 
   it("scatter drops a carried-over size column when it no longer exists", () => {
-    const scatterEncoding = reconcileEncoding(
-      { x: "a", y: "b", size: "c" },
-      "scatter",
-      ["a", "b"],
-    );
+    const scatterEncoding = reconcileEncoding({ x: "a", y: "b", size: "c" }, "scatter", ["a", "b"]);
     expect(scatterEncoding).toEqual({ x: "a", y: "b", size: undefined });
   });
 
@@ -165,7 +162,16 @@ describe("reconcileChartOptions", () => {
 
 describe("chart type tile mapping", () => {
   it("round-trips every tile through tileToVariant/variantToTile", () => {
-    for (const tile of ["bar", "line", "area", "scatter", "pie", "donut", "table", "stat"] as const) {
+    for (const tile of [
+      "bar",
+      "line",
+      "area",
+      "scatter",
+      "pie",
+      "donut",
+      "table",
+      "stat",
+    ] as const) {
       const { type, donut } = tileToVariant(tile);
       expect(variantToTile({ type, options: donut ? { donut: true } : {} })).toBe(tile);
     }
@@ -210,7 +216,12 @@ describe("isTruncated", () => {
 });
 
 describe("detectNumericMismatch", () => {
-  const barChart: Chart = { id: "c1", type: "bar", encoding: { x: "cat", y: "amount" }, options: {} };
+  const barChart: Chart = {
+    id: "c1",
+    type: "bar",
+    encoding: { x: "cat", y: "amount" },
+    options: {},
+  };
 
   it("returns empty with no rows (nothing to judge yet)", () => {
     expect(detectNumericMismatch(barChart.type, barChart.encoding, [])).toEqual([]);
@@ -270,7 +281,14 @@ describe("detectNumericMismatch", () => {
   });
 
   it("table is never flagged (columns[] is not a numeric-consuming channel)", () => {
-    const tableChart: Chart = { id: "c4", type: "table", encoding: { columns: ["a"] }, options: {} };
-    expect(detectNumericMismatch(tableChart.type, tableChart.encoding, [{ a: "text" }])).toEqual([]);
+    const tableChart: Chart = {
+      id: "c4",
+      type: "table",
+      encoding: { columns: ["a"] },
+      options: {},
+    };
+    expect(detectNumericMismatch(tableChart.type, tableChart.encoding, [{ a: "text" }])).toEqual(
+      [],
+    );
   });
 });

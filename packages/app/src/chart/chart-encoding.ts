@@ -107,7 +107,9 @@ export function usableColumns(previewColumns: string[]): string[] {
  */
 function smartDefaultColumn(slot: 0 | 1, previewColumns: string[]): string {
   if (slot === 0) return previewColumns[0]!;
-  return previewColumns.length > 1 ? previewColumns[previewColumns.length - 1]! : previewColumns[0]!;
+  return previewColumns.length > 1
+    ? previewColumns[previewColumns.length - 1]!
+    : previewColumns[0]!;
 }
 
 /**
@@ -146,7 +148,11 @@ export function reconcileEncoding(
       return { x: pick(0), y: pick(1) };
     case "scatter": {
       const size = carryOver[2];
-      return { x: pick(0), y: pick(1), size: size && previewColumns.includes(size) ? size : undefined };
+      return {
+        x: pick(0),
+        y: pick(1),
+        size: size && previewColumns.includes(size) ? size : undefined,
+      };
     }
     case "pie":
       return { category: pick(0), value: pick(1) };
@@ -169,14 +175,18 @@ export function reconcileEncoding(
  * a later type-switch back to pie with a stale value the user never chose
  * this time).
  */
-export function reconcileChartOptions(prevOptions: ChartOptions, nextType: ChartVariant["type"]): ChartOptions {
+export function reconcileChartOptions(
+  prevOptions: ChartOptions,
+  nextType: ChartVariant["type"],
+): ChartOptions {
   if (nextType === "pie" || prevOptions.donut === undefined) return prevOptions;
   const { donut: _donut, ...rest } = prevOptions;
   return rest;
 }
 
 /** The 8 visual type-picker tiles (plan §UI設計): donut maps to `type: "pie"` + `options.donut: true`, not a separate schema type. */
-export type ChartTypeTile = "bar" | "line" | "area" | "scatter" | "pie" | "donut" | "table" | "stat";
+export type ChartTypeTile =
+  "bar" | "line" | "area" | "scatter" | "pie" | "donut" | "table" | "stat";
 
 export const CHART_TYPE_TILES: Array<{ key: ChartTypeTile; label: string; group: string }> = [
   { key: "bar", label: "棒グラフ", group: "比較" },

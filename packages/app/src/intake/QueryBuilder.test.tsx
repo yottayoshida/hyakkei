@@ -719,9 +719,7 @@ describe("QueryBuilder", () => {
     it("is enabled once previewColumns has resolved, and calls onAddChart with the query's own id", async () => {
       const onAddChart = vi.fn();
       const { host } = await renderInJsdom(
-        <QueryBuilder
-          {...baseProps({ query: query({ previewColumns: ["部署"] }), onAddChart })}
-        />,
+        <QueryBuilder {...baseProps({ query: query({ previewColumns: ["部署"] }), onAddChart })} />,
       );
       const button = graphButton(host);
       expect(button.disabled).toBe(false);

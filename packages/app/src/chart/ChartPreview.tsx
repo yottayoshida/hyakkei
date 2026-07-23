@@ -26,10 +26,7 @@ export function ChartPreview({ chart, rowState }: ChartPreviewProps) {
   // otherwise makes the useEffect dependency below unstable whenever
   // rowState isn't "ready" -- flagged by `react-hooks/exhaustive-deps` as a
   // real lint error, confirmed via `npx eslint`, not just a style nit).
-  const rows: Row[] = useMemo(
-    () => (rowState.status === "ready" ? rowState.rows : []),
-    [rowState],
-  );
+  const rows: Row[] = useMemo(() => (rowState.status === "ready" ? rowState.rows : []), [rowState]);
 
   useEffect(() => {
     const container = containerRef.current;

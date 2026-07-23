@@ -49,7 +49,9 @@ test.describe("editor shell: chart builder (issue #12)", () => {
     await setUpAggregatedQuery(page);
     await page.getByRole("button", { name: GRAPH_BUTTON }).click();
 
-    await expect(page.getByRole("status").filter({ hasText: "グラフを追加しました。" })).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: "グラフを追加しました。" }),
+    ).toBeVisible();
     await expect(page.locator(".hyakkei-chart-card")).toBeFocused();
   });
 
@@ -62,7 +64,9 @@ test.describe("editor shell: chart builder (issue #12)", () => {
     await expect(page.getByRole("button", { name: GRAPH_BUTTON })).toBeEnabled();
   });
 
-  test("switching through all 7 chart types renders each without an error tile", async ({ page }) => {
+  test("switching through all 7 chart types renders each without an error tile", async ({
+    page,
+  }) => {
     await setUpAggregatedQuery(page);
     await page.getByRole("button", { name: GRAPH_BUTTON }).click();
     const card = page.locator(".hyakkei-chart-card");
@@ -313,8 +317,9 @@ test.describe("editor shell: chart builder (issue #12)", () => {
     await expect(card).toContainText("also polluted?");
 
     const after = await page.evaluate(() => Object.getOwnPropertyNames(Object.prototype));
-    expect(after, "Object.prototype gained an own property while building/rendering the chart").toEqual(
-      before,
-    );
+    expect(
+      after,
+      "Object.prototype gained an own property while building/rendering the chart",
+    ).toEqual(before);
   });
 });

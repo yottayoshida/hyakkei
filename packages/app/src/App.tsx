@@ -23,7 +23,13 @@ import {
 } from "@hyakkei/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChartBuilder } from "./chart/ChartBuilder.js";
-import { appendLimit, CHART_ROW_LIMIT, isTruncated, reconcileEncoding, usableColumns } from "./chart/chart-encoding.js";
+import {
+  appendLimit,
+  CHART_ROW_LIMIT,
+  isTruncated,
+  reconcileEncoding,
+  usableColumns,
+} from "./chart/chart-encoding.js";
 import { CHART_DEFAULT_SIZE, nextFreeCell } from "./chart/layout-placement.js";
 import { getDuckDBHandleWithLayer } from "./data-layer.js";
 // Re-exported (not just imported) so existing consumers of `./App.js` keep
@@ -221,7 +227,9 @@ function toJsonPrimitive(value: unknown): JsonPrimitive {
 
 /** `Object.fromEntries`, not bracket assignment onto a plain `{}` (same `__proto__`-column discipline as `handleOverrideChange`'s `values` below). */
 export function toRow(plain: Record<string, unknown>): Row {
-  return Object.fromEntries(Object.entries(plain).map(([key, value]) => [key, toJsonPrimitive(value)]));
+  return Object.fromEntries(
+    Object.entries(plain).map(([key, value]) => [key, toJsonPrimitive(value)]),
+  );
 }
 
 /**
@@ -508,7 +516,8 @@ export function App() {
       setState({ status: "pending" });
 
       const query = queriesRef.current.find((q) => q.id === queryId);
-      const source = query && sourcesRef.current.find((s) => s.sample.table.id === query.sourceTableId);
+      const source =
+        query && sourcesRef.current.find((s) => s.sample.table.id === query.sourceTableId);
       // Fail-closed (code review, Angle A): both call sites today
       // pre-validate this (handleAddChart's own guard, refreshQueryPreview's
       // own success path only chains here once a query/source resolved),
@@ -527,7 +536,9 @@ export function App() {
         if (!isCurrent()) return;
         const rows: Row[] = result
           .toArray()
-          .map((row) => toRow(layer.datasource.rowToPlainObject(row as unknown as Iterable<[string, unknown]>)));
+          .map((row) =>
+            toRow(layer.datasource.rowToPlainObject(row as unknown as Iterable<[string, unknown]>)),
+          );
         // QA Phase 8 V-008: a result that hit CHART_ROW_LIMIT exactly may be
         // missing rows the query would otherwise have returned.
         setState({ status: "ready", rows, truncated: isTruncated(rows.length) });
@@ -709,7 +720,10 @@ export function App() {
           // enumeration F4): a query error must not leave a referencing
           // chart showing its last-successful (now stale) rows.
           if (chartsRef.current.some((c) => c.query === queryId)) {
-            chartGenerationRef.current.set(queryId, (chartGenerationRef.current.get(queryId) ?? 0) + 1);
+            chartGenerationRef.current.set(
+              queryId,
+              (chartGenerationRef.current.get(queryId) ?? 0) + 1,
+            );
             updateChartRowsByQuery((prev) => {
               const next = new Map(prev);
               next.set(queryId, { status: "error" });
@@ -982,7 +996,10 @@ export function App() {
     (chartId: string) => {
       const chart = chartsRef.current.find((c) => c.id === chartId);
       updateCharts((prev) => prev.filter((c) => c.id !== chartId));
-      updateLayout((prev) => ({ ...prev, items: prev.items.filter((item) => item.chart !== chartId) }));
+      updateLayout((prev) => ({
+        ...prev,
+        items: prev.items.filter((item) => item.chart !== chartId),
+      }));
       if (!chart?.query) return;
       const queryId = chart.query;
       if (!chartsRef.current.some((c) => c.query === queryId)) {

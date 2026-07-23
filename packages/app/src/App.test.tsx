@@ -355,7 +355,11 @@ describe("toRow", () => {
   });
 
   it("converts NaN and Infinity to null (not a JSON primitive)", () => {
-    expect(toRow({ a: Number.NaN, b: Infinity, c: -Infinity })).toEqual({ a: null, b: null, c: null });
+    expect(toRow({ a: Number.NaN, b: Infinity, c: -Infinity })).toEqual({
+      a: null,
+      b: null,
+      c: null,
+    });
   });
 
   it("converts a BigInt to a Number (defensive -- rowToPlainObject already does this upstream)", () => {

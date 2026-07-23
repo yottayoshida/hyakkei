@@ -74,7 +74,11 @@ export function overrideMap(typeOverrides: ColumnOverride[]): Map<string, Column
  * `CATEGORY_LABEL` above: `ChartBuilder.tsx` also needs it to build friendly
  * measure-alias labels for encoding `<select>`s (plan §UI設計).
  */
-export const AGGREGATE_LABEL: Record<AggregateFn, string> = { sum: "合計", count: "個数", avg: "平均" };
+export const AGGREGATE_LABEL: Record<AggregateFn, string> = {
+  sum: "合計",
+  count: "個数",
+  avg: "平均",
+};
 
 /**
  * A query's `previewColumns` entry is either a raw groupBy column name or a

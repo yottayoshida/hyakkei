@@ -44,7 +44,11 @@ function query(overrides: Partial<WorkspaceQuery> = {}): WorkspaceQuery {
   return {
     id: "q1",
     sourceTableId: "t1",
-    builderState: { filters: [], groupBy: ["category"], measures: [{ column: "amount", aggregate: "sum" }] },
+    builderState: {
+      filters: [],
+      groupBy: ["category"],
+      measures: [{ column: "amount", aggregate: "sum" }],
+    },
     sql: "SELECT category, SUM(amount) AS sum_amount FROM t1 GROUP BY category",
     previewRows: [],
     previewColumns: ["category", "sum_amount"],
@@ -87,7 +91,9 @@ describe("ChartBuilder", () => {
   it("switching to pie calls onChange with a fully rebuilt encoding (category/value, no leftover x/y)", async () => {
     const onChange = vi.fn();
     const { host } = await renderInJsdom(<ChartBuilder {...baseProps({ onChange })} />);
-    const pieButton = [...host.querySelectorAll("button")].find((b) => b.textContent === "円グラフ")!;
+    const pieButton = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent === "円グラフ",
+    )!;
     await act(async () => {
       pieButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -122,8 +128,12 @@ describe("ChartBuilder", () => {
       options: { donut: true, title: "円グラフ" },
     };
     const onChange = vi.fn();
-    const { host } = await renderInJsdom(<ChartBuilder {...baseProps({ chart: pieChart, onChange })} />);
-    const barButton = [...host.querySelectorAll("button")].find((b) => b.textContent === "棒グラフ")!;
+    const { host } = await renderInJsdom(
+      <ChartBuilder {...baseProps({ chart: pieChart, onChange })} />,
+    );
+    const barButton = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent === "棒グラフ",
+    )!;
     await act(async () => {
       barButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -162,15 +172,23 @@ describe("ChartBuilder", () => {
   it("donut checkbox only renders for type=pie", async () => {
     const { host } = await renderInJsdom(<ChartBuilder {...baseProps()} />);
     expect(host.textContent).not.toContain("ドーナツ表示にする");
-    const pieChart: Chart = { ...BAR_CHART, type: "pie", encoding: { category: "category", value: "sum_amount" } };
-    const { host: pieHost } = await renderInJsdom(<ChartBuilder {...baseProps({ chart: pieChart })} />);
+    const pieChart: Chart = {
+      ...BAR_CHART,
+      type: "pie",
+      encoding: { category: "category", value: "sum_amount" },
+    };
+    const { host: pieHost } = await renderInJsdom(
+      <ChartBuilder {...baseProps({ chart: pieChart })} />,
+    );
     expect(pieHost.textContent).toContain("ドーナツ表示にする");
   });
 
   it("calls onDelete with the chart id", async () => {
     const onDelete = vi.fn();
     const { host } = await renderInJsdom(<ChartBuilder {...baseProps({ onDelete })} />);
-    const deleteButton = host.querySelector("[aria-label='「売上.csv」のグラフを削除']") as HTMLButtonElement;
+    const deleteButton = host.querySelector(
+      "[aria-label='「売上.csv」のグラフを削除']",
+    ) as HTMLButtonElement;
     await act(async () => {
       deleteButton.click();
     });
@@ -183,17 +201,24 @@ describe("ChartBuilder", () => {
   it("does not commit a title edit until blur (no per-keystroke onChange/remount)", async () => {
     const onChange = vi.fn();
     const { host } = await renderInJsdom(
-      <ChartBuilder {...baseProps({ rowState: { status: "ready", rows: [], truncated: false }, onChange })} />,
+      <ChartBuilder
+        {...baseProps({ rowState: { status: "ready", rows: [], truncated: false }, onChange })}
+      />,
     );
     expect(mountSpy).toHaveBeenCalledTimes(1);
-    const titleInput = host.querySelector('input[aria-label="グラフのタイトル"]') as HTMLInputElement;
+    const titleInput = host.querySelector(
+      'input[aria-label="グラフのタイトル"]',
+    ) as HTMLInputElement;
     // React patches the `<input>` instance's own `value` setter to track
     // "last known value" and suppress a synthetic onChange when nothing
     // actually changed from its perspective -- assigning `.value` directly
     // goes through THAT patched setter, so React never sees a difference.
     // The native prototype setter bypasses it, matching how a real keystroke
     // changes the underlying DOM value before React's tracker inspects it.
-    const nativeValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+    const nativeValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )!.set!;
 
     await act(async () => {
       nativeValueSetter.call(titleInput, "A");
@@ -207,7 +232,10 @@ describe("ChartBuilder", () => {
       // not "blur" (which does not bubble and isn't what React delegates).
       titleInput.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
     });
-    expect(onChange).toHaveBeenCalledWith("c1", expect.objectContaining({ options: { title: "A" } }));
+    expect(onChange).toHaveBeenCalledWith(
+      "c1",
+      expect.objectContaining({ options: { title: "A" } }),
+    );
   });
 
   // QA Phase 8, V-008 (Major): the truncation advisory itself didn't exist.
@@ -218,10 +246,14 @@ describe("ChartBuilder", () => {
       <ChartBuilder {...baseProps({ rowState: { status: "ready", rows: [], truncated: true } })} />,
     );
     const advisory = truncatedHost.querySelector('[role="status"]');
-    expect(advisory?.textContent).toBe(`データが多いため、先頭${CHART_ROW_LIMIT.toLocaleString("ja-JP")}件のみ表示しています。`);
+    expect(advisory?.textContent).toBe(
+      `データが多いため、先頭${CHART_ROW_LIMIT.toLocaleString("ja-JP")}件のみ表示しています。`,
+    );
 
     const { host: fullHost } = await renderInJsdom(
-      <ChartBuilder {...baseProps({ rowState: { status: "ready", rows: [], truncated: false } })} />,
+      <ChartBuilder
+        {...baseProps({ rowState: { status: "ready", rows: [], truncated: false } })}
+      />,
     );
     expect(fullHost.textContent).not.toContain("先頭");
   });
@@ -238,7 +270,11 @@ describe("ChartBuilder", () => {
     const { host } = await renderInJsdom(
       <ChartBuilder
         {...baseProps({
-          rowState: { status: "ready", rows: [{ category: "A", sum_amount: "not a number" }], truncated: false },
+          rowState: {
+            status: "ready",
+            rows: [{ category: "A", sum_amount: "not a number" }],
+            truncated: false,
+          },
         })}
       />,
     );
@@ -266,7 +302,7 @@ describe("ChartBuilder", () => {
 
     it("disables every type tile", async () => {
       const { host } = await renderInJsdom(<ChartBuilder {...propsWithNoColumns()} />);
-      for (const button of host.querySelectorAll('button[aria-pressed]')) {
+      for (const button of host.querySelectorAll("button[aria-pressed]")) {
         expect((button as HTMLButtonElement).disabled).toBe(true);
       }
     });
@@ -274,7 +310,9 @@ describe("ChartBuilder", () => {
     it("clicking a type tile does not call onChange (never reaches reconcileEncoding with empty columns)", async () => {
       const onChange = vi.fn();
       const { host } = await renderInJsdom(<ChartBuilder {...propsWithNoColumns({ onChange })} />);
-      const pieButton = [...host.querySelectorAll("button")].find((b) => b.textContent === "円グラフ")!;
+      const pieButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "円グラフ",
+      )!;
       await act(async () => {
         pieButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
@@ -283,7 +321,9 @@ describe("ChartBuilder", () => {
 
     it("disables the encoding <select>s and shows an explanatory message", async () => {
       const { host } = await renderInJsdom(<ChartBuilder {...propsWithNoColumns()} />);
-      expect((host.querySelector('select[aria-label="縦軸"]') as HTMLSelectElement).disabled).toBe(true);
+      expect((host.querySelector('select[aria-label="縦軸"]') as HTMLSelectElement).disabled).toBe(
+        true,
+      );
       expect(host.textContent).toContain("列情報を取得できません");
     });
   });

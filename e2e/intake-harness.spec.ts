@@ -137,7 +137,9 @@ test.describe("editor shell: file registration", () => {
     // forward-looking "today's update" promise), so this note now states
     // only what remains true -- the SAMPLE dashboard shown alongside real
     // data is not the user's own.
-    await expect(page.getByText("サンプル表示です。取り込んだデータではありません。")).toBeVisible();
+    await expect(
+      page.getByText("サンプル表示です。取り込んだデータではありません。"),
+    ).toBeVisible();
   });
 
   test("xlsx multi-sheet: SheetPick appears with all 3 sheet names, choosing one registers it and enters the workspace", async ({

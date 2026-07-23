@@ -123,7 +123,10 @@ export const ChartBuilder = memo(function ChartBuilder({
   // all -- depending on the whole object would rescan on every such edit,
   // defeating the memoization this exists for.
   const mismatchedChannels = useMemo(
-    () => (rowState.status === "ready" ? detectNumericMismatch(chart.type, chart.encoding, rowState.rows) : []),
+    () =>
+      rowState.status === "ready"
+        ? detectNumericMismatch(chart.type, chart.encoding, rowState.rows)
+        : [],
     [chart.type, chart.encoding, rowState],
   );
 
@@ -270,7 +273,10 @@ export const ChartBuilder = memo(function ChartBuilder({
                           this") must be visible, not just inferred from the
                           comment above. */}
                       {isLastChecked && (
-                        <span id={lastColumnNoteId} style={{ marginLeft: 8, fontSize: 12, color: "#6b7280" }}>
+                        <span
+                          id={lastColumnNoteId}
+                          style={{ marginLeft: 8, fontSize: 12, color: "#6b7280" }}
+                        >
                           （表には1列以上必要です）
                         </span>
                       )}
@@ -353,7 +359,9 @@ export const ChartBuilder = memo(function ChartBuilder({
         <p role="status" style={{ marginTop: 8, fontSize: 13, color: "#b45309" }}>
           「
           {mismatchedChannels
-            .map((key) => ENCODING_FIELDS[chart.type].find((field) => field.key === key)?.label ?? key)
+            .map(
+              (key) => ENCODING_FIELDS[chart.type].find((field) => field.key === key)?.label ?? key,
+            )
             .join("」「")}
           」に選択した列は数値として認識できませんでした。
         </p>

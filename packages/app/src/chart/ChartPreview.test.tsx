@@ -94,7 +94,10 @@ describe("ChartPreview", () => {
   it("re-mounts with an empty rowsByQuery when chart.query is unset (never crashes on an unconfigured chart)", async () => {
     const unconfigured: Chart = { id: "c2", type: "stat", encoding: { value: "n" }, options: {} };
     const { unmount } = await renderInJsdom(
-      <ChartPreview chart={unconfigured} rowState={{ status: "ready", rows: [], truncated: false }} />,
+      <ChartPreview
+        chart={unconfigured}
+        rowState={{ status: "ready", rows: [], truncated: false }}
+      />,
     );
     expect(mountSpy).toHaveBeenCalledTimes(1);
     const model = mountSpy.mock.calls[0]![1];
@@ -112,7 +115,7 @@ describe("ChartPreview", () => {
   // `Object.hasOwn`-based lookup (render-model.ts's `lookupRows`) would
   // fail to find it and this chart would render with NO rows instead of
   // the real ones -- that's the failure this assertion actually catches.
-  it("handles chart.query === \"__proto__\" as a real own rowsByQuery key, correctly retrieved (not silently dropped)", async () => {
+  it('handles chart.query === "__proto__" as a real own rowsByQuery key, correctly retrieved (not silently dropped)', async () => {
     const protoQueryChart: Chart = {
       id: "c3",
       type: "stat",
@@ -122,7 +125,10 @@ describe("ChartPreview", () => {
     };
     const rows = [{ n: 1 }];
     const { unmount } = await renderInJsdom(
-      <ChartPreview chart={protoQueryChart} rowState={{ status: "ready", rows, truncated: false }} />,
+      <ChartPreview
+        chart={protoQueryChart}
+        rowState={{ status: "ready", rows, truncated: false }}
+      />,
     );
     expect(mountSpy).toHaveBeenCalledTimes(1);
     const model = mountSpy.mock.calls[0]![1];
