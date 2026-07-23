@@ -2,7 +2,7 @@
 // V-105 (missing encoding column) / V-106 (empty rows) / V-109 (unresolved
 // layout reference, unconfigured chart, no layout items): mount() must never
 // leave a blank grid slot (plan §非機能要件 可用性 "白画面にしない").
-import type { Chart, ChartVariant, Dashboard, LayoutItem } from "@hyakkei/schema";
+import type { Chart, Dashboard, LayoutItem } from "@hyakkei/schema";
 import * as echarts from "echarts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as accessibleTable from "./accessible-table.js";
