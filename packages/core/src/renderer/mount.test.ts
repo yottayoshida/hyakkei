@@ -701,7 +701,10 @@ describe("patch()", () => {
     };
   }
 
-  function nonOkEntry(id: string, state: "empty" | "unconfigured" | "pending" | "error"): RenderChart {
+  function nonOkEntry(
+    id: string,
+    state: "empty" | "unconfigured" | "pending" | "error",
+  ): RenderChart {
     return {
       id,
       chart: { id, type: "bar", encoding: { x: "cat", y: "val" }, options: {} } as Chart,
@@ -725,13 +728,25 @@ describe("patch()", () => {
   it("V-001: rows change on the same id+type re-renders via the same live instance, with no stale data", () => {
     const el = container();
     patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
-    const instance1 = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement);
+    const instance1 = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    );
 
     patch(
       el,
-      model([barChart("c1", [{ cat: "B", val: 2 }, { cat: "C", val: 3 }])], [item("c1")]),
+      model(
+        [
+          barChart("c1", [
+            { cat: "B", val: 2 },
+            { cat: "C", val: 3 },
+          ]),
+        ],
+        [item("c1")],
+      ),
     );
-    const instance2 = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement);
+    const instance2 = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    );
 
     expect(instance2).toBe(instance1);
     const series = instance2!.getOption().series as Array<{ data: unknown[] }>;
@@ -741,7 +756,9 @@ describe("patch()", () => {
   it("V-002: reusing a surviving instance always calls setOption with {notMerge: true}", () => {
     const el = container();
     patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
-    const instance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const instance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
     const setOptionSpy = vi.spyOn(instance, "setOption");
 
     patch(el, model([barChart("c1", [{ cat: "B", val: 2 }])], [item("c1")]));
@@ -755,10 +772,14 @@ describe("patch()", () => {
   it("V-003: same id, type change (bar -> pie) disposes the old instance and builds a new one, never reusing across types", () => {
     const el = container();
     patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
-    const oldInstance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const oldInstance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
 
     patch(el, model([pieChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
-    const newInstance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement);
+    const newInstance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    );
 
     expect(oldInstance.isDisposed()).toBe(true);
     expect(newInstance).not.toBe(oldInstance);
@@ -768,7 +789,9 @@ describe("patch()", () => {
   it("V-004: same id, ECharts type -> DOM type (bar -> table) disposes the instance and swaps to a table element", () => {
     const el = container();
     patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
-    const oldInstance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const oldInstance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
 
     patch(el, model([tableChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
 
@@ -782,35 +805,40 @@ describe("patch()", () => {
     ["unconfigured", "unconfigured"] as const,
     ["pending", "pending"] as const,
     ["error", "error"] as const,
-  ])("V-005: ok -> %s disposes the live instance and shows a message tile, not a stale canvas", (_label, state) => {
-    const el = container();
-    patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
-    const oldInstance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+  ])(
+    "V-005: ok -> %s disposes the live instance and shows a message tile, not a stale canvas",
+    (_label, state) => {
+      const el = container();
+      patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
+      const oldInstance = echarts.getInstanceByDom(
+        el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+      )!;
 
-    patch(el, model([nonOkEntry("c1", state)], [item("c1")]));
+      patch(el, model([nonOkEntry("c1", state)], [item("c1")]));
 
-    expect(oldInstance.isDisposed()).toBe(true);
-    expect(el.querySelector(".hyakkei-chart-canvas")).toBeNull();
-  });
+      expect(oldInstance.isDisposed()).toBe(true);
+      expect(el.querySelector(".hyakkei-chart-canvas")).toBeNull();
+    },
+  );
 
   // Phase 6-B (Codex adversarial test review, suggested test): the reverse
   // of V-005 -- a chart that WAS a message tile (no live instance at all)
   // resolving to "ok" must build a real, live canvas, not remain stuck
   // showing the stale message tile forever.
-  it.each([
-    ["pending", "pending"] as const,
-    ["error", "error"] as const,
-  ])("%s -> ok builds a live canvas, replacing the message tile", (_label, state) => {
-    const el = container();
-    patch(el, model([nonOkEntry("c1", state)], [item("c1")]));
-    expect(el.querySelector(".hyakkei-chart-canvas")).toBeNull();
+  it.each([["pending", "pending"] as const, ["error", "error"] as const])(
+    "%s -> ok builds a live canvas, replacing the message tile",
+    (_label, state) => {
+      const el = container();
+      patch(el, model([nonOkEntry("c1", state)], [item("c1")]));
+      expect(el.querySelector(".hyakkei-chart-canvas")).toBeNull();
 
-    patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
+      patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
 
-    const canvas = el.querySelector(".hyakkei-chart-canvas");
-    expect(canvas).not.toBeNull();
-    expect(echarts.getInstanceByDom(canvas as HTMLElement)?.isDisposed()).toBeFalsy();
-  });
+      const canvas = el.querySelector(".hyakkei-chart-canvas");
+      expect(canvas).not.toBeNull();
+      expect(echarts.getInstanceByDom(canvas as HTMLElement)?.isDisposed()).toBeFalsy();
+    },
+  );
 
   it("V-006: the accessible fallback table is rebuilt (not stale) when reusing a live instance via setOption", () => {
     const el = container();
@@ -827,7 +855,9 @@ describe("patch()", () => {
     const el = container();
     const entry = barChart("c1", [{ cat: "A", val: 1 }]); // built ONCE, reused by reference below
     patch(el, model([entry], [item("c1", 0, 0, 6, 4)]));
-    const instance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const instance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
     const tileBefore = el.querySelector(".hyakkei-tile") as HTMLElement;
     // Phase 6-B (Codex adversarial test review, Medium finding): pin the
     // ACTUAL style contract, not just "no ECharts call" -- a mutation that
@@ -848,7 +878,9 @@ describe("patch()", () => {
     expect(vi.mocked(echarts.init)).not.toHaveBeenCalled();
     expect(setOptionSpy).not.toHaveBeenCalled();
     expect(resizeSpy).toHaveBeenCalledTimes(1);
-    expect(echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)).toBe(instance);
+    expect(echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)).toBe(
+      instance,
+    );
     const tileAfter = el.querySelector(".hyakkei-tile") as HTMLElement;
     expect(tileAfter.style.gridColumn).toBe("7 / span 6");
     expect(tileAfter.style.gridRow).toBe("1 / span 4");
@@ -861,7 +893,9 @@ describe("patch()", () => {
     const el = container();
     const entry = barChart("c1", [{ cat: "A", val: 1 }]);
     patch(el, model([entry], [item("c1", 0, 0, 6, 4)]));
-    const instance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const instance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
     vi.mocked(echarts.init).mockClear();
     const setOptionSpy = vi.spyOn(instance, "setOption");
     const resizeSpy = vi.spyOn(instance, "resize");
@@ -871,7 +905,9 @@ describe("patch()", () => {
     expect(vi.mocked(echarts.init)).not.toHaveBeenCalled();
     expect(setOptionSpy).not.toHaveBeenCalled();
     expect(resizeSpy).toHaveBeenCalledTimes(1);
-    expect(echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)).toBe(instance);
+    expect(echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)).toBe(
+      instance,
+    );
     const tileAfter = el.querySelector(".hyakkei-tile") as HTMLElement;
     expect(tileAfter.style.gridRow).toBe("1 / span 8");
   });
@@ -880,7 +916,9 @@ describe("patch()", () => {
     const el = container();
     const entry = barChart("c1", [{ cat: "A", val: 1 }]);
     patch(el, model([entry], [item("c1")], buildEChartsTheme("guidebook-blue", "light")));
-    const instance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const instance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
     vi.mocked(echarts.init).mockClear();
     const setOptionSpy = vi.spyOn(instance, "setOption");
 
@@ -897,7 +935,9 @@ describe("patch()", () => {
     const el = container();
     const rows = [{ cat: "A", val: 1 }];
     patch(el, model([barChart("c1", rows, { title: "A" })], [item("c1")]));
-    const instance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const instance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
     const setOptionSpy = vi.spyOn(instance, "setOption");
 
     patch(el, model([barChart("c1", rows, { title: "B" })], [item("c1")]));
@@ -959,7 +999,9 @@ describe("patch()", () => {
     const entry = barChart("c1", [{ cat: "A", val: 1 }]);
     const theme = buildEChartsTheme("guidebook-blue", "light");
     patch(el, model([entry], [item("c1")], theme));
-    const instance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const instance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
     vi.mocked(echarts.init).mockClear();
     const setOptionSpy = vi.spyOn(instance, "setOption");
 
@@ -967,14 +1009,18 @@ describe("patch()", () => {
 
     expect(vi.mocked(echarts.init)).not.toHaveBeenCalled();
     expect(setOptionSpy).not.toHaveBeenCalled();
-    expect(echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)).toBe(instance);
+    expect(echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)).toBe(
+      instance,
+    );
   });
 
   it("V-015 (contrast): a fresh chart reference with equal-looking content is still treated as changed, not silently skipped", () => {
     const el = container();
     const rows = [{ cat: "A", val: 1 }];
     patch(el, model([barChart("c1", rows)], [item("c1")]));
-    const instance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const instance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
     const setOptionSpy = vi.spyOn(instance, "setOption");
 
     patch(el, model([barChart("c1", rows)], [item("c1")])); // new chart object, same rows reference
@@ -1012,8 +1058,8 @@ describe("patch()", () => {
     patch(el, model([c1], [item("c1")]));
 
     patch(el, model([c1], [item("c1", 0, 0, 6, 4), item("c1", 6, 0, 6, 4)]));
-    const duplicateEraInstances = [...el.querySelectorAll(".hyakkei-chart-canvas")].map(
-      (canvas) => echarts.getInstanceByDom(canvas as HTMLElement)!,
+    const duplicateEraInstances = [...el.querySelectorAll(".hyakkei-chart-canvas")].map((canvas) =>
+      echarts.getInstanceByDom(canvas as HTMLElement)!,
     );
     expect(duplicateEraInstances).toHaveLength(2);
 
@@ -1037,8 +1083,8 @@ describe("patch()", () => {
 
     // First-ever patch() call for this container, and it's already duplicated.
     patch(el, model([c1], [item("c1", 0, 0, 6, 4), item("c1", 6, 0, 6, 4)]));
-    const duplicateEraInstances = [...el.querySelectorAll(".hyakkei-chart-canvas")].map(
-      (canvas) => echarts.getInstanceByDom(canvas as HTMLElement)!,
+    const duplicateEraInstances = [...el.querySelectorAll(".hyakkei-chart-canvas")].map((canvas) =>
+      echarts.getInstanceByDom(canvas as HTMLElement)!,
     );
     expect(duplicateEraInstances).toHaveLength(2);
 
@@ -1057,7 +1103,9 @@ describe("patch()", () => {
   it("Codex review P1: patch() over a container previously driven by mount() disposes the old instance, not just discards its DOM node", () => {
     const el = container();
     mount(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
-    const oldInstance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const oldInstance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
 
     patch(el, model([barChart("c1", [{ cat: "B", val: 2 }])], [item("c1")]));
 
@@ -1079,8 +1127,12 @@ describe("patch()", () => {
     const c1 = barChart("c1", [{ cat: "A", val: 1 }]);
     patch(containerA, model([c1], [item("c1")]));
     patch(containerB, model([c1], [item("c1")]));
-    const instanceA = echarts.getInstanceByDom(containerA.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
-    const instanceB = echarts.getInstanceByDom(containerB.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const instanceA = echarts.getInstanceByDom(
+      containerA.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
+    const instanceB = echarts.getInstanceByDom(
+      containerB.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
 
     unmount(containerA);
 
@@ -1091,7 +1143,9 @@ describe("patch()", () => {
   it("V-020: a failed reuse removes the registry entry for that id -- the next patch() builds fresh instead of touching the disposed instance", () => {
     const el = container();
     patch(el, model([barChart("c1", [{ cat: "A", val: 1 }])], [item("c1")]));
-    const firstInstance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement)!;
+    const firstInstance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
     vi.spyOn(firstInstance, "setOption").mockImplementationOnce(() => {
       throw new Error("boom");
     });
@@ -1101,7 +1155,9 @@ describe("patch()", () => {
     expect(el.querySelector(".hyakkei-error-tile")).not.toBeNull();
 
     patch(el, model([barChart("c1", [{ cat: "C", val: 3 }])], [item("c1")]));
-    const newInstance = echarts.getInstanceByDom(el.querySelector(".hyakkei-chart-canvas") as HTMLElement);
+    const newInstance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    );
     expect(newInstance).toBeDefined();
     expect(newInstance?.isDisposed()).toBeFalsy();
   });

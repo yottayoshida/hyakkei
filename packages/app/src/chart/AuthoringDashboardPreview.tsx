@@ -159,7 +159,11 @@ function AuthoringDashboardGrid({ charts, layout, chartRowsByQuery }: GridProps)
 const BOUNDARY_KEY = "authoring-dashboard-preview";
 const LABEL_ID = "authoring-dashboard-preview-label";
 
-export function AuthoringDashboardPreview({ charts, layout, chartRowsByQuery }: AuthoringDashboardPreviewProps) {
+export function AuthoringDashboardPreview({
+  charts,
+  layout,
+  chartRowsByQuery,
+}: AuthoringDashboardPreviewProps) {
   // UX review (Phase 2, silent-wrong-render recovery): patch()'s failure
   // modes are internal-state bugs (a stale/wrong reuse), not throws -- the
   // error boundary alone can't catch those. Incrementing this remounts
@@ -177,12 +181,15 @@ export function AuthoringDashboardPreview({ charts, layout, chartRowsByQuery }: 
   const [resetAnnouncement, setResetAnnouncement] = useState<string | null>(null);
 
   return (
-    <div
-      className="hyakkei-authoring-dashboard-preview"
-      role="region"
-      aria-labelledby={LABEL_ID}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+    <div className="hyakkei-authoring-dashboard-preview" role="region" aria-labelledby={LABEL_ID}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 4,
+        }}
+      >
         {/* UX review: role-separation label from (A) ChartBuilder's own
             per-card preview -- the same chart appears in both, and without
             a label distinguishing them a user may wonder why. */}
@@ -205,12 +212,17 @@ export function AuthoringDashboardPreview({ charts, layout, chartRowsByQuery }: 
       {resetAnnouncement && <p role="status">{resetAnnouncement}</p>}
       {anyChartTruncated(charts, chartRowsByQuery) && (
         <p role="status" style={{ margin: "4px 0", fontSize: 13, color: "#b45309" }}>
-          一部のグラフはデータが多いため、先頭{CHART_ROW_LIMIT.toLocaleString("ja-JP")}件のみ表示しています。
+          一部のグラフはデータが多いため、先頭{CHART_ROW_LIMIT.toLocaleString("ja-JP")}
+          件のみ表示しています。
         </p>
       )}
       <div style={{ border: "1px dashed #d1d5db", borderRadius: 8, padding: 8 }}>
         <DashboardErrorBoundary key={`${BOUNDARY_KEY}:${resetSeq}`}>
-          <AuthoringDashboardGrid charts={charts} layout={layout} chartRowsByQuery={chartRowsByQuery} />
+          <AuthoringDashboardGrid
+            charts={charts}
+            layout={layout}
+            chartRowsByQuery={chartRowsByQuery}
+          />
         </DashboardErrorBoundary>
       </div>
     </div>

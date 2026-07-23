@@ -155,7 +155,10 @@ function renderTile(entry: RenderChart, option: EChartsOption | undefined): HTML
       // not just "something broke") -- kept word-for-word identical so the
       // same failure reads the same way in both surfaces.
       return buildTile(
-        buildMessageTile("プレビューを表示できませんでした。集計の内容を確認してください。", "error"),
+        buildMessageTile(
+          "プレビューを表示できませんでした。集計の内容を確認してください。",
+          "error",
+        ),
       );
 
     case "empty":
@@ -317,10 +320,7 @@ type Held = { tile: HTMLElement; instance?: echarts.ECharts; type?: ChartVariant
  */
 const mountStates = new WeakMap<HTMLElement, { held: Map<string, Held>; model: RenderModel }>();
 
-function themeEqual(
-  a: RenderModel["theme"],
-  b: RenderModel["theme"],
-): boolean {
+function themeEqual(a: RenderModel["theme"], b: RenderModel["theme"]): boolean {
   return (
     a.backgroundColor === b.backgroundColor &&
     a.textStyle.color === b.textStyle.color &&

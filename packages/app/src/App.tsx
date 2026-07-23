@@ -1280,7 +1280,11 @@ export function App() {
           look-alike chart that has nothing to do with it) gets WORSE, not
           better, once real charts exist alongside it. */}
       {charts.length > 0 ? (
-        <AuthoringDashboardPreview charts={charts} layout={layout} chartRowsByQuery={chartRowsByQuery} />
+        <AuthoringDashboardPreview
+          charts={charts}
+          layout={layout}
+          chartRowsByQuery={chartRowsByQuery}
+        />
       ) : (
         <>
           {/* UX review (post-implementation, H-1): before #11a, index.html

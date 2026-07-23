@@ -39,11 +39,15 @@ test.describe("editor shell: unified dashboard-grid preview (issue #70/#12(B))",
     page,
   }) => {
     await setUpAggregatedQuery(page);
-    await expect(page.getByText("サンプル表示です。取り込んだデータではありません。")).toBeVisible();
+    await expect(
+      page.getByText("サンプル表示です。取り込んだデータではありません。"),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: GRAPH_BUTTON }).click();
 
-    await expect(page.getByText("サンプル表示です。取り込んだデータではありません。")).toHaveCount(0);
+    await expect(page.getByText("サンプル表示です。取り込んだデータではありません。")).toHaveCount(
+      0,
+    );
     const grid = gridPreview(page);
     await expect(grid).toBeVisible();
     await expect(grid.locator(".hyakkei-chart-canvas")).toHaveCount(1);
@@ -116,7 +120,11 @@ test.describe("editor shell: unified dashboard-grid preview (issue #70/#12(B))",
     const grid = gridPreview(page);
     await expect(grid.locator(".hyakkei-chart-canvas")).toHaveCount(2);
 
-    await page.locator(".hyakkei-chart-card").first().getByRole("button", { name: /のグラフを削除/ }).click();
+    await page
+      .locator(".hyakkei-chart-card")
+      .first()
+      .getByRole("button", { name: /のグラフを削除/ })
+      .click();
 
     await expect(grid.locator(".hyakkei-chart-canvas")).toHaveCount(1);
     await expect(grid.locator(".hyakkei-error-tile")).toHaveCount(0);
@@ -127,13 +135,20 @@ test.describe("editor shell: unified dashboard-grid preview (issue #70/#12(B))",
     await page.getByRole("button", { name: GRAPH_BUTTON }).click();
     await expect(gridPreview(page)).toBeVisible();
 
-    await page.locator(".hyakkei-chart-card").getByRole("button", { name: /のグラフを削除/ }).click();
+    await page
+      .locator(".hyakkei-chart-card")
+      .getByRole("button", { name: /のグラフを削除/ })
+      .click();
 
-    await expect(page.getByText("サンプル表示です。取り込んだデータではありません。")).toBeVisible();
+    await expect(
+      page.getByText("サンプル表示です。取り込んだデータではありません。"),
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: "配置ビューを再構築" })).toHaveCount(0);
   });
 
-  test("the manual reset button rebuilds the grid from scratch without breaking it", async ({ page }) => {
+  test("the manual reset button rebuilds the grid from scratch without breaking it", async ({
+    page,
+  }) => {
     await setUpAggregatedQuery(page);
     await page.getByRole("button", { name: GRAPH_BUTTON }).click();
     const grid = gridPreview(page);

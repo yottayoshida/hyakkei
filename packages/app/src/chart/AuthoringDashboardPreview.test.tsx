@@ -27,7 +27,10 @@ const CHART_A: Chart = {
   query: "q1",
   options: {},
 };
-const LAYOUT = { grid: "guidebook-12col" as const, items: [{ chart: "c1", x: 0, y: 0, w: 6, h: 6 }] };
+const LAYOUT = {
+  grid: "guidebook-12col" as const,
+  items: [{ chart: "c1", x: 0, y: 0, w: 6, h: 6 }],
+};
 
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -71,7 +74,7 @@ describe("toRowsByQuery", () => {
   // property, not silently reassign the record's own prototype -- the same
   // class of bug `ChartPreview.tsx`'s own computed-key rowsByQuery already
   // pins (this PR's Map->Record helper is the second such boundary).
-  it("handles a query id of \"__proto__\" as a real own property (prototype pollution discipline)", () => {
+  it('handles a query id of "__proto__" as a real own property (prototype pollution discipline)', () => {
     const map = new Map<string, ChartRowState>([
       ["__proto__", { status: "ready", rows: [{ n: 1 }], truncated: false }],
     ]);
@@ -88,7 +91,11 @@ describe("AuthoringDashboardPreview", () => {
       ["q1", { status: "ready", rows: [{ category: "A", total: 1 }], truncated: false }],
     ]);
     const { unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery}
+      />,
     );
 
     expect(patchSpy).toHaveBeenCalledTimes(1);
@@ -116,7 +123,9 @@ describe("AuthoringDashboardPreview", () => {
       ["q1", { status: "ready", rows: [], truncated: false }],
     ]);
     const props = { charts: [CHART_A], layout: LAYOUT, chartRowsByQuery };
-    const { rerender, unmount: cleanup } = await renderInJsdom(<AuthoringDashboardPreview {...props} />);
+    const { rerender, unmount: cleanup } = await renderInJsdom(
+      <AuthoringDashboardPreview {...props} />,
+    );
     patchSpy.mockClear();
 
     await rerender(<AuthoringDashboardPreview {...props} />);
@@ -139,14 +148,24 @@ describe("AuthoringDashboardPreview", () => {
       ["q1", { status: "ready", rows: [{ category: "A", total: 1 }], truncated: false }],
     ]);
     const { rerender, unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery1} />,
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery1}
+      />,
     );
     patchSpy.mockClear();
 
     const chartRowsByQuery2 = new Map<string, ChartRowState>([
       ["q1", { status: "ready", rows: [{ category: "B", total: 2 }], truncated: false }],
     ]);
-    await rerender(<AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery2} />);
+    await rerender(
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery2}
+      />,
+    );
 
     expect(patchSpy).toHaveBeenCalledTimes(1);
     expect(patchSpy.mock.calls[0]![1].charts[0].rows).toEqual([{ category: "B", total: 2 }]);
@@ -157,7 +176,11 @@ describe("AuthoringDashboardPreview", () => {
   it("calls unmount() exactly once when the component itself unmounts (teardown-effect)", async () => {
     const chartRowsByQuery = new Map<string, ChartRowState>();
     const { unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[]} layout={{ grid: "guidebook-12col", items: [] }} chartRowsByQuery={chartRowsByQuery} />,
+      <AuthoringDashboardPreview
+        charts={[]}
+        layout={{ grid: "guidebook-12col", items: [] }}
+        chartRowsByQuery={chartRowsByQuery}
+      />,
     );
     await cleanup();
     expect(unmountSpy).toHaveBeenCalledTimes(1);
@@ -166,10 +189,14 @@ describe("AuthoringDashboardPreview", () => {
   // V-017: a chart whose query is pending must render as "pending" (計算
   // 中…), not silently collapse through toRowsByQuery's [] into
   // normalizeAuthoring's own "empty" (データがありません, a false negative).
-  it("overlays state:\"pending\" onto a chart whose query is still pending", async () => {
+  it('overlays state:"pending" onto a chart whose query is still pending', async () => {
     const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "pending" }]]);
     const { unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery}
+      />,
     );
     const model = patchSpy.mock.calls[0]![1];
     expect(model.charts[0].state).toBe("pending");
@@ -177,20 +204,30 @@ describe("AuthoringDashboardPreview", () => {
   });
 
   // V-021 counterpart: same overlay, for a failed query.
-  it("overlays state:\"error\" onto a chart whose query failed", async () => {
+  it('overlays state:"error" onto a chart whose query failed', async () => {
     const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "error" }]]);
     const { unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery}
+      />,
     );
     const model = patchSpy.mock.calls[0]![1];
     expect(model.charts[0].state).toBe("error");
     await cleanup();
   });
 
-  it("a genuinely-ready query with zero rows stays \"empty\" (not reclassified as pending/error)", async () => {
-    const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "ready", rows: [], truncated: false }]]);
+  it('a genuinely-ready query with zero rows stays "empty" (not reclassified as pending/error)', async () => {
+    const chartRowsByQuery = new Map<string, ChartRowState>([
+      ["q1", { status: "ready", rows: [], truncated: false }],
+    ]);
     const { unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery}
+      />,
     );
     const model = patchSpy.mock.calls[0]![1];
     expect(model.charts[0].state).toBe("empty");
@@ -204,14 +241,20 @@ describe("AuthoringDashboardPreview", () => {
   // fallback renders instead of the error propagating uncaught out of the
   // whole component.
   it("a patch() throw is caught by DashboardErrorBoundary, not left to propagate uncaught", async () => {
-    const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "ready", rows: [], truncated: false }]]);
+    const chartRowsByQuery = new Map<string, ChartRowState>([
+      ["q1", { status: "ready", rows: [], truncated: false }],
+    ]);
     patchSpy.mockImplementationOnce(() => {
       throw new Error("boom");
     });
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const { host, unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery}
+      />,
     );
 
     expect(host.querySelector('[role="alert"]')?.textContent).toBe(
@@ -222,14 +265,22 @@ describe("AuthoringDashboardPreview", () => {
   });
 
   it("the reset button calls unmount() then patch() again, forcing a full rebuild", async () => {
-    const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "ready", rows: [], truncated: false }]]);
+    const chartRowsByQuery = new Map<string, ChartRowState>([
+      ["q1", { status: "ready", rows: [], truncated: false }],
+    ]);
     const { host, unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery}
+      />,
     );
     patchSpy.mockClear();
     unmountSpy.mockClear();
 
-    const resetButton = host.querySelector('button[aria-label="配置ビューを再構築"]') as HTMLButtonElement;
+    const resetButton = host.querySelector(
+      'button[aria-label="配置ビューを再構築"]',
+    ) as HTMLButtonElement;
     await act(async () => {
       resetButton.click();
     });
@@ -248,13 +299,21 @@ describe("AuthoringDashboardPreview", () => {
   // the button's whole reason to exist is giving a user who suspects a
   // silent-wrong render a way to confirm the view was rebuilt.
   it("the reset button announces its own effect via role=status", async () => {
-    const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "ready", rows: [], truncated: false }]]);
+    const chartRowsByQuery = new Map<string, ChartRowState>([
+      ["q1", { status: "ready", rows: [], truncated: false }],
+    ]);
     const { host, unmount: cleanup } = await renderInJsdom(
-      <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery}
+      />,
     );
 
     expect(host.querySelector('[role="status"]')).toBeNull();
-    const resetButton = host.querySelector('button[aria-label="配置ビューを再構築"]') as HTMLButtonElement;
+    const resetButton = host.querySelector(
+      'button[aria-label="配置ビューを再構築"]',
+    ) as HTMLButtonElement;
     await act(async () => {
       resetButton.click();
     });
@@ -274,7 +333,11 @@ describe("AuthoringDashboardPreview", () => {
         ["q1", { status: "ready", rows: [], truncated: true }],
       ]);
       const { host, unmount: cleanup } = await renderInJsdom(
-        <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+        <AuthoringDashboardPreview
+          charts={[CHART_A]}
+          layout={LAYOUT}
+          chartRowsByQuery={chartRowsByQuery}
+        />,
       );
 
       expect(host.textContent).toContain("一部のグラフはデータが多いため");
@@ -286,7 +349,11 @@ describe("AuthoringDashboardPreview", () => {
         ["q1", { status: "ready", rows: [], truncated: false }],
       ]);
       const { host, unmount: cleanup } = await renderInJsdom(
-        <AuthoringDashboardPreview charts={[CHART_A]} layout={LAYOUT} chartRowsByQuery={chartRowsByQuery} />,
+        <AuthoringDashboardPreview
+          charts={[CHART_A]}
+          layout={LAYOUT}
+          chartRowsByQuery={chartRowsByQuery}
+        />,
       );
 
       expect(host.textContent).not.toContain("一部のグラフはデータが多いため");

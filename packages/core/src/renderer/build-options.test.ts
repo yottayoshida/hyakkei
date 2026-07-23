@@ -39,8 +39,16 @@ describe("buildChartOption", () => {
   // through the same `default: return undefined`, but a future change to
   // the switch's case list could silently regress one without the other).
   it.each([
-    ["table", { id: "c1", type: "table" as const, encoding: { columns: ["cat"] }, options: {} }, [{ cat: "A" }]],
-    ["stat", { id: "c1", type: "stat" as const, encoding: { value: "cat" }, options: {} }, [{ cat: "A" }]],
+    [
+      "table",
+      { id: "c1", type: "table" as const, encoding: { columns: ["cat"] }, options: {} },
+      [{ cat: "A" }],
+    ],
+    [
+      "stat",
+      { id: "c1", type: "stat" as const, encoding: { value: "cat" }, options: {} },
+      [{ cat: "A" }],
+    ],
   ])("returns undefined for %s (DOM-rendered, not an ECharts option)", (_label, chart, rows) => {
     const entry: RenderModel["charts"][number] = { id: "c1", chart, rows, state: "ok" };
     expect(buildChartOption(entry, theme)).toBeUndefined();
