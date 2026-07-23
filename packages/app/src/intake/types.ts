@@ -4,7 +4,8 @@ import type {
   NetworkBlockedReason,
   RegisteredTable,
 } from "@hyakkei/core/datasource";
-import type { BuilderState } from "@hyakkei/schema";
+import type { Row } from "@hyakkei/core/renderer";
+import type { AggregateFn, BuilderState } from "@hyakkei/schema";
 
 /**
  * `DataSourceErrorKind` (core) plus two app-only leaves for failures that
@@ -67,6 +68,54 @@ export function categoryLabel(category: ColumnCategory | "other" | undefined): s
 export function overrideMap(typeOverrides: ColumnOverride[]): Map<string, ColumnCategory> {
   return new Map(typeOverrides.map((entry) => [entry.column, entry.category]));
 }
+
+/**
+ * Shared here (moved from `QueryBuilder.tsx`, issue #12), same reasoning as
+ * `CATEGORY_LABEL` above: `ChartBuilder.tsx` also needs it to build friendly
+ * measure-alias labels for encoding `<select>`s (plan §UI設計).
+ */
+export const AGGREGATE_LABEL: Record<AggregateFn, string> = {
+  sum: "合計",
+  count: "個数",
+  avg: "平均",
+};
+
+/**
+ * A query's `previewColumns` entry is either a raw groupBy column name or a
+ * measure alias (`${aggregate}_${column}`, `query-sql.ts`'s
+ * `measureAliasBase`) -- this reverses that convention for display, so
+ * `ChartBuilder.tsx`'s encoding pickers can show "合計(売上)" instead of the
+ * raw `sum_amount` alias (plan §UI設計). Best-effort: a column-name
+ * collision that forced `uniqueRawAlias` to suffix the alias falls back to
+ * showing the raw name verbatim, same as any other unrecognized column.
+ */
+export function friendlyColumnLabel(column: string, query: WorkspaceQuery): string {
+  const measure = query.builderState.measures.find((m) => `${m.aggregate}_${m.column}` === column);
+  return measure ? `${AGGREGATE_LABEL[measure.aggregate]}(${measure.column})` : column;
+}
+
+/**
+ * Per-query chart-row fetch state (issue #12, plan §チャート行データ). A
+ * discriminated union, not `rows: Row[] | null` + a separate `pending`
+ * boolean -- without a distinct `"pending"` state, a chart's first-ever
+ * fetch and a query that resolved to zero rows are visually identical (a
+ * blank preview), which shape enumeration flagged as a transient
+ * "データがありません" flash on every newly-added chart (Doherty/UX gap).
+ *
+ * `truncated` (QA Phase 8, V-008) is `true` when `rows.length` hit
+ * `CHART_ROW_LIMIT` exactly -- the query MAY have had more rows than that,
+ * but this state alone can't distinguish "exactly the limit" from "more
+ * than the limit" (the fetch only ever asks for `CHART_ROW_LIMIT` rows).
+ * Treating a limit-hitting result as "possibly truncated" is the correct,
+ * fail-closed reading: understating the risk (only warning when a row
+ * count PROVABLY exceeds the limit) would need fetching `LIMIT + 1` rows
+ * just to tell the difference, for a warning whose only job is "the number
+ * you see may not be everything."
+ */
+export type ChartRowState =
+  | { status: "pending" }
+  | { status: "ready"; rows: Row[]; truncated: boolean }
+  | { status: "error" };
 
 /**
  * An orthogonal diagnostic on top of the pass/fail cast outcome (/code-review

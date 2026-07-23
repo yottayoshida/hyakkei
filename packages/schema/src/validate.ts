@@ -429,6 +429,9 @@ function validateLayoutReferences(
   return issues;
 }
 
-function rectsOverlap(a: LayoutItem, b: LayoutItem): boolean {
+/** The 4 fields `rectsOverlap` actually needs -- narrower than `LayoutItem` (which also requires a `chart` id) so a candidate placement not yet tied to a real layout item can be checked too (issue #12's `nextFreeCell`, `/simplify` Reuse finding: this exact formula was independently re-implemented there before being pointed back at this one). */
+export type Rect = { x: number; y: number; w: number; h: number };
+
+export function rectsOverlap(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }

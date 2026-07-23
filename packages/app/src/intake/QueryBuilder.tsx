@@ -7,7 +7,14 @@ import type {
   FilterOperator,
   Measure,
 } from "@hyakkei/schema";
-import { CATEGORY_LABEL, overrideMap, type ColumnOverride, type WorkspaceQuery } from "./types.js";
+import { usableColumns } from "../chart/chart-encoding.js";
+import {
+  AGGREGATE_LABEL,
+  CATEGORY_LABEL,
+  overrideMap,
+  type ColumnOverride,
+  type WorkspaceQuery,
+} from "./types.js";
 
 export type QueryBuilderProps = {
   query: WorkspaceQuery;
@@ -16,6 +23,7 @@ export type QueryBuilderProps = {
   typeOverrides: ColumnOverride[];
   onChange: (queryId: string, builderState: BuilderState) => void;
   onDelete: (queryId: string) => void;
+  onAddChart: (queryId: string) => void;
 };
 
 /**
@@ -82,8 +90,6 @@ const FILTER_OPERATORS: Record<
   ],
 };
 
-const AGGREGATE_LABEL: Record<AggregateFn, string> = { sum: "合計", count: "個数", avg: "平均" };
-
 function newFilter(column: string): FilterCondition {
   return { column, operator: "eq", value: "" };
 }
@@ -148,6 +154,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   typeOverrides,
   onChange,
   onDelete,
+  onAddChart,
 }: QueryBuilderProps) {
   // Memoized (/simplify Efficiency finding, issue 11c): every preview
   // refresh toggles `previewPending` true->false, forcing 2 re-renders per
@@ -554,9 +561,34 @@ export const QueryBuilder = memo(function QueryBuilder({
         )}
       </div>
 
-      <p style={{ marginTop: 8, fontSize: 12, color: "#6b7280" }}>
-        次は: この集計からグラフを作成します（今後の更新）
-      </p>
+      <div style={{ marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={() => onAddChart(query.id)}
+          // Disabled until the query's OWN previewColumns resolve (shape
+          // enumeration V-010): a chart created from an unresolved query
+          // would have no real columns to build a valid encoding from.
+          // `usableColumns` (code review, Angle C/Altitude -- 2 independent
+          // convergent findings), not raw `previewColumns.length`: every
+          // OTHER previewColumns consumer this PR added (`handleAddChart`,
+          // `ChartBuilder.tsx`) already filters out empty-string column
+          // names this way -- gating on the raw length here would let this
+          // one button render enabled in that same edge case, only to have
+          // `handleAddChart`'s own guard silently no-op the click.
+          disabled={usableColumns(query.previewColumns).length === 0 || query.previewPending}
+          aria-label={`「${sourceLabel}」の集計をグラフ化`}
+          style={{
+            minHeight: 44,
+            padding: "0 16px",
+            background: "#1a56db",
+            color: "#fff",
+            border: "none",
+            borderRadius: 4,
+          }}
+        >
+          グラフ化
+        </button>
+      </div>
     </div>
   );
 });

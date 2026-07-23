@@ -78,6 +78,7 @@ function baseProps(overrides: Partial<QueryBuilderProps> = {}): QueryBuilderProp
     typeOverrides: [],
     onChange: vi.fn(),
     onDelete: vi.fn(),
+    onAddChart: vi.fn(),
     ...overrides,
   };
 }
@@ -672,5 +673,60 @@ describe("QueryBuilder", () => {
       button.click();
     });
     expect(onDelete).toHaveBeenCalledWith("query_1");
+  });
+
+  // issue #12: the "グラフ化" button is the sole entry point into chart
+  // creation -- disabled until previewColumns resolves (shape enumeration
+  // V-010), so a chart can never be created from a query with no columns
+  // to build a valid encoding from.
+  describe("グラフ化 button", () => {
+    function graphButton(host: HTMLElement) {
+      return host.querySelector(
+        'button[aria-label="「06-shift_jis.csv」の集計をグラフ化"]',
+      ) as HTMLButtonElement;
+    }
+
+    it("is disabled while previewColumns has not resolved yet", async () => {
+      const { host } = await renderInJsdom(
+        <QueryBuilder {...baseProps({ query: query({ previewColumns: [] }) })} />,
+      );
+      expect(graphButton(host).disabled).toBe(true);
+    });
+
+    // Code review (Angle Altitude/Cross-file, 2 independent convergent
+    // findings): this button must gate on `usableColumns`, not raw
+    // `previewColumns.length` -- otherwise it renders enabled for a query
+    // whose only output column(s) are empty-string names, and clicking it
+    // silently no-ops (handleAddChart's own guard) with zero feedback.
+    it("is disabled when previewColumns contains only empty-string entries", async () => {
+      const { host } = await renderInJsdom(
+        <QueryBuilder {...baseProps({ query: query({ previewColumns: [""] }) })} />,
+      );
+      expect(graphButton(host).disabled).toBe(true);
+    });
+
+    it("is disabled while a refresh is pending, even if previewColumns is already populated", async () => {
+      const { host } = await renderInJsdom(
+        <QueryBuilder
+          {...baseProps({
+            query: query({ previewColumns: ["部署"], previewPending: true }),
+          })}
+        />,
+      );
+      expect(graphButton(host).disabled).toBe(true);
+    });
+
+    it("is enabled once previewColumns has resolved, and calls onAddChart with the query's own id", async () => {
+      const onAddChart = vi.fn();
+      const { host } = await renderInJsdom(
+        <QueryBuilder {...baseProps({ query: query({ previewColumns: ["部署"] }), onAddChart })} />,
+      );
+      const button = graphButton(host);
+      expect(button.disabled).toBe(false);
+      await act(async () => {
+        button.click();
+      });
+      expect(onAddChart).toHaveBeenCalledWith("query_1");
+    });
   });
 });

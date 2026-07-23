@@ -23,6 +23,7 @@ import {
   DashboardPreview,
   emptyBuilderState,
   mergeWorkspaceSource,
+  toRow,
   upsertOverride,
 } from "./App.js";
 import type { IntakeSample } from "./intake/types.js";
@@ -341,5 +342,53 @@ describe("emptyBuilderState", () => {
     expect(a.filters).not.toBe(b.filters);
     expect(a.groupBy).not.toBe(b.groupBy);
     expect(a.measures).not.toBe(b.measures);
+  });
+});
+
+// issue #12: chart rows need `Record<string, JsonPrimitive>` (core's `Row`),
+// a stricter contract than `rowToPlainObject`'s own `Record<string,
+// unknown>` output -- these pin the explicit values `normalizeAuthoring`'s
+// own contract doesn't guarantee (plan §チャート行データ).
+describe("toRow", () => {
+  it("passes through string/number/boolean/null unchanged", () => {
+    expect(toRow({ a: "x", b: 1, c: true, d: null })).toEqual({ a: "x", b: 1, c: true, d: null });
+  });
+
+  it("converts NaN and Infinity to null (not a JSON primitive)", () => {
+    expect(toRow({ a: Number.NaN, b: Infinity, c: -Infinity })).toEqual({
+      a: null,
+      b: null,
+      c: null,
+    });
+  });
+
+  it("converts a BigInt to a Number (defensive -- rowToPlainObject already does this upstream)", () => {
+    expect(toRow({ a: 42n })).toEqual({ a: 42 });
+  });
+
+  it("converts a Date to its ISO string", () => {
+    const date = new Date("2026-07-23T00:00:00.000Z");
+    expect(toRow({ a: date })).toEqual({ a: "2026-07-23T00:00:00.000Z" });
+  });
+
+  it("undefined becomes null", () => {
+    expect(toRow({ a: undefined })).toEqual({ a: null });
+  });
+
+  it("handles a __proto__ column name as a real own property, not the object's prototype (prototype pollution discipline)", () => {
+    // `{ __proto__: "value" }` (an object LITERAL) is special-cased by the
+    // language itself -- a non-object value there is silently ignored, no
+    // own property is ever created. `Object.fromEntries` (what
+    // `rowToPlainObject` actually uses upstream) is how a genuine own
+    // `__proto__` property reaches this function for real.
+    const plain = Object.fromEntries([
+      ["__proto__", "value"],
+      ["normal", 1],
+    ]);
+    const row = toRow(plain);
+    expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+    expect(Object.hasOwn(row, "__proto__")).toBe(true);
+    expect(row.__proto__).toBe("value");
+    expect(row.normal).toBe(1);
   });
 });
