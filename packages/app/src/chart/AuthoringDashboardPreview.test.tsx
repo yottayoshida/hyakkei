@@ -31,6 +31,9 @@ const LAYOUT = {
   grid: "guidebook-12col" as const,
   items: [{ chart: "c1", x: 0, y: 0, w: 6, h: 6 }],
 };
+// /simplify (Simplification finding): one shared no-op instead of the same
+// `() => {}` literal repeated at every render/rerender call site below.
+const NOOP_REORDER = () => {};
 
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -95,6 +98,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
 
@@ -122,7 +126,12 @@ describe("AuthoringDashboardPreview", () => {
     const chartRowsByQuery = new Map<string, ChartRowState>([
       ["q1", { status: "ready", rows: [], truncated: false }],
     ]);
-    const props = { charts: [CHART_A], layout: LAYOUT, chartRowsByQuery };
+    const props = {
+      charts: [CHART_A],
+      layout: LAYOUT,
+      chartRowsByQuery,
+      onReorderLayout: NOOP_REORDER,
+    };
     const { rerender, unmount: cleanup } = await renderInJsdom(
       <AuthoringDashboardPreview {...props} />,
     );
@@ -152,6 +161,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery1}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
     patchSpy.mockClear();
@@ -164,6 +174,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery2}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
 
@@ -180,6 +191,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[]}
         layout={{ grid: "guidebook-12col", items: [] }}
         chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
     await cleanup();
@@ -196,6 +208,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
     const model = patchSpy.mock.calls[0]![1];
@@ -211,6 +224,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
     const model = patchSpy.mock.calls[0]![1];
@@ -227,10 +241,92 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
     const model = patchSpy.mock.calls[0]![1];
     expect(model.charts[0].state).toBe("empty");
+    await cleanup();
+  });
+
+  // Phase 8 QA finding (V-014): `layout` (order) and `chartRowsByQuery` (row
+  // readiness) are independent props updated on their own timelines -- a
+  // DIFFERENT chart's query resolving from pending to ready must not revert
+  // or corrupt a reorder that already landed while it was still pending.
+  it("a reorder that lands while a different chart's query is still pending survives that query later becoming ready", async () => {
+    const CHART_B: Chart = {
+      id: "c2",
+      type: "bar",
+      encoding: { x: "category", y: "total" },
+      query: "q2",
+      options: {},
+    };
+    const LAYOUT_AB = {
+      grid: "guidebook-12col" as const,
+      items: [
+        { chart: "c1", x: 0, y: 0, w: 6, h: 6 },
+        { chart: "c2", x: 6, y: 0, w: 6, h: 6 },
+      ],
+    };
+    // The prop shape a completed reorder produces (App.tsx's reorderLayout is
+    // exercised end-to-end at the e2e layer; this test only needs the layout
+    // PROP CHANGE it results in): c2 now first, c1 second.
+    const LAYOUT_BA = {
+      grid: "guidebook-12col" as const,
+      items: [
+        { chart: "c2", x: 0, y: 0, w: 6, h: 6 },
+        { chart: "c1", x: 6, y: 0, w: 6, h: 6 },
+      ],
+    };
+    const rowsPending = new Map<string, ChartRowState>([
+      ["q1", { status: "ready", rows: [{ category: "A", total: 1 }], truncated: false }],
+      ["q2", { status: "pending" }],
+    ]);
+    const { rerender, unmount: cleanup } = await renderInJsdom(
+      <AuthoringDashboardPreview
+        charts={[CHART_A, CHART_B]}
+        layout={LAYOUT_AB}
+        chartRowsByQuery={rowsPending}
+        onReorderLayout={NOOP_REORDER}
+      />,
+    );
+
+    // The reorder lands WHILE q2 is still pending.
+    await rerender(
+      <AuthoringDashboardPreview
+        charts={[CHART_A, CHART_B]}
+        layout={LAYOUT_BA}
+        chartRowsByQuery={rowsPending}
+        onReorderLayout={NOOP_REORDER}
+      />,
+    );
+
+    // q2 settles to ready -- only chartRowsByQuery changes, layout does not.
+    const rowsReady = new Map<string, ChartRowState>([
+      ["q1", { status: "ready", rows: [{ category: "A", total: 1 }], truncated: false }],
+      ["q2", { status: "ready", rows: [{ category: "B", total: 2 }], truncated: false }],
+    ]);
+    await rerender(
+      <AuthoringDashboardPreview
+        charts={[CHART_A, CHART_B]}
+        layout={LAYOUT_BA}
+        chartRowsByQuery={rowsReady}
+        onReorderLayout={NOOP_REORDER}
+      />,
+    );
+
+    const finalModel = patchSpy.mock.calls.at(-1)![1];
+    // The reorder survives: c2 is still first, not reverted to the
+    // pre-reorder order by the later, unrelated chartRowsByQuery change.
+    expect(finalModel.layout.items.map((item: { chart: string }) => item.chart)).toEqual([
+      "c2",
+      "c1",
+    ]);
+    // And the settled query's rows correctly reached the RIGHT chart (c2),
+    // not left stale/pending despite the reorder happening in between.
+    const chartB = finalModel.charts.find((c: { id: string }) => c.id === "c2");
+    expect(chartB.state).toBe("ok");
+    expect(chartB.rows).toEqual([{ category: "B", total: 2 }]);
     await cleanup();
   });
 
@@ -254,6 +350,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
 
@@ -273,6 +370,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
     patchSpy.mockClear();
@@ -307,6 +405,7 @@ describe("AuthoringDashboardPreview", () => {
         charts={[CHART_A]}
         layout={LAYOUT}
         chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
       />,
     );
 
@@ -337,6 +436,7 @@ describe("AuthoringDashboardPreview", () => {
           charts={[CHART_A]}
           layout={LAYOUT}
           chartRowsByQuery={chartRowsByQuery}
+          onReorderLayout={NOOP_REORDER}
         />,
       );
 
@@ -353,6 +453,7 @@ describe("AuthoringDashboardPreview", () => {
           charts={[CHART_A]}
           layout={LAYOUT}
           chartRowsByQuery={chartRowsByQuery}
+          onReorderLayout={NOOP_REORDER}
         />,
       );
 

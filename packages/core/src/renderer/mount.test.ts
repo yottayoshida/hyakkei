@@ -1192,4 +1192,52 @@ describe("patch()", () => {
     expect(instance1.isDisposed()).toBeFalsy();
     expect(instance2.isDisposed()).toBeFalsy();
   });
+
+  // issue #14 (QA/Codex both flagged this as the top regression risk for
+  // the grid layout editor's reorder feature): V-007 above only moves ONE
+  // item's x while its array position stays the same slot; V-022 above only
+  // swaps array order while EACH item keeps its own x. Neither covers what
+  // `reorderLayout`+`packItems` (packages/app/src/chart/layout-reorder.ts)
+  // actually produces on every reorder -- array order AND every affected
+  // item's x/y changing in the SAME patch() call. This pins that the
+  // position-only fast path still reuses both instances (no
+  // dispose/init/setOption) and resizes both, even when it's also
+  // reordering the DOM.
+  it("V-023: an order change AND a position change on the SAME patch() call still reuses and resizes both instances, no setOption", () => {
+    const el = container();
+    const c1 = barChart("c1", [{ cat: "A", val: 1 }]);
+    const c2 = barChart("c2", [{ cat: "B", val: 2 }]);
+    patch(el, model([c1, c2], [item("c1", 0), item("c2", 6)]));
+    const instance1 = echarts.getInstanceByDom(
+      el.querySelectorAll(".hyakkei-chart-canvas")[0] as HTMLElement,
+    )!;
+    const instance2 = echarts.getInstanceByDom(
+      el.querySelectorAll(".hyakkei-chart-canvas")[1] as HTMLElement,
+    )!;
+    vi.mocked(echarts.init).mockClear();
+    const setOption1Spy = vi.spyOn(instance1, "setOption");
+    const setOption2Spy = vi.spyOn(instance2, "setOption");
+    const resize1Spy = vi.spyOn(instance1, "resize");
+    const resize2Spy = vi.spyOn(instance2, "resize");
+
+    // Array order swapped (c2 now first) AND both items' x swapped too --
+    // exactly what reorderLayout+packItems produces for a 2-chart reorder.
+    patch(el, model([c1, c2], [item("c2", 0), item("c1", 6)]));
+
+    expect(vi.mocked(echarts.init)).not.toHaveBeenCalled();
+    expect(setOption1Spy).not.toHaveBeenCalled();
+    expect(setOption2Spy).not.toHaveBeenCalled();
+    expect(resize1Spy).toHaveBeenCalledTimes(1);
+    expect(resize2Spy).toHaveBeenCalledTimes(1);
+
+    const canvasesAfter = el.querySelectorAll(".hyakkei-chart-canvas");
+    expect(echarts.getInstanceByDom(canvasesAfter[0] as HTMLElement)).toBe(instance2);
+    expect(echarts.getInstanceByDom(canvasesAfter[1] as HTMLElement)).toBe(instance1);
+    expect(instance1.isDisposed()).toBeFalsy();
+    expect(instance2.isDisposed()).toBeFalsy();
+
+    const tilesAfter = el.querySelectorAll(".hyakkei-tile");
+    expect((tilesAfter[0] as HTMLElement).style.gridColumn).toBe("1 / span 6");
+    expect((tilesAfter[1] as HTMLElement).style.gridColumn).toBe("7 / span 6");
+  });
 });
