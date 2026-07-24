@@ -88,6 +88,17 @@ describe("ChartBuilder", () => {
     expect(ySelect.textContent).toContain("合計(amount)");
   });
 
+  // issue #102: a lone-tile group's heading (比較/相関/一覧/単一の値) is
+  // redundant clutter above a single button -- suppressed without touching
+  // `CHART_TYPE_TILES.group` itself, so 推移/割合 (each 2 tiles) keep theirs.
+  it("shows a group heading only for groups with 2+ tiles, and all 8 tiles still render exactly once", async () => {
+    const { host } = await renderInJsdom(<ChartBuilder {...baseProps()} />);
+    const headings = [...host.querySelectorAll("fieldset > div > p")].map((p) => p.textContent);
+    expect(headings.sort()).toEqual(["割合", "推移"]);
+    const tileButtons = host.querySelectorAll("fieldset button[aria-pressed]");
+    expect(tileButtons).toHaveLength(8);
+  });
+
   it("switching to pie calls onChange with a fully rebuilt encoding (category/value, no leftover x/y)", async () => {
     const onChange = vi.fn();
     const { host } = await renderInJsdom(<ChartBuilder {...baseProps({ onChange })} />);
@@ -193,6 +204,15 @@ describe("ChartBuilder", () => {
       deleteButton.click();
     });
     expect(onDelete).toHaveBeenCalledWith("c1");
+  });
+
+  // issue #102: `chartOrdinal` disambiguates this card's delete label from a
+  // sibling chart card's on the SAME query -- omitted/`null` (the baseProps
+  // default) keeps the label byte-identical to pre-#102 (asserted above).
+  it("inserts an ordinal into the delete label when chartOrdinal is set (2+ siblings)", async () => {
+    const { host } = await renderInJsdom(<ChartBuilder {...baseProps({ chartOrdinal: 2 })} />);
+    expect(host.querySelector("[aria-label='「売上.csv」のグラフ2を削除']")).not.toBeNull();
+    expect(host.querySelector("[aria-label='「売上.csv」のグラフを削除']")).toBeNull();
   });
 
   // UX review (Phase 8, Major finding D-3): title used to commit on every

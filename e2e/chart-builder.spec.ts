@@ -180,10 +180,13 @@ test.describe("editor shell: chart builder (issue #12)", () => {
     }
     await expect(page.locator(".hyakkei-chart-card").first()).toContainText("住民課");
 
+    // issue #102: 2 charts on the same query -> both get a disambiguating
+    // ordinal, so the first card's own delete label is now "...グラフ1を削除".
+    page.on("dialog", (d) => d.accept());
     await page
       .locator(".hyakkei-chart-card")
       .first()
-      .getByRole("button", { name: "「06-shift_jis.csv」のグラフを削除" })
+      .getByRole("button", { name: "「06-shift_jis.csv」のグラフ1を削除" })
       .click();
 
     await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
@@ -204,6 +207,8 @@ test.describe("editor shell: chart builder (issue #12)", () => {
 
     // Delete the only chart -- the query itself survives (only the chart
     // and its layout item are removed), so its id remains live and reusable.
+    // Single sibling -> no ordinal, label unchanged from pre-#102.
+    page.on("dialog", (d) => d.accept());
     await page
       .locator(".hyakkei-chart-card")
       .getByRole("button", { name: "「06-shift_jis.csv」のグラフを削除" })
@@ -236,6 +241,7 @@ test.describe("editor shell: chart builder (issue #12)", () => {
     await page.getByRole("button", { name: GRAPH_BUTTON }).click();
     await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
 
+    page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "「06-shift_jis.csv」の集計を削除" }).click();
 
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(0);
@@ -249,10 +255,156 @@ test.describe("editor shell: chart builder (issue #12)", () => {
     await page.getByRole("button", { name: GRAPH_BUTTON }).click();
     await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
 
+    page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "「06-shift_jis.csv」を削除" }).click();
 
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(0);
     await expect(page.locator(".hyakkei-chart-card")).toHaveCount(0);
+  });
+
+  // issue #102 (V-001): Cancel returns false from window.confirm() -- the
+  // handler's own guard (`if (!window.confirm(...)) return;`) must fire
+  // BEFORE any state mutation, DROP TABLE, or announcement.
+  test("cancelling the source-delete confirm leaves everything untouched (no DROP, no state change, no announcement)", async ({
+    page,
+  }) => {
+    await setUpAggregatedQuery(page);
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
+
+    page.on("dialog", (d) => d.dismiss());
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を削除" }).click();
+
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
+    await expect(page.getByRole("status").filter({ hasText: "削除しました" })).toHaveCount(0);
+  });
+
+  // Codex Round 1 (P1): the source-delete cancel path above was covered,
+  // but the other 2 top-level confirm() sites were not -- each handler
+  // guards independently, so each needs its own cancel proof.
+  test("cancelling the query-delete confirm leaves the query and its chart untouched", async ({
+    page,
+  }) => {
+    await setUpAggregatedQuery(page);
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
+
+    page.on("dialog", (d) => d.dismiss());
+    await page.getByRole("button", { name: "「06-shift_jis.csv」の集計を削除" }).click();
+
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
+  });
+
+  test("cancelling the chart-delete confirm leaves the chart untouched, no delete announcement", async ({
+    page,
+  }) => {
+    await setUpAggregatedQuery(page);
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
+
+    page.on("dialog", (d) => d.dismiss());
+    await page.getByRole("button", { name: "「06-shift_jis.csv」のグラフを削除" }).click();
+
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
+    await expect(page.getByRole("status").filter({ hasText: "グラフを削除しました" })).toHaveCount(
+      0,
+    );
+  });
+
+  // issue #102 (V-002): a source with N charts on its one query must still
+  // prompt exactly ONCE -- confirm() lives in `handleSourceDelete` alone,
+  // never in the shared `cascadeDeleteQuery`/`handleChartDelete` primitives
+  // the cascade also calls per-chart.
+  test("deleting a source with 2 charts on its query prompts confirm exactly once", async ({
+    page,
+  }) => {
+    await setUpAggregatedQuery(page);
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(2);
+
+    let dialogCount = 0;
+    page.on("dialog", (d) => {
+      dialogCount++;
+      void d.accept();
+    });
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を削除" }).click();
+
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(0);
+    expect(dialogCount).toBe(1);
+  });
+
+  // QA Phase 8 (Minor M-1): the source-delete case above was covered, but
+  // `handleQueryDelete` guards its OWN cascade (`cascadeDeleteQuery` ->
+  // `handleChartDelete` per chart) independently -- this proves that path
+  // also prompts once, not once per chart.
+  test("deleting a query with 2 charts prompts confirm exactly once", async ({ page }) => {
+    await setUpAggregatedQuery(page);
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(2);
+
+    let dialogCount = 0;
+    page.on("dialog", (d) => {
+      dialogCount++;
+      void d.accept();
+    });
+    await page.getByRole("button", { name: "「06-shift_jis.csv」の集計を削除" }).click();
+
+    await expect(page.locator(".hyakkei-chart-card")).toHaveCount(0);
+    expect(dialogCount).toBe(1);
+  });
+
+  // issue #102 (V-008): ordinals are recomputed from array position on every
+  // render, not stored/stable -- deleting query 1 of 2 leaves exactly 1
+  // survivor, which is a single-sibling case again (no ordinal), not "the
+  // surviving query is now labeled 2".
+  test("deleting one of two queries on the same source renumbers the survivor back to no ordinal", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(2);
+
+    page.on("dialog", (d) => d.accept());
+    await page
+      .locator(".hyakkei-query-card")
+      .first()
+      .getByRole("button", { name: "「06-shift_jis.csv」の集計1を削除" })
+      .click();
+
+    await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "「06-shift_jis.csv」の集計を削除", exact: true }),
+    ).toBeVisible();
+  });
+
+  // issue #102 (V-004, accepted-risk verification): `handleSourceDelete`'s
+  // card removal happens in a `finally` after an `await`, leaving a brief
+  // window where the same button is still clickable. DROP TABLE IF EXISTS
+  // is idempotent by design (plan: no extra re-entry guard added) -- this
+  // only needs to prove the app reaches a consistent, uncorrupted end state,
+  // not that the second click was rejected outright.
+  test("clicking source delete twice in quick succession still ends in a clean, single deletion (no crash, no duplicate state)", async ({
+    page,
+  }) => {
+    await setUpAggregatedQuery(page);
+    page.on("dialog", (d) => d.accept());
+    const deleteButton = page.getByRole("button", { name: "「06-shift_jis.csv」を削除" });
+    await deleteButton.click();
+    // Best-effort second click into the same async gap -- if the card is
+    // already gone by the time this runs, the locator simply times out and
+    // this catch absorbs it; either outcome is consistent with a correct
+    // (idempotent) implementation.
+    await deleteButton.click({ timeout: 500 }).catch(() => {});
+
+    await expect(page.getByRole("heading", { name: "データ取り込み" })).toBeVisible();
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(0);
   });
 
   test("assigning a text column to a numeric channel shows a non-blocking type-mismatch warning, and the chart still renders", async ({

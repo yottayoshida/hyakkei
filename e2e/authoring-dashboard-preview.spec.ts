@@ -120,10 +120,13 @@ test.describe("editor shell: unified dashboard-grid preview (issue #70/#12(B))",
     const grid = gridPreview(page);
     await expect(grid.locator(".hyakkei-chart-canvas")).toHaveCount(2);
 
+    // issue #102: 2 charts on the same query -> both get a disambiguating
+    // ordinal, so the first card's own delete label is now "...グラフ1を削除".
+    page.on("dialog", (d) => d.accept());
     await page
       .locator(".hyakkei-chart-card")
       .first()
-      .getByRole("button", { name: /のグラフを削除/ })
+      .getByRole("button", { name: "「06-shift_jis.csv」のグラフ1を削除" })
       .click();
 
     await expect(grid.locator(".hyakkei-chart-canvas")).toHaveCount(1);
@@ -135,6 +138,8 @@ test.describe("editor shell: unified dashboard-grid preview (issue #70/#12(B))",
     await page.getByRole("button", { name: GRAPH_BUTTON }).click();
     await expect(gridPreview(page)).toBeVisible();
 
+    // Single chart -> no ordinal, label unchanged from pre-#102.
+    page.on("dialog", (d) => d.accept());
     await page
       .locator(".hyakkei-chart-card")
       .getByRole("button", { name: /のグラフを削除/ })
