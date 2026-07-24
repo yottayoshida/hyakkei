@@ -122,6 +122,22 @@ jobs:
       - name: E2E tests
         run: pnpm run test:e2e
 
+      # issue #97 (Codex R1 finding): without this, `playwright.config.ts`'s
+      # `trace: "on-first-retry"` writes a trace to `test-results/` on this
+      # runner's ephemeral filesystem whenever a webkit test retries, but
+      # the trace is discarded when the job ends -- nothing ever surfaces
+      # it. `always()` (not `failure()`, unlike pixel-golden's own upload
+      # below) because a retry-then-pass leaves the overall step green;
+      # the trace exists precisely in that flaky-but-green case.
+      - name: Upload E2E flaky-retry diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-test-results
+          path: test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
   pixel-golden:
     # PR-C golden layer ③ (plan §技術選定): a separate job, not a step in
     # build-and-test above -- `toHaveScreenshot()` determinism depends on
