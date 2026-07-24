@@ -19,6 +19,11 @@ import {
 export type QueryBuilderProps = {
   query: WorkspaceQuery;
   sourceLabel: string;
+  // issue #102: disambiguates this card's "集計を削除"/"集計をグラフ化"
+  // ARIA labels from a sibling query card's on the SAME source. `null`
+  // (or omitted) when this source has only 1 query -- the label then stays
+  // byte-identical to the pre-#102 string.
+  queryOrdinal?: number | null;
   columnMeta: ColumnMeta[];
   typeOverrides: ColumnOverride[];
   onChange: (queryId: string, builderState: BuilderState) => void;
@@ -150,6 +155,7 @@ function FilterValueInput({ ariaLabel, value, onCommit }: FilterValueInputProps)
 export const QueryBuilder = memo(function QueryBuilder({
   query,
   sourceLabel,
+  queryOrdinal = null,
   columnMeta,
   typeOverrides,
   onChange,
@@ -163,6 +169,10 @@ export const QueryBuilder = memo(function QueryBuilder({
   // even though `columnMeta`/`typeOverrides` hadn't changed since the
   // previous render.
   const overrides = useMemo(() => overrideMap(typeOverrides), [typeOverrides]);
+  // issue #102 (/simplify Simplification finding): computed once, referenced
+  // by both this card's ARIA labels below, instead of `queryOrdinal ?? ""`
+  // repeated at each template-string site.
+  const ordinalSuffix = queryOrdinal ?? "";
   const { builderState } = query;
 
   // "other"-categoried columns are excluded from filter/groupBy entirely --
@@ -274,7 +284,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         <button
           type="button"
           onClick={() => onDelete(query.id)}
-          aria-label={`「${sourceLabel}」の集計を削除`}
+          aria-label={`「${sourceLabel}」の集計${ordinalSuffix}を削除`}
           style={{ minHeight: 44, padding: "0 12px", background: "transparent", flexShrink: 0 }}
         >
           削除
@@ -576,7 +586,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           // one button render enabled in that same edge case, only to have
           // `handleAddChart`'s own guard silently no-op the click.
           disabled={usableColumns(query.previewColumns).length === 0 || query.previewPending}
-          aria-label={`「${sourceLabel}」の集計をグラフ化`}
+          aria-label={`「${sourceLabel}」の集計${ordinalSuffix}をグラフ化`}
           style={{
             minHeight: 44,
             padding: "0 16px",

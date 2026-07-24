@@ -217,6 +217,17 @@ export function emptyBuilderState(): BuilderState {
  * as a JS `Date`, not a JSON primitive) are both real, reachable shapes a
  * blind `as` cast would silently paper over.
  */
+/**
+ * issue #102: the ARIA-label disambiguation rule shared by the
+ * queryOrdinal/chartOrdinal props below -- byte-identical (no ordinal) when
+ * there's only 1 sibling in the currently-displayed list, 1-based position
+ * once there are 2+ (/simplify Simplification finding: was inlined twice
+ * with only the variable names differing).
+ */
+function ordinalIfMultiple(index: number, siblingCount: number): number | null {
+  return siblingCount > 1 ? index + 1 : null;
+}
+
 function toJsonPrimitive(value: unknown): JsonPrimitive {
   if (value === null || value === undefined) return null;
   if (typeof value === "string" || typeof value === "boolean") return value;
@@ -1036,6 +1047,19 @@ export function App() {
 
   const handleSourceDelete = useCallback(
     async (tableId: string, sourceLabel: string) => {
+      // issue #102: confirm() must be the FIRST statement in this function,
+      // before any await/state mutation -- Cancel (false) returns immediately
+      // with zero side effects (DROP TABLE, state updates, announcements all
+      // unexecuted). Placed here, not in `cascadeDeleteQuery`/`handleChartDelete`
+      // (shared cascade primitives also called from `handleQueryDelete`), so a
+      // source with N charts prompts exactly once, not N+1 times.
+      if (
+        !window.confirm(
+          `「${sourceLabel}」を削除します。関連する集計・グラフもすべて削除され、取り込んだデータは復元できません。よろしいですか？`,
+        )
+      ) {
+        return;
+      }
       try {
         const {
           layer,
@@ -1140,6 +1164,17 @@ export function App() {
 
   const handleQueryDelete = useCallback(
     (queryId: string) => {
+      // issue #102: confirm() first, mirroring `handleSourceDelete` -- placed
+      // in this top-level user-action handler, not in the shared
+      // `cascadeDeleteQuery` primitive (also called from `handleSourceDelete`'s
+      // own orphan sweep, which must not re-prompt per orphaned query).
+      if (
+        !window.confirm(
+          "この集計を削除します。関連するグラフもすべて削除されます。よろしいですか？",
+        )
+      ) {
+        return;
+      }
       // Cascade first (issue #12, plan §カスケード削除): removes every chart
       // that references this query (pruning `chartRowsByQuery`'s entry once
       // the last one is gone). `chartGenerationRef` is cleared HERE, not by
@@ -1223,6 +1258,12 @@ export function App() {
   // (`「${sourceLabel}」を削除しました。`, `handleSourceDelete` above).
   const handleChartDeleteClick = useCallback(
     (chartId: string) => {
+      // issue #102: confirm() first, same discipline as `handleSourceDelete`/
+      // `handleQueryDelete` -- NOT in `handleChartDelete` itself, which is
+      // also the cascade primitive `cascadeDeleteQuery` calls per-chart (a
+      // source/query delete cascading through N charts must prompt once,
+      // not N times).
+      if (!window.confirm("このグラフを削除します。よろしいですか？")) return;
       handleChartDelete(chartId);
       setAnnouncement("グラフを削除しました。");
     },
@@ -1336,11 +1377,16 @@ export function App() {
                 reference by id, not a sub-feature of its source card). */}
             {queries
               .filter((q) => q.sourceTableId === sample.table.id)
-              .map((query) => (
+              .map((query, queryIndex, sourceQueries) => (
                 <div key={query.id}>
                   <QueryBuilder
                     query={query}
                     sourceLabel={sourceLabel}
+                    // issue #102: disambiguates ARIA labels when a source has
+                    // 2+ queries; null (omitted) when there's exactly 1, so
+                    // the label stays byte-identical to today in the common
+                    // single-query case.
+                    queryOrdinal={ordinalIfMultiple(queryIndex, sourceQueries.length)}
                     columnMeta={sample.table.columns}
                     typeOverrides={typeOverrides}
                     onChange={handleQueryBuilderChange}
@@ -1353,12 +1399,15 @@ export function App() {
                       charts). */}
                   {charts
                     .filter((chart) => chart.query === query.id)
-                    .map((chart) => (
+                    .map((chart, chartIndex, queryCharts) => (
                       <ChartBuilder
                         key={chart.id}
                         chart={chart}
                         query={query}
                         sourceLabel={sourceLabel}
+                        // issue #102: same disambiguation, for 2+ charts on
+                        // the same query.
+                        chartOrdinal={ordinalIfMultiple(chartIndex, queryCharts.length)}
                         rowState={chartRowsByQuery.get(query.id) ?? PENDING_ROW_STATE}
                         onChange={handleChartChange}
                         onDelete={handleChartDeleteClick}

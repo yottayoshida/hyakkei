@@ -20,6 +20,11 @@ export type ChartBuilderProps = {
   chart: Chart;
   query: WorkspaceQuery;
   sourceLabel: string;
+  // issue #102: disambiguates this card's "グラフを削除" ARIA label from a
+  // sibling chart card's on the SAME query. `null` (or omitted) when this
+  // query has only 1 chart -- the label then stays byte-identical to the
+  // pre-#102 string.
+  chartOrdinal?: number | null;
   rowState: ChartRowState;
   onChange: (chartId: string, chart: Chart) => void;
   onDelete: (chartId: string) => void;
@@ -71,15 +76,26 @@ function ChartTitleInput({ value, onCommit }: ChartTitleInputProps) {
  * component recomputed it once per MOUNTED chart card instead of once per
  * whole session -- identical output every time, just wastefully re-derived.
  */
-const CHART_TYPE_GROUPS: Array<[string, ChartTypeTile[]]> = (() => {
-  const seen = new Map<string, ChartTypeTile[]>();
-  for (const tile of CHART_TYPE_TILES) {
-    const list = seen.get(tile.group) ?? [];
-    list.push(tile.key);
-    seen.set(tile.group, list);
-  }
-  return [...seen.entries()];
-})();
+const CHART_TYPE_GROUPS: Array<{ key: string; heading: string | null; tiles: ChartTypeTile[] }> =
+  (() => {
+    const seen = new Map<string, ChartTypeTile[]>();
+    for (const tile of CHART_TYPE_TILES) {
+      const list = seen.get(tile.group) ?? [];
+      list.push(tile.key);
+      seen.set(tile.group, list);
+    }
+    return [...seen.entries()].map(([group, tiles]) => ({
+      key: group,
+      // issue #102 (/simplify Altitude finding): a lone-tile group's heading
+      // is either redundant (`stat`'s group label duplicates its own tile
+      // label) or just clutter above a single button -- a static fact fully
+      // determined by `CHART_TYPE_TILES` at module load, folded in here
+      // rather than tested per-render in JSX (the same reason this whole
+      // derivation is hoisted out of the component to begin with).
+      heading: tiles.length > 1 ? group : null,
+      tiles,
+    }));
+  })();
 
 /**
  * The light-shaping GUI's chart-creation card (issue #12), mirroring
@@ -101,6 +117,7 @@ export const ChartBuilder = memo(function ChartBuilder({
   chart,
   query,
   sourceLabel,
+  chartOrdinal = null,
   rowState,
   onChange,
   onDelete,
@@ -186,7 +203,7 @@ export const ChartBuilder = memo(function ChartBuilder({
         <button
           type="button"
           onClick={() => onDelete(chart.id)}
-          aria-label={`「${sourceLabel}」のグラフを削除`}
+          aria-label={`「${sourceLabel}」のグラフ${chartOrdinal ?? ""}を削除`}
           style={{ minHeight: 44, padding: "0 12px", background: "transparent", flexShrink: 0 }}
         >
           削除
@@ -195,9 +212,11 @@ export const ChartBuilder = memo(function ChartBuilder({
 
       <fieldset style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 4, padding: 8 }}>
         <legend>グラフの種類</legend>
-        {CHART_TYPE_GROUPS.map(([group, tiles]) => (
-          <div key={group} style={{ marginTop: 4 }}>
-            <p style={{ margin: "4px 0", fontSize: 12, color: "#6b7280" }}>{group}</p>
+        {CHART_TYPE_GROUPS.map(({ key, heading, tiles }) => (
+          <div key={key} style={{ marginTop: 4 }}>
+            {heading && (
+              <p style={{ margin: "4px 0", fontSize: 12, color: "#6b7280" }}>{heading}</p>
+            )}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
               {tiles.map((tile) => {
                 const def = CHART_TYPE_TILES.find((t) => t.key === tile)!;

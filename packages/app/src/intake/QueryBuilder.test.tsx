@@ -675,6 +675,21 @@ describe("QueryBuilder", () => {
     expect(onDelete).toHaveBeenCalledWith("query_1");
   });
 
+  // issue #102: `queryOrdinal` disambiguates this card's "集計を削除"/
+  // "集計をグラフ化" labels from a sibling query card's on the SAME source --
+  // omitted/`null` (the baseProps default) keeps the label byte-identical
+  // to pre-#102 (asserted above and in the グラフ化 describe block below).
+  it("inserts an ordinal into both delete and グラフ化 labels when queryOrdinal is set (2+ siblings)", async () => {
+    const { host } = await renderInJsdom(<QueryBuilder {...baseProps({ queryOrdinal: 2 })} />);
+    expect(
+      host.querySelector('button[aria-label="「06-shift_jis.csv」の集計2を削除"]'),
+    ).not.toBeNull();
+    expect(
+      host.querySelector('button[aria-label="「06-shift_jis.csv」の集計2をグラフ化"]'),
+    ).not.toBeNull();
+    expect(host.querySelector('button[aria-label="「06-shift_jis.csv」の集計を削除"]')).toBeNull();
+  });
+
   // issue #12: the "グラフ化" button is the sole entry point into chart
   // creation -- disabled until previewColumns resolves (shape enumeration
   // V-010), so a chart can never be created from a query with no columns

@@ -339,6 +339,7 @@ test.describe("editor shell: file registration", () => {
       .getAttribute("data-table-id");
     expect(originalTableId).toBeTruthy();
 
+    page.on("dialog", (d) => d.accept());
     await page.locator(".hyakkei-source-card").getByRole("button", { name: "削除" }).click();
     // Deleting the only source returns to onboarding (issue #11a: no
     // sources left = no workspace), with focus and a live-region
@@ -644,6 +645,7 @@ test.describe("editor shell: multiple sources", () => {
     await expect(deleteFirst).toBeVisible();
     await expect(deleteSecond).toBeVisible();
 
+    page.on("dialog", (d) => d.accept());
     await deleteFirst.click();
 
     // The one source that was NOT deleted survives, still showing its own
@@ -678,6 +680,7 @@ test.describe("editor shell: multiple sources", () => {
     await expect(panel).toBeFocused();
 
     const addButton = page.getByRole("button", { name: "データを追加" });
+    page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "「06-shift_jis.csv」を削除", exact: true }).click();
 
     // One source remains (not the last one deleted) -- the workspace, and
@@ -819,6 +822,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
     await page.getByLabel("「amount」の種類").selectOption("number");
     await expect(page.getByRole("status").filter({ hasText: "amount" })).toBeVisible();
 
+    page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "「mixed.csv」を削除" }).click();
     await expect(page.getByRole("heading", { name: "データ取り込み" })).toBeVisible();
 
@@ -1138,10 +1142,13 @@ test.describe("editor shell: query builder (issue 11c)", () => {
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(2);
 
+    // issue #102: 2 queries on the same source -> both get a disambiguating
+    // ordinal, so the first card's own delete label is now "...集計1を削除".
+    page.on("dialog", (d) => d.accept());
     await page
       .locator(".hyakkei-query-card")
       .first()
-      .getByRole("button", { name: "「06-shift_jis.csv」の集計を削除" })
+      .getByRole("button", { name: "「06-shift_jis.csv」の集計1を削除" })
       .click();
 
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
@@ -1164,6 +1171,7 @@ test.describe("editor shell: query builder (issue 11c)", () => {
     await page.getByRole("button", { name: "「05-multi-sheet.xlsx」を集計", exact: true }).click();
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(2);
 
+    page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "「06-shift_jis.csv」を削除", exact: true }).click();
 
     await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
