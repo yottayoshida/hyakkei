@@ -32,6 +32,7 @@ import {
   usableColumns,
 } from "./chart/chart-encoding.js";
 import { CHART_DEFAULT_SIZE, nextFreeCell } from "./chart/layout-placement.js";
+import { reorderLayout } from "./chart/layout-reorder.js";
 import { getDuckDBHandleWithLayer } from "./data-layer.js";
 // Re-exported (not just imported) so existing consumers of `./App.js` keep
 // working unchanged -- the class body moved out (issue #12) so `chart/
@@ -226,6 +227,27 @@ export function emptyBuilderState(): BuilderState {
  */
 function ordinalIfMultiple(index: number, siblingCount: number): number | null {
   return siblingCount > 1 ? index + 1 : null;
+}
+
+/**
+ * Shared body for the "wait until the DOM element a pending id refers to has
+ * actually mounted, then focus it" effects below (/simplify Reuse/Altitude/
+ * Simplification finding: this shape was duplicated verbatim for the add-chart
+ * and reorder focus-restoration effects, differing only in which ref/predicate/
+ * attribute they used). Each call site still needs its own `useEffect` with its
+ * own dependency array -- add-chart only needs to re-check when `charts`
+ * changes, reorder only when `layout` changes -- so this factors out the body,
+ * not the effect itself.
+ */
+function focusPendingChartElement(
+  pendingIdRef: { current: string | null },
+  exists: (id: string) => boolean,
+  attribute: string,
+): void {
+  const id = pendingIdRef.current;
+  if (!id || !exists(id)) return;
+  pendingIdRef.current = null;
+  document.querySelector<HTMLElement>(`[${attribute}="${id}"]`)?.focus();
 }
 
 function toJsonPrimitive(value: unknown): JsonPrimitive {
@@ -473,6 +495,13 @@ export function App() {
   // "move focus once the DOM this id refers to exists" timing, just keyed
   // on a chart id instead of a source count.
   const focusNewChartIdRef = useRef<string | null>(null);
+  // issue #14 (grid layout editor): mirrors `focusNewChartIdRef` above, but
+  // for the (B) edit overlay's own focusable move controls rather than (A)
+  // ChartBuilder's card -- a SEPARATE ref (and, below, a separate effect +
+  // DOM attribute) because a reorder never touches `charts`, only `layout`,
+  // so the existing add-chart effect (scoped to `[charts]`) would never
+  // re-fire for it.
+  const focusMovedChartIdRef = useRef<string | null>(null);
 
   const [layout, setLayout] = useState<Layout>({ grid: "guidebook-12col", items: [] });
   const layoutRef = useRef(layout);
@@ -1270,16 +1299,64 @@ export function App() {
     [handleChartDelete],
   );
 
+  // issue #14 (grid layout editor, F5): reorders `layout.items` only --
+  // never touches `charts`, so the existing add/delete announcement+focus
+  // machinery above doesn't apply. `fromIndex` must be re-derived by the
+  // CALLER from the current `layout.items` at click/drop time, not from a
+  // value captured when a drag began (Security review, TOCTOU: an async
+  // chart add/delete between drag-start and drop can make an
+  // earlier-captured index stale). `reorderLayout` itself re-validates
+  // `fromIndex`/`toIndex` against `prevItems.length` in this same
+  // synchronous call, so passing a fresh index here is enough to close that
+  // window.
+  const handleReorderLayout = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      const gridWidth = GRID_WIDTHS[layoutRef.current.grid];
+      const prevItems = layoutRef.current.items;
+      const nextItems = reorderLayout(prevItems, fromIndex, toIndex, gridWidth);
+      // no-op short-circuit (independent review, Major finding): `updateLayout`
+      // would otherwise unconditionally build a new `Layout` object (via
+      // `{...prev, items}`) even when `items` is the SAME reference
+      // `reorderLayout` returns for an invalid/non-moving request, firing a
+      // pointless re-render, announcement, and focus attempt for a move that
+      // never happened.
+      if (nextItems === prevItems) return;
+      const movedChartId = prevItems[fromIndex]?.chart;
+      updateLayout((prev) => ({ ...prev, items: nextItems }));
+      if (movedChartId) {
+        const position = nextItems.findIndex((item) => item.chart === movedChartId) + 1;
+        setAnnouncement(`グラフの並び順を変更しました（${position}/${nextItems.length}番目）。`);
+        focusMovedChartIdRef.current = movedChartId;
+      }
+    },
+    [updateLayout],
+  );
+
   // Moves focus to a newly-added chart card once it has actually mounted
   // (UX review, Phase 8, Major finding C-6) -- same "wait for the DOM this
   // id refers to exist, then focus it" timing as the source/onboarding
   // focus-management effect above, keyed on a chart id instead of a count.
   useEffect(() => {
-    const id = focusNewChartIdRef.current;
-    if (!id || !charts.some((c) => c.id === id)) return;
-    focusNewChartIdRef.current = null;
-    document.querySelector<HTMLElement>(`[data-chart-id="${id}"]`)?.focus();
+    focusPendingChartElement(
+      focusNewChartIdRef,
+      (id) => charts.some((c) => c.id === id),
+      "data-chart-id",
+    );
   }, [charts]);
+
+  // issue #14: same "wait for the DOM this id refers to exist, then focus
+  // it" timing as above, but scoped to `layout` (reorder never changes
+  // `charts`) and to the (B) edit overlay's own `data-layout-item-chart-id`
+  // attribute -- a SEPARATE attribute from (A) ChartBuilder's `data-chart-id`
+  // (reused verbatim above) so a document-wide querySelector can't
+  // ambiguously match either card when both exist for the same chart id.
+  useEffect(() => {
+    focusPendingChartElement(
+      focusMovedChartIdRef,
+      (id) => layout.items.some((item) => item.chart === id),
+      "data-layout-item-chart-id",
+    );
+  }, [layout]);
 
   const hasSources = sources.length > 0;
 
@@ -1325,6 +1402,7 @@ export function App() {
           charts={charts}
           layout={layout}
           chartRowsByQuery={chartRowsByQuery}
+          onReorderLayout={handleReorderLayout}
         />
       ) : (
         <>

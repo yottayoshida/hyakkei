@@ -21,14 +21,22 @@ import type { RenderChart, RenderModel } from "./render-model.js";
 // parent, and the two collapse together to a near-zero box — found on
 // first real-browser verification; jsdom does no layout, so no unit test
 // in this package can observe it.
-const GRID_ROW_SIZE = "4rem";
+//
+// Exported (issue #14): the (B) edit overlay (`packages/app`) renders its
+// own transparent grid on top of this one and must line up with it exactly
+// (same `gridTemplateColumns`/`gridAutoRows`/`gap`) -- importing these
+// constants directly, instead of re-deriving the same values in app, is how
+// that stays true by construction rather than by two hand-kept copies
+// drifting apart.
+export const GRID_ROW_SIZE = "4rem";
+export const GRID_GAP = "1rem";
 
 function gridStyle(container: HTMLElement, layout: Layout) {
   const width = GRID_WIDTHS[layout.grid];
   container.style.display = "grid";
   container.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
   container.style.gridAutoRows = GRID_ROW_SIZE;
-  container.style.gap = "1rem";
+  container.style.gap = GRID_GAP;
 }
 
 function tileStyle(el: HTMLElement, x: number, y: number, w: number, h: number) {
