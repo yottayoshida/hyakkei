@@ -3,15 +3,26 @@ import type { Chart } from "@hyakkei/schema";
 import { act, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { WorkspaceQuery } from "../intake/types.js";
+import type { ChartRowState, WorkspaceQuery } from "../intake/types.js";
 
-const { mountSpy, unmountSpy } = vi.hoisted(() => ({
+const { mountSpy, unmountSpy, evaluateGuidelinesSpy } = vi.hoisted(() => ({
   mountSpy: vi.fn(),
   unmountSpy: vi.fn(),
+  evaluateGuidelinesSpy: vi.fn(),
 }));
 vi.mock("@hyakkei/core/renderer", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@hyakkei/core/renderer")>();
   return { ...actual, mount: mountSpy, unmount: unmountSpy };
+});
+// Defaults to the REAL evaluateGuidelines (delegates to actual, same
+// pattern as the renderer mock above) -- only the one XSS test below
+// overrides it, to inject a hostile message/citation that production
+// guideline-rules.json (a static, developer-authored TCB constant) never
+// actually contains.
+vi.mock("@hyakkei/core/guideline", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@hyakkei/core/guideline")>();
+  evaluateGuidelinesSpy.mockImplementation(actual.evaluateGuidelines);
+  return { ...actual, evaluateGuidelines: evaluateGuidelinesSpy };
 });
 
 import { ChartBuilder, type ChartBuilderProps } from "./ChartBuilder.js";
@@ -21,6 +32,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   mountSpy.mockClear();
   unmountSpy.mockClear();
+  evaluateGuidelinesSpy.mockClear();
 });
 
 async function renderInJsdom(node: ReactElement) {
@@ -403,6 +415,424 @@ describe("ChartBuilder", () => {
       });
       const [, nextChart] = onChange.mock.calls[0]!;
       expect(nextChart.encoding.columns).toEqual(["sum_amount"]);
+    });
+  });
+
+  // issue #13 (guideline nudge engine).
+  describe("guideline nudge: pie-too-many-slices", () => {
+    function pieChart(overrides: Partial<Chart> = {}): Chart {
+      return {
+        id: "c1",
+        type: "pie",
+        encoding: { category: "category", value: "sum_amount" },
+        query: "q1",
+        options: {},
+        ...overrides,
+      } as Chart;
+    }
+
+    function pieRows(n: number) {
+      return Array.from({ length: n }, (_, i) => ({ category: `cat-${i}`, sum_amount: i + 1 }));
+    }
+
+    // V-001: 6/7 boundary, at the ChartBuilder UI-wiring level (the pure
+    // predicate's own boundary is unit-tested in
+    // packages/core/src/guideline/guideline.test.ts -- this pins that the
+    // result actually reaches a visible advisory).
+    it("shows no nudge at 6 slices, shows one at 7", async () => {
+      const { host: sixHost } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            rowState: { status: "ready", rows: pieRows(6), truncated: false },
+          })}
+        />,
+      );
+      expect(sixHost.textContent).not.toContain("円グラフは分類が");
+
+      const { host: sevenHost } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+          })}
+        />,
+      );
+      const advisory = sevenHost.querySelector('[role="status"]');
+      expect(advisory?.textContent).toContain("円グラフは分類が");
+      expect(sevenHost.textContent).toContain("出典:");
+    });
+
+    // Codex 6-B (test adversarial review, Blind Spot 3): the test above
+    // only exercises two SEPARATE fresh mounts, never one component whose
+    // `rowState` prop actually changes over its lifetime -- a mutation that
+    // dropped `rowState`/`rows` from the nudge `useMemo`'s dependency array
+    // (matching `mismatchedChannels`' own dependency shape above) would
+    // still pass a fresh-mount-only test, since useMemo would just compute
+    // the right answer once, on first render, regardless of its deps array.
+    it("rerendering the SAME mounted card from 6 to 7 rows makes the nudge appear (useMemo dependency correctness)", async () => {
+      const { host, rerender } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            rowState: { status: "ready", rows: pieRows(6), truncated: false },
+          })}
+        />,
+      );
+      expect(host.textContent).not.toContain("円グラフは分類が");
+
+      await rerender(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+          })}
+        />,
+      );
+      expect(host.textContent).toContain("円グラフは分類が");
+    });
+
+    // V-019: rowState not yet "ready" -- must not nudge (nothing to judge
+    // yet), matching the existing type-mismatch advisory's own guard.
+    it.each(["pending", "error"] as const)(
+      "shows no nudge while rowState.status is %s",
+      async (status) => {
+        const { host } = await renderInJsdom(
+          <ChartBuilder {...baseProps({ chart: pieChart(), rowState: { status } })} />,
+        );
+        expect(host.textContent).not.toContain("円グラフは分類が");
+      },
+    );
+
+    // V-006: convert reuses the SAME onChange path handleTypeSelect("bar")
+    // already uses (not a hand-rolled independent implementation) -- proven
+    // by the resulting Chart having the identical shape a manual "棒グラフ"
+    // tile click produces (see the earlier "switching to pie/bar" tests).
+    // V-004: category->x, value->y carries over correctly.
+    it("clicking 「棒グラフに変換」 maps encoding category->x, value->y and switches type to bar", async () => {
+      const onChange = vi.fn();
+      const { host } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+            onChange,
+          })}
+        />,
+      );
+      const convertButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "棒グラフに変換",
+      )!;
+      await act(async () => {
+        convertButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      expect(onChange).toHaveBeenCalledTimes(1);
+      const [chartId, nextChart] = onChange.mock.calls[0]!;
+      expect(chartId).toBe("c1");
+      expect(nextChart.type).toBe("bar");
+      expect(nextChart.encoding).toEqual({ x: "category", y: "sum_amount" });
+    });
+
+    // V-005: donut is stripped on convert (reconcileChartOptions), same as
+    // an ordinary pie->bar tile click.
+    it("clicking 「棒グラフに変換」 on a donut chart strips the donut flag", async () => {
+      const onChange = vi.fn();
+      const { host } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart({ options: { donut: true, title: "内訳" } }),
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+            onChange,
+          })}
+        />,
+      );
+      const convertButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "棒グラフに変換",
+      )!;
+      await act(async () => {
+        convertButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      const [, nextChart] = onChange.mock.calls[0]!;
+      expect(nextChart.options.donut).toBeUndefined();
+      expect(nextChart.options.title).toBe("内訳");
+    });
+
+    // V-011: convert is disabled (not a silent no-op button) once
+    // previewColumns clears to [], same discipline as the type-picker tiles.
+    it("disables the convert button when no columns are available", async () => {
+      const { host } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            query: query({ previewColumns: [] }),
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+          })}
+        />,
+      );
+      const convertButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "棒グラフに変換",
+      ) as HTMLButtonElement;
+      expect(convertButton.disabled).toBe(true);
+    });
+
+    // Phase 8 QA/UX finding (Major, WCAG 4.1.3 / Nielsen #1 &#3): convert's
+    // own button unmounts itself (the nudge disappears once the chart is no
+    // longer pie), which used to drop focus to <body> with nothing telling
+    // an AT user anything happened or that undo is available.
+    it("clicking 「棒グラフに変換」 announces the result and moves focus to 「元に戻す」", async () => {
+      const { host } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+          })}
+        />,
+      );
+      const convertButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "棒グラフに変換",
+      )!;
+      await act(async () => {
+        convertButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      const statusRegions = [...host.querySelectorAll('[role="status"]')].map(
+        (el) => el.textContent,
+      );
+      expect(statusRegions).toContain("変換しました。");
+      const undoButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "元に戻す",
+      );
+      expect(document.activeElement).toBe(undoButton);
+    });
+
+    // V-016: undo restores the FULL pre-convert chart (donut included), and
+    // is itself a one-shot -- a further edit clears it rather than leaving
+    // a stale snapshot around.
+    it("「元に戻す」 restores the exact pre-convert chart (donut included), then disappears after another edit", async () => {
+      const onChange = vi.fn();
+      let currentChart = pieChart({ options: { donut: true, title: "内訳" } });
+      const { host, rerender } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: currentChart,
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+            onChange: (id, next) => {
+              onChange(id, next);
+              currentChart = next;
+            },
+          })}
+        />,
+      );
+      const convertButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "棒グラフに変換",
+      )!;
+      await act(async () => {
+        convertButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      await rerender(
+        <ChartBuilder
+          {...baseProps({
+            chart: currentChart,
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+            onChange: (id, next) => {
+              onChange(id, next);
+              currentChart = next;
+            },
+          })}
+        />,
+      );
+      const undoButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "元に戻す",
+      )!;
+      await act(async () => {
+        undoButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      const restored = onChange.mock.calls[1]![1];
+      expect(restored.type).toBe("pie");
+      expect(restored.options.donut).toBe(true);
+      expect(restored.options.title).toBe("内訳");
+
+      // Undo is one-shot: after it restores, the button must be gone (not
+      // still offering to "undo" a state that's no longer the live chart).
+      await rerender(
+        <ChartBuilder
+          {...baseProps({
+            chart: restored,
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+            onChange,
+          })}
+        />,
+      );
+      expect([...host.querySelectorAll("button")].some((b) => b.textContent === "元に戻す")).toBe(
+        false,
+      );
+    });
+
+    // Codex 6-B (test adversarial review, false-confidence finding): the
+    // test above only proves undo disappears after IT ITSELF fires
+    // (`isUndoRestore` clears its own snapshot) -- it never proves the
+    // OTHER branch of `commitChartChange`'s choke-point design, that an
+    // ORDINARY edit (not undo, not another convert) clears a live undo
+    // snapshot too. A mutation that stopped clearing on normal edits would
+    // have passed every test in this file before this one was added.
+    it("an ordinary edit (title blur) while undo is live clears the undo snapshot, not just after undo itself fires", async () => {
+      let currentChart = pieChart({ options: { donut: true, title: "内訳" } });
+      const onChange = (_id: string, next: Chart) => {
+        currentChart = next;
+      };
+      const { host, rerender } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: currentChart,
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+            onChange,
+          })}
+        />,
+      );
+      const convertButton = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === "棒グラフに変換",
+      )!;
+      await act(async () => {
+        convertButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      await rerender(
+        <ChartBuilder
+          {...baseProps({
+            chart: currentChart,
+            rowState: { status: "ready", rows: [], truncated: false },
+            onChange,
+          })}
+        />,
+      );
+      expect([...host.querySelectorAll("button")].some((b) => b.textContent === "元に戻す")).toBe(
+        true,
+      );
+
+      // An ordinary edit, unrelated to convert/undo: blur the title input.
+      const titleInput = host.querySelector(
+        'input[aria-label="グラフのタイトル"]',
+      ) as HTMLInputElement;
+      const nativeValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )!.set!;
+      await act(async () => {
+        nativeValueSetter.call(titleInput, "新しいタイトル");
+        titleInput.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await act(async () => {
+        titleInput.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      });
+      await rerender(
+        <ChartBuilder
+          {...baseProps({
+            chart: currentChart,
+            rowState: { status: "ready", rows: [], truncated: false },
+            onChange,
+          })}
+        />,
+      );
+      expect([...host.querySelectorAll("button")].some((b) => b.textContent === "元に戻す")).toBe(
+        false,
+      );
+    });
+
+    // Codex 6-B (test adversarial review, false-confidence finding): the
+    // earlier version of this test only checked the OUTPUT SHAPE
+    // ({category,value} -> {x,y}) in isolation, which a hand-rolled
+    // convert implementation (bypassing handleTypeSelect entirely) could
+    // also satisfy by coincidence. This instead compares the convert
+    // button's actual output against a manual "棒グラフ" tile click's
+    // output from the IDENTICAL starting chart -- proving they are the
+    // SAME transformation, not just two transformations with the same
+    // shape for this one input.
+    it("「棒グラフに変換」 produces byte-identical output to manually clicking the 「棒グラフ」 tile from the same starting chart", async () => {
+      const startingChart = pieChart({ options: { donut: true, title: "内訳" } });
+      const rowState: ChartRowState = { status: "ready", rows: pieRows(7), truncated: false };
+
+      const convertOnChange = vi.fn();
+      const { host: convertHost } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({ chart: startingChart, rowState, onChange: convertOnChange })}
+        />,
+      );
+      const convertButton = [...convertHost.querySelectorAll("button")].find(
+        (b) => b.textContent === "棒グラフに変換",
+      )!;
+      await act(async () => {
+        convertButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+
+      const tileOnChange = vi.fn();
+      const { host: tileHost } = await renderInJsdom(
+        <ChartBuilder {...baseProps({ chart: startingChart, rowState, onChange: tileOnChange })} />,
+      );
+      const barTile = [...tileHost.querySelectorAll("button")].find(
+        (b) => b.textContent === "棒グラフ",
+      )!;
+      await act(async () => {
+        barTile.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+
+      expect(convertOnChange.mock.calls[0]![1]).toEqual(tileOnChange.mock.calls[0]![1]);
+    });
+
+    // V-012/V-023: the guideline nudge coexists with the pre-existing
+    // type-mismatch advisory without either clobbering the other.
+    it("coexists with the type-mismatch advisory when both conditions hold simultaneously", async () => {
+      const { host } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            rowState: {
+              status: "ready",
+              rows: Array.from({ length: 7 }, (_, i) => ({
+                category: `cat-${i}`,
+                sum_amount: "not a number",
+              })),
+              truncated: false,
+            },
+          })}
+        />,
+      );
+      const statusRegions = [...host.querySelectorAll('[role="status"]')].map(
+        (el) => el.textContent,
+      );
+      expect(statusRegions.some((t) => t?.includes("円グラフは分類が"))).toBe(true);
+      expect(statusRegions.some((t) => t?.includes("数値として認識できませんでした"))).toBe(true);
+    });
+
+    // V-013: production guideline-rules.json is a static, developer-authored
+    // TCB constant today (Security Threat Model: no user-editable/external
+    // path reaches its message/citation) -- but the render path itself must
+    // stay safe regardless, as a residual-risk guard for the day rules.json
+    // does gain an external-load path (ADR-0016). `evaluateGuidelinesSpy` is
+    // overridden for just this one call (same injected-payload convention as
+    // `packages/core/src/renderer/xss.test.ts`'s `SCRIPT_PAYLOAD`) to prove
+    // the render path (JSX text children, no dangerouslySetInnerHTML) is
+    // what makes this safe -- not merely that today's fixed message happens
+    // to contain no markup.
+    it("never executes/interprets markup embedded in a nudge message or citation (JSX text-only rendering)", async () => {
+      const SCRIPT_PAYLOAD = "</p><script>alert(1)</script>";
+      evaluateGuidelinesSpy.mockReturnValueOnce([
+        {
+          ruleId: "pie-too-many-slices",
+          message: SCRIPT_PAYLOAD,
+          citation: { label: SCRIPT_PAYLOAD, url: null },
+        },
+      ]);
+      const { host } = await renderInJsdom(
+        <ChartBuilder
+          {...baseProps({
+            chart: pieChart(),
+            rowState: { status: "ready", rows: pieRows(7), truncated: false },
+          })}
+        />,
+      );
+      const advisory = host.querySelector('[role="status"]');
+      expect(host.innerHTML).not.toContain("<script");
+      expect(advisory?.querySelector("script, img")).toBeNull();
+      expect(advisory?.textContent).toBe(SCRIPT_PAYLOAD);
+      expect(host.textContent).toContain(`出典: ${SCRIPT_PAYLOAD}`);
     });
   });
 });

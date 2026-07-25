@@ -4,7 +4,7 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/**/*.ts", "src/golden-fixtures/*.json"],
+  "include": ["src/**/*.ts", "src/golden-fixtures/*.json", "src/guideline/*.json"],
   "exclude": ["src/**/*.test.ts"],
   "references": [{ "path": "../schema" }]
 }

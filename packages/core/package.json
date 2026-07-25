@@ -9,7 +9,8 @@
     ".": "./dist/index.js",
     "./renderer": "./dist/renderer/index.js",
     "./datasource": "./dist/datasource/index.js",
-    "./golden-fixtures": "./dist/golden-fixtures/index.js"
+    "./golden-fixtures": "./dist/golden-fixtures/index.js",
+    "./guideline": "./dist/guideline/index.js"
   },
   "scripts": {
     "build": "tsc --build",
