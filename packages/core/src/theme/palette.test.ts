@@ -10,22 +10,6 @@ import {
 } from "./palette.js";
 import type { ChartColorRole } from "./palette.js";
 
-// Fresh import of the real package, not a re-derivation of palette.ts's own
-// PALETTE_FAMILY table -- an independent ground truth to check the mapping
-// against (Codex Round 1 test-adversarial review: without this, a mutant
-// that mapped every Palette to the same family would still pass every other
-// test in this file, since contrast/hex-shape checks don't depend on which
-// family was actually used).
-const EXPECTED_PRIMARY_900: Record<Palette, string> = {
-  "guidebook-blue": designTokens.Color.Primitive.Blue["900"].$value,
-  "guidebook-light-blue": designTokens.Color.Primitive.LightBlue["900"].$value,
-  "guidebook-cyan": designTokens.Color.Primitive.Cyan["900"].$value,
-  "guidebook-green": designTokens.Color.Primitive.Green["900"].$value,
-  "guidebook-orange": designTokens.Color.Primitive.Orange["900"].$value,
-  "guidebook-red": designTokens.Color.Primitive.Red["900"].$value,
-  "guidebook-neutral": designTokens.Color.Neutral.SolidGray["900"].$value,
-};
-
 const PALETTES: Palette[] = [
   "guidebook-blue",
   "guidebook-light-blue",
@@ -36,6 +20,34 @@ const PALETTES: Palette[] = [
   "guidebook-neutral",
 ];
 const APPEARANCES: Appearance[] = ["light", "dark"];
+
+// Fresh import of the real package, not a re-derivation of palette.ts's own
+// PALETTE_FAMILY table -- an independent ground truth to check the mapping
+// against (Codex Round 1 test-adversarial review: without this, a mutant
+// that mapped every Palette to the same family would still pass every other
+// test in this file, since contrast/hex-shape checks don't depend on which
+// family was actually used). Shared by `EXPECTED_PRIMARY_900` below and the
+// issue #13 ramp-position characterization block further down (/simplify
+// Simplification finding: these used to be two independently hand-written
+// palette->family tables listing the same 7 pairs).
+const FAMILY_BY_PALETTE: Record<Palette, Record<string, { $value?: string }>> = {
+  "guidebook-blue": designTokens.Color.Primitive.Blue,
+  "guidebook-light-blue": designTokens.Color.Primitive.LightBlue,
+  "guidebook-cyan": designTokens.Color.Primitive.Cyan,
+  "guidebook-green": designTokens.Color.Primitive.Green,
+  "guidebook-orange": designTokens.Color.Primitive.Orange,
+  "guidebook-red": designTokens.Color.Primitive.Red,
+  "guidebook-neutral": designTokens.Color.Neutral.SolidGray,
+};
+
+function step(token: { $value?: string } | undefined): string {
+  if (!token?.$value) throw new Error("expected step to have a $value");
+  return token.$value;
+}
+
+const EXPECTED_PRIMARY_900: Record<Palette, string> = Object.fromEntries(
+  PALETTES.map((palette) => [palette, step(FAMILY_BY_PALETTE[palette]["900"])]),
+) as Record<Palette, string>;
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -255,6 +267,36 @@ describe("resolveChartColors: role-color distinctness (issue #60 characterizatio
         }
       });
     }
+  }
+});
+
+// issue #13 (guideline nudge engine, ADR-0016): `palette-order`'s guideline
+// rule is doc-only (no runtime evaluation) because v0.1's authorable
+// surface has no way to change which ramp step primary/secondary resolve
+// to -- but the ramp-position RELATIONSHIP those two steps happen to have
+// is exactly why: it is not "primary always uses an earlier/lighter step
+// than secondary" everywhere. This bidirectional characterization test
+// pins the actual relationship per (palette, appearance), independently of
+// palette.ts's own private step constants (fresh design-tokens lookups,
+// same convention as `EXPECTED_PRIMARY_900` above) -- a future change to
+// `SECONDARY_STEP_OVERRIDE`/`DARK_PRIMARY_STEP`/`DARK_SECONDARY_STEP` fails
+// here, forcing a conscious re-evaluation of ADR-0016 rather than silently
+// drifting underneath a guideline rule that no longer matches reality.
+describe("resolveChartColors: primary/secondary ramp-position relationship (issue #13 characterization)", () => {
+  for (const palette of PALETTES) {
+    it(`${palette}/light: primary=900-step, secondary=${palette === "guidebook-cyan" ? "1200-step override (KNOWN exception: secondary deeper than primary)" : "600-step (primary deeper than secondary)"}`, () => {
+      const { primary, secondary } = resolveChartColors(palette, "light");
+      const family = FAMILY_BY_PALETTE[palette];
+      expect(primary).toBe(step(family["900"]));
+      expect(secondary).toBe(step(family[palette === "guidebook-cyan" ? "1200" : "600"]));
+    });
+
+    it(`${palette}/dark: primary=400-step, secondary=600-step (KNOWN exception: secondary deeper than primary, uniformly across all palettes)`, () => {
+      const { primary, secondary } = resolveChartColors(palette, "dark");
+      const family = FAMILY_BY_PALETTE[palette];
+      expect(primary).toBe(step(family["400"]));
+      expect(secondary).toBe(step(family["600"]));
+    });
   }
 });
 

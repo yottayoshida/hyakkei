@@ -1,5 +1,6 @@
-import { memo, useMemo, useState, type ChangeEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { Chart, ChartVariant } from "@hyakkei/schema";
+import { evaluateGuidelines } from "@hyakkei/core/guideline";
 import { DashboardErrorBoundary } from "../dashboard-error-boundary.js";
 import { friendlyColumnLabel, type ChartRowState, type WorkspaceQuery } from "../intake/types.js";
 import { ChartPreview } from "./ChartPreview.js";
@@ -98,6 +99,22 @@ const CHART_TYPE_GROUPS: Array<{ key: string; heading: string | null; tiles: Cha
   })();
 
 /**
+ * issue #13 (/simplify Altitude finding): a ruleId-keyed lookup, not an
+ * inline `nudge.ruleId === "pie-too-many-slices"` check in the render body.
+ * `packages/core/src/guideline/rules.ts`'s own `RULE_PREDICATES` exists
+ * specifically so "which behavior a rule id maps to" is never an if/else
+ * chain -- this mirrors that discipline one layer up, in the view, so a
+ * future actionable rule (the guideline engine's own doc comment names
+ * v0.2's line-too-many-series as a candidate) is an added table entry, not
+ * a second copy-pasted conditional block. Lives in `packages/app`, not
+ * `packages/core`: `ChartTypeTile` is an app-layer concept, and
+ * `rules.ts`'s own header comment keeps core framework/DOM-free.
+ */
+const NUDGE_ACTIONS: Partial<Record<string, { label: string; targetTile: ChartTypeTile }>> = {
+  "pie-too-many-slices": { label: "棒グラフに変換", targetTile: "bar" },
+};
+
+/**
  * The light-shaping GUI's chart-creation card (issue #12), mirroring
  * `QueryBuilder.tsx`'s established idioms (3-zone layout, `memo`-wrapped
  * with stable callback props, 44px minimum tap targets). Unlike
@@ -147,41 +164,92 @@ export const ChartBuilder = memo(function ChartBuilder({
     [chart.type, chart.encoding, rowState],
   );
 
-  function handleTypeSelect(tile: ChartTypeTile) {
+  // issue #13 (guideline nudge engine): `evaluateGuidelines` takes
+  // `chart.type` decomposed, not the whole `chart` object (same reason
+  // `detectNumericMismatch` above does) -- a title keystroke or option
+  // toggle produces a new `chart` reference without touching `type`, and
+  // depending on the whole object would re-scan rows on every such edit.
+  const nudges = useMemo(
+    () => (rowState.status === "ready" ? evaluateGuidelines(chart.type, rowState.rows) : []),
+    [chart.type, rowState],
+  );
+
+  // Verbatim undo for the nudge's one-click convert (UX review: donut
+  // survives a pie->bar->pie round trip via the type picker only if the
+  // user remembers to re-check it -- `reconcileChartOptions` strips `donut`
+  // leaving pie, Recall not Recognition, Nielsen #6). Holds the FULL
+  // pre-convert `Chart`, not just the changed fields, so restoring it is a
+  // single reference swap with no reconstruction logic of its own.
+  const [undoSnapshot, setUndoSnapshot] = useState<Chart | null>(null);
+  const undoButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Phase 8 QA/UX finding (Major, WCAG 4.1.3 / Nielsen #1 &#3): convert's own
+  // trigger button lives inside `nudges.map` below, which unmounts once the
+  // chart is no longer pie -- unlike the type-picker tiles (always present,
+  // never unmount themselves), this drops focus to <body> with nothing
+  // announcing that anything happened or that undo is available. Moves
+  // focus to the undo button once it mounts, the same "focus what just
+  // appeared" convention this app already uses elsewhere (App.tsx's
+  // `focusNewChartIdRef`/`focusMovedChartIdRef` effects).
+  useEffect(() => {
+    if (undoSnapshot) undoButtonRef.current?.focus();
+  }, [undoSnapshot]);
+
+  // issue #13 (Codex② Major finding): the single choke point every edit
+  // handler below now calls, instead of each calling `onChange` directly --
+  // ChartBuilder had 5 independent `onChange(chart.id, ...)` call sites, and
+  // a convert-only undo snapshot added as its own separate piece of state
+  // would otherwise need every one of those 4 OTHER call sites to remember
+  // to clear it (an easy failure to introduce later without anyone
+  // noticing). Routing all 5 through here means "clear on any ordinary
+  // edit" is enforced once, not duplicated at each call site. Restoring
+  // from undo is just a call with no `opts` (/simplify Simplification
+  // finding: a dedicated `isUndoRestore` flag was byte-identical to the
+  // no-`captureUndo` default branch -- both clear the snapshot then call
+  // `onChange`, so the extra flag/branch was dead complexity).
+  function commitChartChange(next: Chart, opts?: { captureUndo?: boolean }) {
+    setUndoSnapshot(opts?.captureUndo ? chart : null);
+    onChange(chart.id, next);
+  }
+
+  function handleTypeSelect(tile: ChartTypeTile, opts?: { captureUndo?: boolean }) {
     if (!columnsAvailable) return;
     const { type: nextType, donut } = tileToVariant(tile);
     const nextEncoding = reconcileEncoding(encoding, nextType, previewColumns);
     const baseOptions = reconcileChartOptions(chart.options, nextType);
-    onChange(chart.id, {
-      ...chart,
-      type: nextType,
-      encoding: nextEncoding,
-      options: donut ? { ...baseOptions, donut: true } : baseOptions,
-      // `as Chart`: `reconcileEncoding`'s exhaustive switch over `nextType`
-      // guarantees `nextEncoding`'s shape matches `nextType`, a pairing
-      // TypeScript's structural typing cannot itself verify across this
-      // discriminated union without per-type generic overloads.
-    } as Chart);
+    commitChartChange(
+      {
+        ...chart,
+        type: nextType,
+        encoding: nextEncoding,
+        options: donut ? { ...baseOptions, donut: true } : baseOptions,
+        // `as Chart`: `reconcileEncoding`'s exhaustive switch over `nextType`
+        // guarantees `nextEncoding`'s shape matches `nextType`, a pairing
+        // TypeScript's structural typing cannot itself verify across this
+        // discriminated union without per-type generic overloads.
+      } as Chart,
+      opts,
+    );
   }
 
   function updateEncodingField(key: string, value: EncodingValue) {
     if (!columnsAvailable) return;
-    onChange(chart.id, { ...chart, encoding: { ...encoding, [key]: value } } as Chart);
+    commitChartChange({ ...chart, encoding: { ...encoding, [key]: value } } as Chart);
   }
 
   function updateTitle(title: string) {
-    onChange(chart.id, {
+    commitChartChange({
       ...chart,
       options: title ? { ...chart.options, title } : { ...chart.options, title: undefined },
     });
   }
 
   function toggleDonut(donut: boolean) {
-    onChange(chart.id, { ...chart, options: { ...chart.options, donut } });
+    commitChartChange({ ...chart, options: { ...chart.options, donut } });
   }
 
   function toggleShowDataLabels(showDataLabels: boolean) {
-    onChange(chart.id, { ...chart, options: { ...chart.options, showDataLabels } });
+    commitChartChange({ ...chart, options: { ...chart.options, showDataLabels } });
   }
 
   const showsDataLabelsOption =
@@ -393,6 +461,54 @@ export const ChartBuilder = memo(function ChartBuilder({
         <p role="status" style={{ marginTop: 8, fontSize: 13, color: "#b45309" }}>
           データが多いため、先頭{CHART_ROW_LIMIT.toLocaleString("ja-JP")}件のみ表示しています。
         </p>
+      )}
+
+      {/* issue #13 (guideline nudge engine): same visual language as the two
+          advisories above (role="status" polite, #b45309, above the
+          preview, never a hard gate) -- a 3rd advisory kind is
+          distinguished from the other two by having an action button, not
+          by inventing a new color/placement (UX review: Jakob's Law,
+          consistency). Citation is a plain-text 2nd line, not a link (UX
+          review: this app's primary deployment target is an air-gapped
+          network, so a citation that depends on reaching an external URL
+          to mean anything would go stale there -- see ADR-0016). */}
+      {nudges.map((nudge) => {
+        const action = NUDGE_ACTIONS[nudge.ruleId];
+        return (
+          <div key={nudge.ruleId} style={{ marginTop: 8 }}>
+            <p role="status" style={{ margin: 0, fontSize: 13, color: "#b45309" }}>
+              {nudge.message}
+            </p>
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6b7280" }}>
+              出典: {nudge.citation.label}
+            </p>
+            {action && (
+              <button
+                type="button"
+                disabled={!columnsAvailable}
+                onClick={() => handleTypeSelect(action.targetTile, { captureUndo: true })}
+                style={{ marginTop: 4, minHeight: 44, padding: "0 12px" }}
+              >
+                {action.label}
+              </button>
+            )}
+          </div>
+        );
+      })}
+      {undoSnapshot && (
+        <div style={{ marginTop: 8 }}>
+          <p role="status" style={{ margin: 0, fontSize: 13, color: "#b45309" }}>
+            変換しました。
+          </p>
+          <button
+            ref={undoButtonRef}
+            type="button"
+            onClick={() => commitChartChange(undoSnapshot)}
+            style={{ marginTop: 4, minHeight: 44, padding: "0 12px" }}
+          >
+            元に戻す
+          </button>
+        </div>
       )}
 
       <div style={{ marginTop: 12 }}>

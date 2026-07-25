@@ -1,0 +1,55 @@
+# ADR-0016: Guideline nudge engine scope — only `pie-too-many-slices` is a runtime rule
+
+- **Status**: Accepted (2026-07-25)
+- **Deciders**: yotta
+
+## Context
+
+Issue #13 (F4, PRD §6.3, "the feature that makes 'design-system native' concrete"): the guidebook's Do's & Don'ts are encoded as data (`guideline-rules.json`), evaluated against a chart spec, and surfaced as a non-blocking nudge citing the guidebook. Issue #13's own body listed four candidate rules — `pie-too-many-slices`, `truncated-axis`, `palette-order`, `3d-anything` — as if all four needed runtime evaluation code. PRD §6.3 had already been amended once, ahead of this PR, based on an M0 spike (`docs/spikes/m0-charts.md`): `line-too-many-series` was held for v0.2 (v0.1's `ChartVariant` schema is single-series-only, so the rule cannot fire against any shape v0.1 can produce), and `palette-order`'s own framing was already re-scoped once (from "categorical series ordering" to "ramp-position ordering within one key's primary/secondary roles").
+
+`/plan` investigation (architect, qa-specialist, security-specialist, ux-designer — all four independently, one Codex review round on the investigation, one on the finished plan) went a step further and found that PRD §6.3's amended text still didn't hold against the actual, current implementation for two of the remaining three rules.
+
+## Decision
+
+### Only `pie-too-many-slices` gets a runtime predicate; `truncated-axis`/`palette-order`/`3d-anything` are `status: "doc-only"`
+
+Three independent investigations (architect, qa-specialist, ux-designer — none aware of the others' conclusion until compared) converged on the same finding by reading the actual code, not by discussing the rule text:
+
+- **`truncated-axis`** ("bar chart with a non-zero y-axis baseline exaggerates differences"): `ChartOptions` (`packages/schema/src/common.ts`) has no y-axis min/baseline/scale field at all, and `build-options.ts` hardcodes `yAxis: { type: "value" }` — ECharts' own default for that (`scale: false`) always includes zero. There is no way, today, for a user to author a chart this rule could ever fire against.
+- **`palette-order`** ("primary before secondary in ramp order"): colors are fully deterministic, derived from `(palette, appearance)` alone via `resolveChartColors` (`packages/core/src/theme/palette.ts`) — there is no per-series/per-role color field a user can set. Worse: naively implementing "primary's ramp step precedes secondary's" as a real predicate would have **misfired against this project's own golden fixtures** — `guidebook-cyan`'s light-mode secondary deliberately overrides to a *deeper* step than primary (contrast-driven, `SECONDARY_STEP_OVERRIDE`), and every dark-appearance combination uses the same deeper-secondary-than-primary shape (`DARK_PRIMARY_STEP`/`DARK_SECONDARY_STEP`) — both intentional design choices for contrast, not oversights the rule could ask a user to "fix."
+- **`3d-anything`**: already correctly understood as needing no runtime code — `ChartVariant` has no 3D variant at all, so this rule is satisfied by omission, the same way PRD §6.3 already described it.
+
+Implementing `truncated-axis`/`palette-order` as real predicates against the current schema/renderer would mean either (a) a rule that can never fire (silently vacuous — a false sense of "4 rules enforced" when only 1 actually is), or (b) a rule that fires against this project's own reference dashboards, undermining the PRD §7 acceptance criterion ("100% of nudge rules pass on all gallery templates") the moment it shipped. Both are worse than being explicit: `guideline-rules.json` marks these three `status: "doc-only"` — present as data (id/message/citation), carrying no predicate, and the CI acceptance test (`guideline.acceptance.test.ts`) only counts `status: "active"` rules toward "0 nudges across the gallery," so this can never become a silently-vacuous pass. `palette-order`'s underlying concern gets a real regression guard anyway, just not as a per-document nudge: `palette.test.ts` pins the exact ramp-position relationship (including both known exceptions) as a characterization test, so a future change to the derivation forces someone to notice and re-evaluate this ADR, rather than drifting unnoticed under a rule that was never actually checking anything.
+
+### `guideline-rules.json` is declarative metadata only; predicates are a closed TypeScript dispatch table
+
+None of the four rules' trigger conditions can be expressed as pure JSON in a way that's worth building a predicate DSL for (`pie-too-many-slices` needs resolved row data, not just the spec; the other three need no runtime check at all). A JSON-encoded predicate language (regex/expression-DSL) was considered and rejected — it would be over-engineering for one real rule, and would reopen exactly the kind of "arbitrary logic from an external data file" attack surface this project avoids elsewhere (`castTargetFor`'s closed enum→lookup, not a a free-form CAST string, is the same pattern already established in `chart-encoding.ts`). `RULE_PREDICATES` (`packages/core/src/guideline/rules.ts`) is a plain `Record<string, predicate>` keyed by rule id — `status: "active"` rules must have a matching entry or `validateGuidelineRules` fails CI; `doc-only` rules need none.
+
+### Fail-closed in CI, fail-open at runtime
+
+`validateGuidelineRules(raw)` throws, naming exactly what's wrong — the function `guideline.test.ts` calls directly, so a malformed `guideline-rules.json` fails the build before it ships. `getGuidelineRules()` is the separate, runtime-only wrapper `evaluateGuidelines` actually calls: it catches whatever `validateGuidelineRules` would throw and falls back to `[]` (no nudges), rather than ever crashing the editor over a nudge feature. These are two different functions, not one function with a flag, specifically so the fail-open path can never accidentally inherit a `throw`.
+
+### Verbatim undo for one-click convert
+
+`pie-too-many-slices`'s "convert to bar" reuses the existing `handleTypeSelect`/`reconcileEncoding`/`reconcileChartOptions` path verbatim (no new conversion logic) — but that path also strips a `donut` flag when leaving `pie`, which the type-picker alone can't restore (re-selecting "pie" later gives a plain pie, not the donut the user had). `ChartBuilder` now holds one `Chart`-shaped undo snapshot, captured only by the convert action and consumed only by its own "元に戻す" button; every other edit path (all 5 of `ChartBuilder`'s pre-existing `onChange` call sites) now routes through one shared `commitChartChange` wrapper that clears the snapshot on any ordinary edit. A single choke point, not a flag duplicated at 5 independent call sites that a future edit could forget to clear.
+
+## Alternatives considered
+
+| Option | Rejected because |
+|---|---|
+| Implement all 4 rules as issue #13's body originally listed | Two of them (`truncated-axis`, `palette-order`) cannot fire against anything the current schema/renderer lets a user author — either permanently vacuous or, for `palette-order`, actively self-defeating against this project's own reference dashboards |
+| A JSON-encoded predicate/trigger DSL in `guideline-rules.json` | Over-engineered for the one real rule; reopens an "arbitrary logic from a data file" attack surface this project avoids elsewhere via closed enum→lookup dispatch |
+| One `evaluateGuidelines` that throws on bad input (single fail mode) | Conflates "CI should catch a malformed rules file" with "the editor should never crash over an advisory feature" — two different callers need two different failure behaviors |
+| Rely on the type-picker alone to "undo" a convert | Loses the `donut` flag permanently (re-selecting pie later gives a plain pie); Recall, not Recognition (Nielsen #6) |
+
+## Residual risks (accepted for this PR)
+
+- **RR-1 — `truncated-axis`/`palette-order` remain doc-only until the schema/authoring surface actually changes.** Activation triggers are named, not open-ended: `truncated-axis` needs a `ChartOptions.yAxisMin`-equivalent field (and a decision on whether v0.1 should even allow axis truncation); `palette-order` needs either per-series/per-role color control or v0.2's multi-series support to land first.
+- **RR-2 — `guideline-rules.json`'s citations carry no real guidebook URL yet (`url: null`).** Real anchors need a human to confirm against the actual guidebook pages (the same sourcing discipline the M0 spike used), not a guessed URL — left for a follow-up rather than fabricated here.
+- **RR-3 — This PR's security posture (closed predicate dispatch, no external load path) is only load-bearing today because `guideline-rules.json` is build-time-bundled.** If a future PR makes rules externally loadable (issue #13's own "may become its own community artifact" framing), the schema-validation and closed-dispatch design here is what has to hold — revisit this ADR at that point, don't assume it still applies unexamined.
+
+## Consequences
+
+- (+) The PRD §7 acceptance criterion ("100% of nudge rules pass on all gallery templates") is met honestly — the existing 3 `GOLDEN_SAMPLES` (applications/budget/regional) need no new fixture directory, and the CI test can never pass vacuously because it only counts the 1 rule that's actually active.
+- (+) `packages/core` gains a new, dependency-free subpath (`@hyakkei/core/guideline`) that `packages/app` is the only consumer of today, but that already has the shape (`(chart, rows) -> result`, same as `detectNumericMismatch`) a v0.2 `line-too-many-series` rule would need.
+- (−) Shipping only 1 of the 4 rules issue #13's body named means the feature reads as narrower than the issue implied — mitigated by this ADR and the issue-closing comment stating explicitly why, plus `guideline-rules.json` itself carrying the other 3 as visible (if inactive) data rather than silently dropping them.

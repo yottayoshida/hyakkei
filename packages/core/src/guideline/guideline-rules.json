@@ -1,0 +1,43 @@
+[
+  {
+    "id": "pie-too-many-slices",
+    "status": "active",
+    "severity": "warning",
+    "threshold": 6,
+    "message": "円グラフは分類が7つ以上になると、割合の大小を比べにくくなります。棒グラフなら順序どおりに並べて比較できます。",
+    "citation": {
+      "label": "デジタル庁 ダッシュボードデザインガイドブック（円グラフの使い方）",
+      "url": null
+    }
+  },
+  {
+    "id": "truncated-axis",
+    "status": "doc-only",
+    "severity": "warning",
+    "message": "棒グラフのY軸の基準線を0以外にすると、差が実際より大きく見えてしまいます。",
+    "citation": {
+      "label": "デジタル庁 ダッシュボードデザインガイドブック（軸の使い方）",
+      "url": null
+    }
+  },
+  {
+    "id": "palette-order",
+    "status": "doc-only",
+    "severity": "warning",
+    "message": "同じ色のグラデーション内では、濃い色を先に、薄い色を後に使うのが基本です。",
+    "citation": {
+      "label": "デジタル庁 ダッシュボードデザインガイドブック（配色の使い方）",
+      "url": null
+    }
+  },
+  {
+    "id": "3d-anything",
+    "status": "doc-only",
+    "severity": "warning",
+    "message": "3Dグラフは奥行きのせいで数値が読み取りにくくなるため、Hyakkeiには3Dグラフの機能自体がありません。",
+    "citation": {
+      "label": "デジタル庁 ダッシュボードデザインガイドブック（グラフの選び方）",
+      "url": null
+    }
+  }
+]
