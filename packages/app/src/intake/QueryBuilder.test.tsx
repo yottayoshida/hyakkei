@@ -499,6 +499,40 @@ describe("QueryBuilder", () => {
     });
   });
 
+  // issue #15/F7, V-012: an unknown field on a measure (e.g. from a file
+  // opened with a newer schema version) must survive a column change, not
+  // just an aggregate change -- this was the one spread violation among
+  // this file's 9 filter/measure edit handlers.
+  it("preserves an unknown field on a measure when its column is changed", async () => {
+    const onChange = vi.fn();
+    const { host } = await renderInJsdom(
+      <QueryBuilder
+        {...baseProps({
+          onChange,
+          query: query({
+            builderState: {
+              filters: [],
+              groupBy: [],
+              measures: [{ column: "件数", aggregate: "sum", futureField: "kept" } as never],
+            },
+          }),
+        })}
+      />,
+    );
+    const columnSelect = host.querySelector(
+      'select[aria-label="集計する値1: 列"]',
+    ) as HTMLSelectElement;
+    await act(async () => {
+      columnSelect.value = "部署";
+      columnSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(onChange).toHaveBeenCalledWith("query_1", {
+      filters: [],
+      groupBy: [],
+      measures: [{ column: "部署", aggregate: "count", futureField: "kept" }],
+    });
+  });
+
   it("marks an invalid filter value with a warning glyph (diagnostics.invalidFilterIndices)", async () => {
     const { host } = await renderInJsdom(
       <QueryBuilder

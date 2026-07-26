@@ -476,7 +476,12 @@ export const QueryBuilder = memo(function QueryBuilder({
                 onChange={(event: ChangeEvent<HTMLSelectElement>) => {
                   const column = event.target.value;
                   const nextCategory = effectiveCategory(column, columnMeta, overrides);
+                  // issue #15/F7, V-012: `...measure` was missing here
+                  // (unlike every other measure/filter edit handler in this
+                  // file), silently dropping any unknown field an opened
+                  // file's measure carried the moment its column changed.
                   updateMeasure(index, {
+                    ...measure,
                     column,
                     aggregate: nextCategory === "number" ? measure.aggregate : "count",
                   });

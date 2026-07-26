@@ -281,7 +281,20 @@ export function IntakeApp({ mode, usedIds, onComplete, onboardHeadingRef }: Inta
           .map((row) =>
             layer.datasource.rowToPlainObject(row as unknown as Iterable<[string, unknown]>),
           );
-        const sample: IntakeSample = { table, rows };
+        // issue #15/F7: burn the resolved sheet into `spec.ref` before it
+        // reaches `IntakeSample` -- `source.spec` (readonly) never itself
+        // carries `sheet` (chosen separately, after `inspect()`, see
+        // `startFile`/`handleSheetChosen` below). `sheet !== undefined`
+        // (not truthy) for the same reason `register()`'s own call above
+        // uses it -- `""` is a schema-legal sheet name. A single-sheet
+        // workbook still gets its sheet name burned in explicitly, not left
+        // absent, so a later re-open resolves the exact same sheet rather
+        // than "whichever is first" if the source file gains sheets later.
+        const spec: Source =
+          sheet !== undefined && source.spec.kind === "file" && source.spec.format === "xlsx"
+            ? { ...source.spec, ref: { ...source.spec.ref, sheet } }
+            : source.spec;
+        const sample: IntakeSample = { table, rows, spec };
         dispatch({ type: "REGISTERED", sample });
       } catch (err) {
         if (generation !== generationRef.current) return;
