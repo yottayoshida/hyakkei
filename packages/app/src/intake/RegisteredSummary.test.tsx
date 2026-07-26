@@ -41,6 +41,7 @@ function sample(): IntakeSample {
       { 郵便番号: "1000001", amount: "1,200", tags: "" },
       { 郵便番号: "1000002", amount: "999", tags: "" },
     ],
+    spec: { id: "t1", kind: "file", format: "csv", ref: { name: "t1.csv" } },
   };
 }
 
@@ -301,6 +302,7 @@ describe("RegisteredSummary", () => {
       // construction `rowToPlainObject` itself uses) creates a genuine own
       // property, the realistic shape this test needs to actually exercise.
       rows: [Object.fromEntries([["__proto__", "not-a-real-prototype-value"]])],
+      spec: { id: "t2", kind: "file", format: "csv", ref: { name: "t2.csv" } },
     };
     const { host } = await renderInJsdom(
       <RegisteredSummary {...baseProps({ sample: protoSample })} />,

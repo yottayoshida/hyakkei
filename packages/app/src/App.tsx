@@ -15,11 +15,13 @@ import type { ColumnCategory } from "@hyakkei/core/datasource";
 import {
   GRID_WIDTHS,
   type BakedDashboard,
+  type BaseMeta,
   type BuilderState,
   type Chart,
   type ChartVariant,
   type JsonPrimitive,
   type Layout,
+  type Theme,
 } from "@hyakkei/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AuthoringDashboardPreview } from "./chart/AuthoringDashboardPreview.js";
@@ -34,6 +36,13 @@ import {
 import { CHART_DEFAULT_SIZE, nextFreeCell } from "./chart/layout-placement.js";
 import { reorderLayout } from "./chart/layout-reorder.js";
 import { getDuckDBHandleWithLayer } from "./data-layer.js";
+import { canSave } from "./document/can-save.js";
+import { downloadDashboard } from "./document/download-dashboard.js";
+import { downloadFilename } from "./document/download-filename.js";
+import { SAVE_NARRATIVE_EXCLUDED, SAVE_NARRATIVE_INCLUDED } from "./document/save-narrative.js";
+import { DEFAULT_THEME } from "./document/theme.js";
+import { toDashboard } from "./document/to-dashboard.js";
+import { verifyBeforeSave } from "./document/verify-before-save.js";
 // Re-exported (not just imported) so existing consumers of `./App.js` keep
 // working unchanged -- the class body moved out (issue #12) so `chart/
 // ChartBuilder.tsx` can use the same boundary without an App.tsx <-> chart/
@@ -140,7 +149,7 @@ const SAMPLE_DASHBOARD: BakedDashboard = {
  * left `"pending"` by then but its displayed `previewRows` has not yet
  * caught up.
  */
-type WorkspaceSource = {
+export type WorkspaceSource = {
   sourceLabel: string;
   sample: IntakeSample;
   typeOverrides: ColumnOverride[];
@@ -192,14 +201,26 @@ export function mergeWorkspaceSource(
  * change never accumulates duplicate entries for the same column -- isn't
  * otherwise reachable through `App()`'s rendered behavior without
  * reproducing a real `handleOverrideChange` call through React.
+ *
+ * Spreads the REPLACED entry (issue #15/F7, unknown-field preservation
+ * mechanism (i)): a future schema version could add a field to
+ * `TypeOverrideEntry` this build doesn't know about, and re-editing that
+ * column's override must not silently drop it. A brand-new column has
+ * nothing to spread from, so it gets a plain literal -- there is no prior
+ * entry's unknown field to lose. Still filter-then-push, not an in-place
+ * `map` (shape enumeration A2): `checkTypeOverrideDuplicates`
+ * (schema/validate.ts) documents "the last one wins at runtime" as meaning
+ * the array's LAST position, and this function's own save-order contract
+ * must keep matching that.
  */
 export function upsertOverride(
   overrides: ColumnOverride[],
   column: string,
   category: ColumnCategory,
 ): ColumnOverride[] {
+  const existing = overrides.find((entry) => entry.column === column);
   const next = overrides.filter((entry) => entry.column !== column);
-  next.push({ column, category });
+  next.push(existing ? { ...existing, column, category } : { column, category });
   return next;
 }
 
@@ -278,6 +299,26 @@ const PENDING_ROW_STATE: ChartRowState = { status: "pending" };
 
 export function App() {
   const [sources, setSources] = useState<WorkspaceSource[]>([]);
+  // issue #15/F7: `meta`/`theme` are the two `Dashboard` top-level fields
+  // with no prior editor state at all -- `Dashboard.meta.title` is a
+  // required `NonEmptyString` (schema/common.ts `BaseMeta`), so this is the
+  // single place a save-worthy document gets a title. Starts empty (yotta
+  // decision, shape enumeration A10): a placeholder default like
+  // "無題のダッシュボード" would make the empty-title save guard
+  // practically unreachable, and this app has no existing precedent for
+  // silently-materialized user-facing text. `theme` has no editor UI in
+  // this PR (F6 theming is a separate, later feature) -- kept as state
+  // rather than a bare constant so PR-2b's `fromDashboard` can set it from
+  // an opened file without a shape change here.
+  const [meta, setMeta] = useState<BaseMeta>({ title: "" });
+  const [theme] = useState<Theme>(DEFAULT_THEME);
+  // issue #15/F7 (UX review D3): save is the ONLY persistence this app has
+  // -- DuckDB-WASM is in-memory/session-scoped, so a reload or closed tab
+  // discards every registered table regardless of `dirty`. `dirty`/
+  // `lastSavedAt` exist so the user can SEE that state before it's too
+  // late, not to gate anything.
+  const [dirty, setDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [announcement, setAnnouncement] = useState<string | null>(null);
   // Shell-owned (mirror-review Major 3): every id this session has ever
@@ -743,12 +784,25 @@ export function App() {
         // error) kept showing its LAST SUCCESSFUL result -- indistinguishable
         // from "the filter/aggregate genuinely produced this," directly
         // contradicting this PR's own "silent fail = zero" success metric.
+        //
+        // `sql: ""` (issue #15/F7, shape enumeration A3, yotta decision):
+        // this catch previously left `sql` at its last-successful compile,
+        // which `dashboard.ts`'s own doc comment claims can never happen
+        // ("the editor recompiles both together on every builderState edit
+        // so they never drift") -- an implementation gap this PR's save
+        // path would otherwise expose by writing that stale, no-longer-
+        // matching-`builderState` SQL into a real dashboard.json (misleading
+        // any P3 developer reviewing it in Git, PRD UC4). Folding into the
+        // existing `sql === ""` save block (below) closes it without new
+        // state: a query the editor can no longer vouch for is the same
+        // "not ready to persist yet" state as one that never resolved.
         if (isCurrent()) {
           updateQueries((prev) =>
             prev.map((q) =>
               q.id === queryId
                 ? {
                     ...q,
+                    sql: "",
                     previewRows: null,
                     previewColumns: [],
                     diagnostics: null,
@@ -1358,6 +1412,126 @@ export function App() {
     );
   }, [layout]);
 
+  // issue #15/F7: the save button's click handler. `canSave` is called
+  // twice (here for the disabled/copy state, again inside the handler) --
+  // deliberately not memoized into one shared value, since the check is a
+  // handful of array/string operations and the duplication reads clearer
+  // than threading a `saveBlockReason` ref through both the render path
+  // and the callback's closure.
+  const saveBlockReason = canSave({ meta, queries });
+  const handleSave = useCallback(() => {
+    const blockReason = canSave({ meta, queries });
+    if (blockReason) {
+      setAnnouncement(
+        blockReason === "empty-title"
+          ? "タイトルを入力してください。"
+          : "まだ準備中の集計があります。",
+      );
+      return;
+    }
+    // issue #15/F7, Codex test-adversarial review: `toDashboard` throws
+    // (via `assertNoRuntimeKeys`) if editor runtime state ever leaked into
+    // the projection -- a projection BUG, not a user-caused condition
+    // `canSave` could have pre-checked. An event handler's own thrown
+    // error is not caught by a React error boundary (a boundary only
+    // catches render/effect-phase throws), so without this try/catch the
+    // failure would be an unhandled console error and a completely silent
+    // "nothing happened" from the user's perspective -- exactly the
+    // "silent fail = zero" discipline this codebase applies everywhere
+    // else (`refreshQueryPreview`'s own catch path, App.tsx). Fails loud
+    // instead: no download fires, no "saved" is announced.
+    let dashboard: ReturnType<typeof toDashboard>;
+    try {
+      dashboard = toDashboard({ meta, theme, sources, queries, charts, layout });
+    } catch (error) {
+      console.error("toDashboard rejected the projected document -- refusing to save:", error);
+      setAnnouncement("保存に失敗しました。もう一度お試しください。");
+      return;
+    }
+    // V-020 (Phase 6.5 audit): the last net before a Blob is created.
+    // `toDashboard` deliberately doesn't validate, and `assertNoRuntimeKeys`
+    // (inside it) only catches editor-state LEAKS, not a structurally-wrong
+    // document (a dangling reference, an out-of-bounds layout item) --
+    // neither of which today's editor UI can actually produce, but this is
+    // the backstop for the day a projection bug lets one through.
+    const verifyFailure = verifyBeforeSave(dashboard);
+    if (verifyFailure) {
+      console.error("verifyBeforeSave rejected the projected document:", verifyFailure);
+      setAnnouncement("保存に失敗しました。もう一度お試しください。");
+      return;
+    }
+    const filename = downloadFilename(meta.title, new Date());
+    downloadDashboard(dashboard, filename);
+    setDirty(false);
+    setLastSavedAt(new Date());
+    setAnnouncement(`保存しました: ${filename}`);
+  }, [meta, theme, sources, queries, charts, layout]);
+
+  // Marks the document dirty on any change to a persistable slice --
+  // deliberately NOT threaded through each individual handler (12+ of
+  // them), since "did any of these 6 values change since the last render"
+  // is exactly what a dependency array already computes.
+  //
+  // Compares against the LAST-SEEN values (Codex Round 1 P2), not a
+  // boolean "have I mounted yet" flag: a boolean flag reads correctly for
+  // a plain mount, but breaks under React 18 `<StrictMode>` (wired in
+  // `main.tsx`) -- dev-only, but this app runs it. StrictMode's mount ->
+  // unmount -> remount cycle re-runs this effect a second time with the
+  // SAME dependency values but no cleanup to reset a plain flag, so a
+  // boolean flip would already read "not first run" on that second,
+  // still-nothing-the-user-did invocation and fire a false `setDirty`.
+  // Comparing against the actual last-seen values instead is immune to
+  // that: the second StrictMode invocation sees identical references
+  // (nothing changed), so `changed` is correctly `false` both times.
+  const lastPersistedRef = useRef({ meta, theme, sources, queries, charts, layout });
+  useEffect(() => {
+    const last = lastPersistedRef.current;
+    const changed =
+      last.meta !== meta ||
+      last.theme !== theme ||
+      last.sources !== sources ||
+      last.queries !== queries ||
+      last.charts !== charts ||
+      last.layout !== layout;
+    lastPersistedRef.current = { meta, theme, sources, queries, charts, layout };
+    if (changed) setDirty(true);
+  }, [meta, theme, sources, queries, charts, layout]);
+
+  // issue #15/F7 (UX review): without this, Cmd/Ctrl+S falls through to the
+  // browser's native "save page" dialog -- confusing for a user whose
+  // mental model is "this app has its own save", and it does nothing
+  // useful here (there is no server-rendered page worth saving).
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSave]);
+
+  // issue #15/F7 (UX review D3): save is this app's only persistence path
+  // (DuckDB-WASM is in-memory/session-scoped) -- a reload/close with
+  // unsaved changes silently discards every registered table. Only armed
+  // while `dirty` (Nielsen #5 error prevention without over-warning on a
+  // harmless reload of an already-saved session).
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // Chrome requires `returnValue` to be set for the native prompt to
+      // appear at all; its actual string content is ignored by every
+      // modern browser (each shows its own fixed wording), so this is not
+      // where the "closing loses your data" copy lives -- that lives in
+      // the always-visible dirty-state text below instead.
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
   const hasSources = sources.length > 0;
 
   // Rendered OUTSIDE either branch below (code review finding): deleting
@@ -1382,11 +1556,108 @@ export function App() {
     );
   }
 
+  const savedAtText = lastSavedAt
+    ? `最終保存 ${String(lastSavedAt.getHours()).padStart(2, "0")}:${String(lastSavedAt.getMinutes()).padStart(2, "0")}`
+    : "まだ保存されていません";
+  const dirtyStatusText = dirty
+    ? `未保存の変更があります（${savedAtText}）。タブを閉じると取り込んだデータは消えます（ダッシュボードは保存できます）。`
+    : savedAtText;
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 24, fontFamily: "sans-serif" }}>
       <h1 ref={workspaceHeadingRef} tabIndex={-1} style={{ fontSize: 20 }}>
         データワークスペース
       </h1>
+
+      {/* issue #15/F7 (Phase 6.5 audit): sticky -- distinct from the
+          `<h1>` above, which names this SCREEN ("data workspace"), not the
+          dashboard being built in it. UX design (plan §F): 3 header
+          elements max (Miller's Law), title first (Serial Position). The
+          save button lands here too (ダウンロードUI step) so both live in
+          one row; `theme` has no control here (no editor UI this PR). A
+          background color is required for `position: sticky` to actually
+          read as "pinned" rather than "content scrolling underneath and
+          showing through". */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 1,
+          background: "#fff",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginTop: 8,
+          paddingTop: 8,
+          paddingBottom: 8,
+        }}
+      >
+        <input
+          type="text"
+          aria-label="ダッシュボード名"
+          placeholder="ダッシュボード名"
+          value={meta.title}
+          onChange={(event) => setMeta((prev) => ({ ...prev, title: event.target.value }))}
+          style={{
+            flex: 1,
+            minHeight: 44,
+            padding: "0 12px",
+            border: "1px solid #d1d5db",
+            borderRadius: 4,
+            fontSize: 16,
+          }}
+        />
+        {/* Label stays the short "保存" (UX design's own header mockup
+            renders it as `[ 保存 ]`) -- "作業ファイル" names the PURPOSE
+            this button is fixed to for M3's later "公開用に書き出す" (F8)
+            button to contrast against, not literal button text. */}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saveBlockReason !== null}
+          aria-disabled={saveBlockReason !== null}
+          style={{
+            minHeight: 44,
+            padding: "0 16px",
+            background: saveBlockReason ? "#9ca3af" : "#1a56db",
+            color: "#fff",
+            border: "none",
+            borderRadius: 4,
+            cursor: saveBlockReason ? "not-allowed" : "pointer",
+          }}
+        >
+          保存
+        </button>
+      </div>
+
+      {/* issue #15/F7 (UX review D3): save is this app's only persistence
+          -- Nielsen #1 system status, always visible, not just at the
+          moment of save. No `role="status"` here (deliberately) -- the
+          `announcementRegion` above already speaks "保存しました" once on
+          the transition into "saved"; re-announcing this text on every
+          keystroke that flips `dirty` would be a screen-reader spam
+          source, not a status update.
+          issue #15/F7 (Phase 6.5 audit): dirty and "最終保存" are not
+          mutually exclusive -- the UX mockup shows them side by side
+          ("未保存の変更あり / 最終保存 14:32"), so a save followed by ONE
+          more edit must still show the last successful save time, not
+          hide it behind the warning. */}
+      <p style={{ fontSize: 12, color: dirty ? "#92400e" : "#6b7280", marginTop: 4 }}>
+        {dirtyStatusText}
+      </p>
+
+      {/* issue #15/F7, Security review T7: "データは含まれません" alone
+          overstates the file's safety -- title/filenames/column names/SQL
+          all survive. `SAVE_NARRATIVE_COVERED_KEYS` (save-narrative.ts)
+          keeps this text honest against schema drift via a dedicated
+          test. */}
+      <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+        このファイルに含まれるもの: {SAVE_NARRATIVE_INCLUDED}
+        <br />
+        含まれないもの: {SAVE_NARRATIVE_EXCLUDED}
+        。配布する前に、ファイル名や列名に見せたくない情報が含まれていないかご確認ください。
+      </p>
+
       {announcementRegion}
 
       {/* issue #70/#12(B): once at least one real chart exists, the

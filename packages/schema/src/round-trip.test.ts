@@ -305,6 +305,103 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
     );
   });
 
+  // issue #15/F7 (/plan Phase 5 Codex review, lead-reported coverage gap):
+  // the property above pins `layout.items[i]`; `layout` ITSELF -- a
+  // sibling SafeObject to `grid`/`items`, not one of `items`' entries --
+  // was previously unpinned for the same additive guarantee.
+  it("an arbitrary unknown field on layout itself (alongside grid/items) is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(unknownKey(new Set(["grid", "items"])), unknownValue, (key, value) => {
+        const base = baseDashboard();
+        const doc = { ...base, layout: { ...base.layout, [key]: value } };
+        const result = parseDashboard(doc);
+        expect(result.ok).toBe(true);
+        if (result.ok) expect((result.value.layout as Record<string, unknown>)[key]).toEqual(value);
+      }),
+    );
+  });
+
+  // issue #15/F7: existing coverage above proves an unknown field survives
+  // on the SOURCE object itself -- this proves the same guarantee one level
+  // down, inside `Source.ref` (a nested SafeObject `fileSource()`
+  // constructs per-format, dashboard.ts).
+  it("an arbitrary unknown field nested in a source's ref is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(unknownKey(new Set(["name", "sheet"])), unknownValue, (key, value) => {
+        const base = baseDashboard();
+        const doc = {
+          ...base,
+          sources: [{ ...base.sources[0], ref: { ...base.sources[0]!.ref, [key]: value } }],
+        };
+        const result = parseDashboard(doc);
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          const ref = (result.value.sources[0] as { ref: Record<string, unknown> }).ref;
+          expect(ref[key]).toEqual(value);
+        }
+      }),
+    );
+  });
+
+  // issue #15/F7: `theme` is a top-level SafeObject sibling to `meta` — the
+  // same additive guarantee `meta`'s own property above pins, one field
+  // over.
+  it("an arbitrary unknown field nested in theme is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(
+        unknownKey(new Set(["tokens", "palette", "appearance"])),
+        unknownValue,
+        (key, value) => {
+          const base = baseDashboard();
+          const doc = { ...base, theme: { ...base.theme, [key]: value } };
+          const result = parseDashboard(doc);
+          expect(result.ok).toBe(true);
+          if (result.ok)
+            expect((result.value.theme as Record<string, unknown>)[key]).toEqual(value);
+        },
+      ),
+    );
+  });
+
+  // issue #15/F7: `Chart.encoding` (SafeObject, common.ts's `chartVariant()`)
+  // is additive like every other nested object here -- distinct from
+  // `Chart.options` immediately below, which is NOT.
+  it("an arbitrary unknown field nested in a chart's encoding is preserved after a successful parse", () => {
+    fc.assert(
+      fc.property(unknownKey(new Set(["x", "y"])), unknownValue, (key, value) => {
+        const base = baseDashboard();
+        const doc = {
+          ...base,
+          charts: [{ ...base.charts[0], encoding: { ...base.charts[0]!.encoding, [key]: value } }],
+        };
+        const result = parseDashboard(doc);
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          const encoding = (result.value.charts[0] as { encoding: Record<string, unknown> })
+            .encoding;
+          expect(encoding[key]).toEqual(value);
+        }
+      }),
+    );
+  });
+
+  // issue #15/F7: the deliberate exception to this whole describe block's
+  // guarantee -- `ChartOptions` (common.ts) sets `additionalProperties:
+  // false` at every nesting level as a closed security allowlist against
+  // ECharts formatter-style XSS, not a forward-compat surface. Pinned here
+  // as a REJECTION (not preservation) so a future change that accidentally
+  // widens `ChartOptions` back to additive is caught by this same describe
+  // block, not silently.
+  it("an unknown field in chart.options is rejected -- ChartOptions is a closed allowlist, not additive", () => {
+    const base = baseDashboard();
+    const doc = {
+      ...base,
+      charts: [{ ...base.charts[0], options: { ...base.charts[0]!.options, unknownField: "x" } }],
+    };
+    const result = parseDashboard(doc);
+    expect(result.ok).toBe(false);
+  });
+
   it("BakedDashboard: an arbitrary unknown top-level field is preserved after a successful parse", () => {
     fc.assert(
       // "sources"/"queries" are top-level ForbidFields on BakedDashboard —

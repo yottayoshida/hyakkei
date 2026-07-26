@@ -245,6 +245,7 @@ function sample(id: string, rowCount = 1): IntakeSample {
   return {
     table: { id, columns: [{ name: "category", type: "VARCHAR", category: "text" }], rowCount },
     rows: [{ category: "A" }],
+    spec: { id, kind: "file", format: "csv", ref: { name: `${id}.csv` } },
   };
 }
 
@@ -324,6 +325,16 @@ describe("upsertOverride", () => {
     const prev = [{ column: "amount", category: "number" as const }];
     upsertOverride(prev, "amount", "text");
     expect(prev).toEqual([{ column: "amount", category: "number" }]);
+  });
+
+  // issue #15/F7, V-011: a field this build's `ColumnOverride` type doesn't
+  // know about (a future schema version's addition, surviving an
+  // open->edit->save round-trip) must not be dropped just because the
+  // column's category was re-edited.
+  it("preserves an unknown field on the replaced entry", () => {
+    const prev = [{ column: "amount", category: "number" as const, futureField: "kept" }];
+    const next = upsertOverride(prev, "amount", "text");
+    expect(next).toEqual([{ column: "amount", category: "text", futureField: "kept" }]);
   });
 });
 

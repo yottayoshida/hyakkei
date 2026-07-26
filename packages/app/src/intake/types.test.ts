@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_STATE, intakeReducer, type IntakeState } from "./types.js";
 
-const sample = { table: { id: "t1", columns: [], rowCount: 0 }, rows: [] };
+const sample = {
+  table: { id: "t1", columns: [], rowCount: 0 },
+  rows: [],
+  spec: { id: "t1", kind: "file" as const, format: "csv" as const, ref: { name: "t1.csv" } },
+};
 const error = { kind: "corrupt" as const, reason: undefined, message: "bad" };
 
 describe("intakeReducer", () => {

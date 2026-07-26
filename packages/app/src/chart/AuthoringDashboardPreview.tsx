@@ -22,10 +22,9 @@ import {
 } from "@hyakkei/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardErrorBoundary } from "../dashboard-error-boundary.js";
+import { DEFAULT_THEME } from "../document/theme.js";
 import type { ChartRowState } from "../intake/types.js";
 import { CHART_ROW_LIMIT } from "./chart-encoding.js";
-
-const THEME = { tokens: "@digital-go-jp/design-tokens@2.0.1", palette: "guidebook-blue" } as const;
 
 /**
  * `chartRowsByQuery`'s Map -> `normalizeAuthoring`'s `Record<string, Row[]>`
@@ -105,7 +104,7 @@ function buildDoc(charts: Chart[], layout: Layout): Dashboard {
   return {
     version: 1,
     meta: { title: "authoring-dashboard-preview" },
-    theme: THEME,
+    theme: DEFAULT_THEME,
     sources: [],
     queries: [],
     charts,

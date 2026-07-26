@@ -5,7 +5,7 @@ import type {
   RegisteredTable,
 } from "@hyakkei/core/datasource";
 import type { Row } from "@hyakkei/core/renderer";
-import type { AggregateFn, BuilderState } from "@hyakkei/schema";
+import type { AggregateFn, BuilderState, Source } from "@hyakkei/schema";
 
 /**
  * `DataSourceErrorKind` (core) plus two app-only leaves for failures that
@@ -25,9 +25,21 @@ export type IntakeError = {
   message: string;
 };
 
+/**
+ * `spec` (issue #15/F7): the exact schema `Source` this registration was
+ * built from -- `DataSource.spec` (core/src/datasource/types.ts) carried
+ * verbatim, plus the resolved `sheet` burned into `ref` for a multi-sheet
+ * xlsx (IntakeApp.tsx's `runRegistration`, since `source.spec.ref` never
+ * itself gains a `sheet` -- the sheet is a separate argument chosen after
+ * `inspect()`). This is what makes provenance survive from registration
+ * through to `toDashboard`'s `sources[]` projection; before this field, the
+ * spec `buildFileSpec`/`buildUrlSpec` builds was discarded the moment
+ * `createFileSource`/`createUrlSource` consumed it.
+ */
 export type IntakeSample = {
   table: RegisteredTable;
   rows: Record<string, unknown>[];
+  spec: Source;
 };
 
 /**
