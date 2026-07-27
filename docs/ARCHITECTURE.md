@@ -1,6 +1,6 @@
 # Hyakkei — Architecture
 
-- **Status**: Draft v1 (2026-07-04, amended 2026-07-05). Component boundaries here are design intent; M0/M1 implementation may adjust details but not the boundaries themselves without an ADR.
+- **Status**: Draft v1 (2026-07-04, amended 2026-07-05, amended 2026-07-27). Component boundaries here are design intent; M0/M1 implementation may adjust details but not the boundaries themselves without an ADR.
 - **Related**: [PRD.md](./PRD.md) · [ROADMAP.md](./ROADMAP.md) · [ADRs](./adr/)
 
 ## Amendment (2026-07-05)
@@ -45,7 +45,7 @@ Two lifecycles share the same Renderer but touch entirely different components. 
 │                              │  FileSource  │  UrlSource   │  (v0.1)          │
 │                              │ (drag&drop)  │ (fetch CSV)  │                  │
 │                              └──────────────┴──────────────┘                  │
-│                                    [ ProxySource ]  (v1.0, ADR-0001)          │
+│                                    [ ProxySource ]  (v2.0, ADR-0001)          │
 │                                             │                                  │
 │                                    ── export ──▶  bake(document, tables)      │
 │                                                       → BakedDashboard (ADR-0005)│
@@ -72,7 +72,7 @@ Six components, six responsibilities:
 | **Editor** | Mutate the authoring dashboard document via UI; file I/O for open/save | Rendering charts (delegates to Renderer for preview) |
 | **Renderer** | (Authoring document \| BakedDashboard) + data → laid-out, themed DOM. Pure function of (document-or-baked, data, theme) | Fetching data; knowing where data came from; running queries |
 | **Query engine** | Execute the SQL stored in the authoring document against registered tables (DuckDB-WASM). **Lives only in the editor and at export time — never in a viewer** (ADR-0005) | Anything at view time |
-| **DataSource layer** | Uniform interface: bytes/rows in, DuckDB table registered. Implementations: File, Url (v0.1), Proxy (v1.0). **Editor/export-time only** | Query logic beyond its own source; anything at view time |
+| **DataSource layer** | Uniform interface: bytes/rows in, DuckDB table registered. Implementations: File, Url (v0.1), Proxy (v2.0). **Editor/export-time only** | Query logic beyond its own source; anything at view time |
 | **Bake function** | `bake(document, resolvedTables) → BakedDashboard`: runs every query once, at export, producing pre-computed chart rows (ADR-0005) | Editing, interactivity, anything beyond a pure transform |
 | **Guideline engine** | Evaluate `guideline-rules.json` against chart specs; emit nudges with guidebook citations | Blocking the user; styling |
 
@@ -92,7 +92,7 @@ Shape:
   "sources": [
     {
       "id": "apps",
-      "kind": "file",                      // "file" | "url" | "proxy" (v1.0)
+      "kind": "file",                      // "file" | "url" | "proxy" (v2.0)
       "format": "xlsx",
       "ref": { "name": "applications_2026-06.xlsx", "sheet": "data" }
       // no "snapshot" field: sources are resolved by the editor and never
@@ -158,7 +158,11 @@ The precise, honest claim is not "data never leaves your machine" — it's **"da
 - **Supply chain**: lockfile committed, GitHub's default Dependabot security alerts remain on (no separate config needed), dependency budget rule (ROADMAP §maintenance). Scheduled routine version-update PRs (`.github/dependabot.yml`) are deliberately not configured — a one-maintainer project reviewing every dependency bump on a fixed cadence is a maintenance-budget mismatch (ROADMAP §maintenance); security alerts alone give the supply-chain signal without the routine-PR overhead. CI builds exported-site goldens so a compromised dependency changing output is visible. ExcelJS (not SheetJS CE — ADR-0004 Amendment) keeps the Excel parser inside this supply-chain net.
 - **CSP**: the **editor** ships with `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'; object-src 'none'` (v0.1/M1 — no per-session origin widening; see above; wired in PR-A1.5, `packages/app/src/csp.ts`) — `'wasm-unsafe-eval'` is needed there because the editor loads DuckDB-WASM, and `worker-src 'self'` because DuckDB-WASM runs in a Worker. This is `docs/spikes/m0-containment.md`'s exact tested string plus `object-src 'none'` (a restriction M0 didn't test but which can't regress anything it verified, since this app never uses `<object>`/`<embed>`). **This is a correction from an earlier draft of this section**, which used `default-src 'none'` and omitted `worker-src` — had that string shipped as written, the CSP fallback chain (`worker-src -> child-src -> script-src -> default-src`) would have fallen through past `script-src` to `default-src 'none'` and blocked the DuckDB Worker outright; `default-src 'self'` plus an explicit `worker-src 'self'` avoids relying on fallback behavior. Delivered two ways (`packages/app/src/csp-containment.test.ts` asserts they agree): a `<meta http-equiv="Content-Security-Policy">` tag as the first `<meta>` after `charset` in `index.html`/`golden.html` (CSP3 only exempts `frame-ancestors`/`sandbox`/`report-uri` from `<meta>` delivery, and a `<meta>` CSP only governs resources requested after it parses — hence "first"), and a real HTTP header via `public/serve.json`'s `headers` config (matching M0's own header-only test methodology, since some tooling/browsers are stricter about header-vs-meta than the spec requires). **`vite dev` does not serve `serve.json`'s headers** — the dev server has no CSP yet (deferred to M2, tracked as a known gap, not silently assumed covered); only the built-and-served (`vite build` + `public/serve.json`) and static-file-`<meta>` paths are covered in v0.1/M1. **The `<meta>` path covers the *document* only, not a same-origin Worker DuckDB-WASM loads via `new Worker(url)` (a network-loaded, non-`blob:`/`data:` Worker does not inherit its creating document's CSP — its own policy comes from its own response's `Content-Security-Policy` header, per CSP3's worker global-object initialization; verified against MDN and the CSP3 spec, PR-A1.5 security review)**: on a deployment target that can set a `Content-Security-Policy` response header (`public/serve.json`-driven hosting, or an equivalent reverse proxy — `source: "**"` covers the Worker script response too), the Worker is fully covered; on a header-less static host (e.g. GitHub Pages, a plain object-storage bucket — both README.md-listed v0.1 deployment targets), the Worker's `connect-src` is **not** browser-enforced by CSP at all, and DuckDB's own defense-in-depth flags (`packages/app/src/duckdb/containment.ts`'s `configureContainment()`) become the *only* control against `LOAD httpfs`/`SELECT ... FROM 'https://...'` in that specific deployment shape — not "in addition to" CSP, as the rest of this section frames the flag/CSP relationship for the document-level case. PR-A2, which first instantiates a real DuckDB-WASM Worker, must therefore wire `configureContainment()` unconditionally (not opportunistically) and should structurally prevent a raw, unconfigured connection from reaching query code. The **exported viewer never loads DuckDB-WASM** (ADR-0005), so it does not need `'wasm-unsafe-eval'` or `worker-src` at all: single-file exports ship `default-src 'none'; script-src 'self' 'sha256-<renderer-bundle-hash>'; connect-src 'self'; object-src 'none'` (the baked data is an inert `type="application/json"` data island, unaffected by `script-src`; the inlined renderer bundle is allow-listed by its per-release hash, not `'unsafe-inline'`); folder exports can use plain `script-src 'self'` since `renderer.js` loads via `<script src>`. See ADR-0005 for the full mechanism and its build-time obligations (determinism, exact-bytes hashing).
 
-## 7. v1.0 server extension (design intent — build only when ROADMAP entry criteria pass)
+## 7. v2.0 server extension (design intent — build only when ROADMAP entry criteria pass)
+
+> **Renumbered 2026-07-27 (ADR-0017)**: this section was "v1.0 server extension" until v1.0 was redefined as agent-generated dashboards. Design intent, entry criteria, and the `ProxySource` open question below are unchanged — only the version label moved. Every "v1.0" in the text that follows means v2.0.
+>
+> **The new v1.0 adds nothing to this section.** It does ship an MCP server process, but not *this* server tier: no data proxy, no held credentials, no scheduled refresh, no authentication perimeter. It connects to no data source and receives already-resolved rows from its caller — so it introduces no `DataSource` implementation and applies no new pressure on the snapshot-vs-pushdown question below.
 
 One container, three jobs, still no identity:
 
@@ -176,9 +180,9 @@ One container, three jobs, still no identity:
                      PostgreSQL · MySQL · BigQuery · HTTP APIs
 ```
 
-- The browser app gains exactly one new DataSource implementation: `ProxySource`, speaking to `/api/source/:id/query`. Renderer, editor, document format: unchanged. This is why the M1 DataSource interface is the only forward-provision v0.1 is allowed. **Caveat surfaced during issue #7's implementation**: the M1 interface's additive guarantee (`register()` returning a registered table, no reshape needed) holds cleanly for a *snapshot*-style proxy (the server materializes rows, the browser registers them exactly like a `FileSource`/`UrlSource`). The design sketched above — the proxy executing *stored queries* server-side and returning results — is a *pushdown* style, which is not the same shape: it pushes query execution itself across the network boundary, rather than only the byte/row acquisition step. Whether v1.0 adopts snapshot, pushdown, or both is an open v1.0 design decision, not decided by this document; the M1 interface promises additive-only for the snapshot case only.
+- The browser app gains exactly one new DataSource implementation: `ProxySource`, speaking to `/api/source/:id/query`. Renderer, editor, document format: unchanged. This is why the M1 DataSource interface is the only forward-provision v0.1 is allowed. **Caveat surfaced during issue #7's implementation**: the M1 interface's additive guarantee (`register()` returning a registered table, no reshape needed) holds cleanly for a *snapshot*-style proxy (the server materializes rows, the browser registers them exactly like a `FileSource`/`UrlSource`). The design sketched above — the proxy executing *stored queries* server-side and returning results — is a *pushdown* style, which is not the same shape: it pushes query execution itself across the network boundary, rather than only the byte/row acquisition step. Whether v2.0 adopts snapshot, pushdown, or both is an open v2.0 design decision, not decided by this document; the M1 interface promises additive-only for the snapshot case only.
 - Connector credentials live server-side (env vars / secret manager), never in dashboard.json, never in the browser.
-- The server trusts its perimeter (ADR-0003): it reads identity headers (e.g. `X-Goog-Authenticated-User-*`) at most for audit logging, not for authorization decisions in v1.0. Per-user data authorization is parking-lot.
+- The server trusts its perimeter (ADR-0003): it reads identity headers (e.g. `X-Goog-Authenticated-User-*`) at most for audit logging, not for authorization decisions in v2.0. Per-user data authorization is parking-lot.
 - Query safety at the proxy: allowlisted source IDs, per-source read-only credentials, statement timeouts, row limits. The proxy executes *stored* queries by ID plus bound parameters — it is not an open SQL endpoint.
 
 ## 8. Testing strategy

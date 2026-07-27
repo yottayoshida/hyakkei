@@ -3,6 +3,18 @@
 - **Status**: Accepted (2026-07-25)
 - **Deciders**: yotta
 
+> **Read-forward note (2026-07-27, ADR-0017)**: this ADR's central decision was **upheld and generalised**, while one supporting argument was **found false**. Both matter to a reader, so both are flagged here rather than left for someone to reconcile.
+>
+> **Upheld**: keeping `truncated-axis` / `palette-order` / `3d-anything` as `doc-only` was right, and ADR-0017 Decision 7 adopts the reasoning as a general rule — *a schema that cannot express a violation is a stronger guarantee than a warning about one.* `docs/guidebook-coverage.md` now files these as **"by construction"** rather than "not implemented," because that is what they are.
+>
+> **False**: this ADR cites `SECONDARY_STEP_OVERRIDE` as evidence that the guidebook contains "deliberate accessibility-driven exceptions" to its own principles, and uses that to argue `palette-order` cannot be a clean rule. The guidebook contains no such exception. Its only sanctioned fallbacks when 3:1 contrast cannot be met are "place the value adjacent to the color area (≥4.5:1)" and "reveal it on hover/focus" — never "shift the color." The override exists because `palette.ts` draws secondary from the *primary's own ramp*, which the guidebook does not do (Secondary is a different hue with its own ramp: Blue→Yellow, Cyan→Green). It is an artifact of hyakkei's model, not of the guidebook's. Evidence: `docs/spikes/guidebook-color-roles.md`; correction tracked as [#122](https://github.com/yottayoshida/hyakkei/issues/122).
+>
+> **What this changes for `palette-order`**: the "it would misfire against our own golden fixtures" objection is real *today* and disappears once #122 lands — the misfire is against the incorrect implementation, not against the guidebook. Re-evaluate this rule after #122, not before. Note also that `palette-order` has **no guidebook text behind it at all**; its only source is the `dataColors` ordering in the official Power BI theme JSON ([#123](https://github.com/yottayoshida/hyakkei/issues/123)).
+>
+> **RR-3's trigger fired earlier than written.** It says to revisit this ADR "if a future PR makes rules externally loadable." The actual trigger turned out to be *a path that emits rule verdicts as a guarantee to a third party* — which the v1.0 agent path does. Concretely: `getGuidelineRules()` fails open, returning `[]` on a malformed rules file. In the editor that is correct (an advisory feature must not crash the app). On a path where "0 nudges" is reported to a caller as conformance, a silent `[]` becomes a false claim of compliance. That path must distinguish "evaluated, no violations" from "could not evaluate."
+>
+> Original text below is unedited.
+
 ## Context
 
 Issue #13 (F4, PRD §6.3, "the feature that makes 'design-system native' concrete"): the guidebook's Do's & Don'ts are encoded as data (`guideline-rules.json`), evaluated against a chart spec, and surfaced as a non-blocking nudge citing the guidebook. Issue #13's own body listed four candidate rules — `pie-too-many-slices`, `truncated-axis`, `palette-order`, `3d-anything` — as if all four needed runtime evaluation code. PRD §6.3 had already been amended once, ahead of this PR, based on an M0 spike (`docs/spikes/m0-charts.md`): `line-too-many-series` was held for v0.2 (v0.1's `ChartVariant` schema is single-series-only, so the rule cannot fire against any shape v0.1 can produce), and `palette-order`'s own framing was already re-scoped once (from "categorical series ordering" to "ramp-position ordering within one key's primary/secondary roles").

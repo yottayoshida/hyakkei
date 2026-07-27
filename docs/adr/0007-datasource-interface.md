@@ -3,6 +3,15 @@
 - **Status**: Accepted (2026-07-08)
 - **Deciders**: yotta
 
+> **Read-forward note (2026-07-27, ADR-0017)**: every "v1.0" below now means **v2.0**, including all references to `ProxySource`. The server tier was renumbered when v1.0 was redefined as agent-generated dashboards.
+>
+> Two things worth stating because this ADR is the one that carries the forward-provision:
+>
+> 1. **The open question in "§`ProxySource`'s additive guarantee is scoped to snapshot form, not pushdown form" is still open, and now belongs to v2.0.** Nothing about the renumbering resolves it. Whether the server adopts snapshot form, pushdown form, or both remains undecided.
+> 2. **The new v1.0 does not exercise this interface.** It receives already-resolved rows from its caller and connects to no data source, so it adds no third implementation and applies no new pressure on `register()`'s shape. The additive guarantee this ADR scopes to snapshot form is neither strengthened nor weakened by it.
+>
+> Original text below is unedited; it records what was decided on 2026-07-08.
+
 ## Context
 
 ADR-0001 committed to one, and only one, v1.0 forward-provision for v0.x: a `DataSource` interface (`File`, `Url` in v0.1) shaped so that v1.0's `ProxySource` is an addition, not a redesign. Issue #7 is where that interface gets designed and where `UrlSource` — the first DataSource implementation that reaches the network — has to reconcile with the containment model ADR-0005/ARCHITECTURE §6 already committed to.

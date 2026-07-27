@@ -1,7 +1,30 @@
 # ADR-0006: Separate license tracks for code (MIT) and Digital Agency design reference assets (PDL 1.0)
 
-- **Status**: Accepted (2026-07-05, amended 2026-07-10, 2026-07-11 — chart-color re-derivation superseded, see below)
+- **Status**: Accepted (2026-07-05, amended 2026-07-10, 2026-07-11, 2026-07-27 — see both amendments below)
 - **Deciders**: yotta
+
+> **Read-forward note (2026-07-27, ADR-0017)**: the one "v1.0" mention below (the administrative-boundary GeoJSON in Decision §2) now means **v2.0** — the server tier was renumbered.
+
+## Amendment (2026-07-27) — design-tokens is authoritative for hex values, not for chart color *roles*
+
+The 2026-07-11 amendment below is correct about what it inspected and **the principle it established stands**: consume the authoritative source directly rather than hand-transcribing hex values off a web page. What it got wrong is narrower and easy to miss — **it treated the token package as authoritative for something the package does not contain.**
+
+`@digital-go-jp/design-tokens@2.0.1` carries primitive color families (Blue, Cyan, Green, Yellow, Red, Orange, SolidGray ramps). It carries no role layer — no Primary, Secondary, Neutral, Positive, Negative. The amendment observed that absence correctly and then drew a conclusion about the *guidebook* from it: that the M0 spike's open "does Cyan accent Green, or does every palette share Yellow?" question was **moot**, because "there was nothing to visually confirm against a structure the authoritative source doesn't have."
+
+The role layer exists. It is published on the guidebook's own [カラーパレットの使い方](https://www.digital.go.jp/resources/dashboard-guidebook/color-palette) page (最終更新 2026-07-17), and verified by direct reading of the official per-palette reference images:
+
+- **Blue palette → Secondary is Yellow** (800/600/400)
+- **Cyan palette → Secondary is Green** (800/600/400)
+
+So the accent question had an answer all along, and it was per-palette. Worse for the implementation: the guidebook's Secondary is **a different hue with its own three-step ramp**, while `palette.ts` resolves `secondary` as another step of the *primary's* ramp. That is a structural mismatch, not a hex discrepancy — and it is the reason `SECONDARY_STEP_OVERRIDE` exists at all (picking secondary out of primary's ramp created a contrast collision the specified design never has).
+
+**The correction to this ADR is one of scope**: design-tokens is authoritative for **primitive hex values**; the guidebook page is authoritative for **role assignment**. Two sources, two jobs. Consuming the package directly remains right; consuming *only* the package was not.
+
+Separately: `Cyan 50` is `#E6FCFF` on the official color-code page but `#E9F7F9` in the installed package — a value that does not appear anywhere in design-tokens. Which is current is unresolved; the guidebook page carries the later date.
+
+Full evidence: `docs/spikes/guidebook-color-roles.md`. The code correction (`palette.ts`, PRD §6.1 F6, ROADMAP's M0 note) is tracked as [#122](https://github.com/yottayoshida/hyakkei/issues/122).
+
+**Worth noting as a pattern**, since this is the second consecutive correction to the same section: the 2026-07-11 amendment fixed a claim made without opening `node_modules`; this one fixes a claim made without opening the guidebook page. Both times the reasoning was sound and the source consulted was one level too shallow. Licensing consequences are unaffected — the guidebook page is PDL 1.0 (CC BY 4.0-compatible, commercial use permitted), same track this ADR already assigns to design reference assets.
 
 ## Amendment (2026-07-11) — chart colors are consumed from design-tokens directly, not re-derived
 

@@ -3,6 +3,12 @@
 - **Status**: Accepted (2026-07-05)
 - **Deciders**: yotta
 
+> **Read-forward note (2026-07-27, ADR-0017)**: the two "v1.0" mentions below (in Alternatives and Consequences, both about a possible future "connected viewer") now mean **v2.0** — the server tier was renumbered.
+>
+> The new v1.0 **depends on this ADR rather than challenging it**: what its CLI and MCP adapter return is a `BakedDashboard` — pre-computed rows, no SQL, no DuckDB, opening over `file://` with zero network requests. `bake()` being a pure function of `(document, resolvedRows, meta)` is precisely what makes that possible, and `docs/spikes/single-file-viewer.md` measured the whole path working in all three engines.
+>
+> Original text below is unedited.
+
 ## Context
 
 ADR-0001 committed to browser-complete execution for the whole v0.x pipeline, including the exported static site. But `/plan` investigation (QA V-001/V-002, Security T1/T2, UX high-priority proposal) surfaced a structural conflict in that original design:

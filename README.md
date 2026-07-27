@@ -22,7 +22,10 @@ Early design phase. Nothing to run yet. Design documents — PRD, roadmap, archi
 
 - **v0.1 (MVP)** — An individual can turn a spreadsheet into a Digital Agency-quality dashboard in five minutes and share it as static files.
 - **v0.x** — Template gallery, embed tags, print layouts — growing while staying browser-complete.
-- **v1.0** — Teams can operate dashboards connected to live data sources (databases, APIs, scheduled refresh) behind their own identity provider. Authentication stays outside the app (IAP, oauth2-proxy, etc.).
+- **v1.0** — An agent (Claude or another MCP/CLI caller) produces a guidebook-conformant dashboard, and the recipient opens it with none of this software installed. A CLI is the core; an MCP server is a thin adapter over it. Hyakkei connects to no data source — data comes from the caller, so it never has to leave the machine to reach us.
+- **v2.0** — Teams can operate dashboards connected to live data sources (databases, APIs, scheduled refresh) behind their own identity provider. Authentication stays outside the app (IAP, oauth2-proxy, etc.).
+
+_v1.0 and v2.0 swapped places on 2026-07-27 — see [ADR-0017](docs/adr/0017-v1-is-agent-generated-dashboards.md) for why, including what it means for the milestones underneath._
 
 ## Development
 
