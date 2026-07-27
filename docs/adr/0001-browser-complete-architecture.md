@@ -3,6 +3,12 @@
 - **Status**: Accepted (2026-07-04, amended 2026-07-05)
 - **Deciders**: yotta
 
+> **Read-forward note (2026-07-27, ADR-0017)**: every "v1.0" below now means **v2.0**. The server tier this ADR defers to v1.0 — connectors, scheduled refresh, `ProxySource` — was renumbered when v1.0 was redefined as agent-generated dashboards. Scope and criteria are unchanged; only the label moved.
+>
+> **This ADR's decisions are untouched by that move.** The single permitted forward-provision (the DataSource interface, §Decision) still stands and still points at exactly one future addition, now v2.0's `ProxySource`. The new v1.0 does not use the DataSource layer at all: it connects to no data source, receiving already-resolved rows from its caller. So "no other v1.0 preparation may be built in v0.x" has not been quietly relaxed — the new v1.0 needs no such preparation to exist.
+>
+> Original text below is unedited; it records what was decided on 2026-07-04.
+
 ## Amendment (2026-07-05)
 
 **ADR-0005 narrows this decision's scope.** "The entire v0.x pipeline... runs in the browser" (below) remains true for the *editor* and for the export step itself. It is no longer true that an *exported/viewed* dashboard runs SQL or DuckDB-WASM — the viewer only ever renders pre-computed data (ADR-0005). Read "the browser" in the Decision below as "the editor's browser session," not "every browser that ever opens a dashboard."

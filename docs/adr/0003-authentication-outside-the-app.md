@@ -3,6 +3,12 @@
 - **Status**: Accepted (2026-07-04)
 - **Deciders**: yotta
 
+> **Read-forward note (2026-07-27, ADR-0017)**: every "v1.0" below now means **v2.0**. This ADR is written against the server tier ("v1.0 adds a server for live data connections, which raises access control"), and that tier was renumbered when v1.0 was redefined as agent-generated dashboards.
+>
+> **The decision itself is version-independent and unchanged**: "Hyakkei never implements authentication, sessions, or user accounts — **in any version**." The new v1.0 does not weaken it. It does run an MCP server process, but not a *serving* tier: stdio transport, no network listener, no perimeter, no request that anyone could be authenticated for. Deployment recipes (IAP / ALB+Cognito / oauth2-proxy) remain deliverables of the server tier, now v2.0.
+>
+> Original text below is unedited; it records what was decided on 2026-07-04.
+
 ## Context
 
 v1.0 adds a server for live data connections, which raises access control. Building login/user management into an OSS tool is where maintenance cost explodes: session handling, password reset, SSO integrations, and an unending security-patch obligation — all duplicating what deployment platforms already provide. Meanwhile, the organizations Hyakkei targets already have identity providers (Google Workspace, Microsoft Entra, 自治体 directories) and want new tools behind them, not beside them.
