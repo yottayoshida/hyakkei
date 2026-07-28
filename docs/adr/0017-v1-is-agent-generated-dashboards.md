@@ -5,6 +5,13 @@
 - **Plan**: `.claude/plans/2026-07-27-issue26-mcp-whether-recheck-roadmap-revision.md`
 - **Supersedes**: the NO-GO verdict on issue #26 ([comment of 2026-07-16](https://github.com/yottayoshida/hyakkei/issues/26#issuecomment-4990280494)) — see "Why the NO-GO is being overturned" below.
 
+> **Read forward (2026-07-27, later the same day — [#122](https://github.com/yottayoshida/hyakkei/issues/122) / [ADR-0018](./0018-chart-color-roles-follow-the-guidebook-role-layer.md))**: two things this ADR states as measurements have moved. The decisions are unaffected; the numbers and one residual risk are not.
+>
+> - **Counts.** Context and the Alternatives table quote **7 of 22 guaranteed** and **3 known defects**. Fixing the chart color roles moved that principle from *defect* to *by construction*, so the current figures are **8 guaranteed** and **2 known defects**. `docs/guidebook-coverage.md` remains the single source; these lines are a snapshot of it on the day this ADR was written. Decision 5's *claim form* — "conforms to N of the 22 machine-checkable principles in guidebook version X" — is exactly what makes this survivable: the form did not change, only N.
+> - **RR-5 is retired.** It recorded that only two of seven palettes had been verified against the guidebook's role assignment and that the other five were assumed. **All seven reference images have since been retrieved and read.** The assumption did not hold: Green's Secondary is Cyan, a third hue nobody had predicted, and the SolidGray palette has no Neutral row and skips 600 in its Primary ramp. Two further divergences surfaced with it, both deliberately not adopted ([#127](https://github.com/yottayoshida/hyakkei/issues/127) per-palette Error, [#128](https://github.com/yottayoshida/hyakkei/issues/128) Positive/Negative).
+>
+> Worth stating plainly, because this ADR's own Decision 5 argues for count-based claims on exactly this ground: the risk RR-5 named was real, it materialised within a day, and the count-based claim form absorbed it without any published statement becoming false.
+
 ## Context
 
 ROADMAP defined v1.0 as *"a team operates dashboards connected to live data sources, safely, behind their own identity provider"* — a single-container server with PostgreSQL/MySQL/BigQuery/HTTP connectors, scheduled refresh, and platform-delegated auth (ARCHITECTURE §7).

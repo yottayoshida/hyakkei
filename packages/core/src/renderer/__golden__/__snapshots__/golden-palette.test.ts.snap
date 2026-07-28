@@ -755,3 +755,899 @@ fill:rgba(226,0,0,1);
 </style>
 </svg>"
 `;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-blue/dark pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#7096f8"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#3460fb"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(123,165,255,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(57,105,255,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,218,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-blue/light pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0017c1"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#3460fb"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(0,25,212,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(57,105,255,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(181,140,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-cyan/dark pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#2bc8e4"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#00a3bf"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#51b883"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(47,220,250,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(0,179,210,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(89,202,144,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-cyan/light pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#006f83"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#003741"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#197a4b"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(0,122,144,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(0,60,71,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(27,134,82,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-green/dark pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#51b883"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#259d63"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#2bc8e4"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(89,202,144,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(40,172,108,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(47,220,250,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-green/light pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#115a36"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#259d63"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#008299"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(18,99,59,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(40,172,108,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(0,143,168,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-light-blue/dark pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#57b8ff"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#008bf2"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(95,202,255,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(0,152,255,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,218,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-light-blue/light pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#0055ad"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#008bf2"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(0,93,190,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(0,152,255,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(181,140,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-neutral/dark pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#767676"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(168,168,168,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(129,129,129,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,218,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-neutral/light pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#767676"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(28,28,28,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(129,129,129,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(181,140,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-orange/dark pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff8d44"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fb5b01"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(255,155,74,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,100,1,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,218,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-orange/light pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ac3e00"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fb5b01"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(189,68,0,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,100,1,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(181,140,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-red/dark pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ff7171"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fe3939"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(255,124,124,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,62,62,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(255,218,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;
+
+exports[`golden: the full categorical trio (color[0..2]) reaches a rendered chart (issue #122) > guidebook-red/light pie 1`] = `
+"<svg baseProfile="full" height="300" version="1.10" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
+<path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ce0000"></path>
+<path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#fe3939"></path>
+<path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
+<path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
+<text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
+<defs >
+<pattern height="7" id="ID2" patternTransform="rotate(30.00)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 2l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="12" id="ID4" patternUnits="userSpaceOnUse" width="16">
+<g >
+<path d="M6.40 -3A2.40 2.40 0 1 1 6.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 -3A2.40 2.40 0 1 1 22.40 -3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 3A0 0 0 1 1 0 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M14.40 3A2.40 2.40 0 1 1 14.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M16 3A0 0 0 1 1 16 3" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M30.40 3A2.40 2.40 0 1 1 30.40 3.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M6.40 9A2.40 2.40 0 1 1 6.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M22.40 9A2.40 2.40 0 1 1 22.40 9.00" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+<pattern height="7" id="ID6" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse" width="1">
+<g >
+<path d="M0 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 -7l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M0 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+<path d="M1 0l1 0l0 4l-1 0Z" fill="rgb(0,0,0)" fill-opacity="0.20"></path>
+</g>
+</pattern>
+</defs>
+<style ><![CDATA[
+.ID0:hover {
+cursor:pointer;
+fill:rgba(226,0,0,1);
+}
+.ID1:hover {
+pointer-events:none;
+}
+.ID3:hover {
+cursor:pointer;
+fill:rgba(255,62,62,1);
+}
+.ID5:hover {
+cursor:pointer;
+fill:rgba(181,140,0,1);
+}
+
+]]>
+
+</style>
+</svg>"
+`;

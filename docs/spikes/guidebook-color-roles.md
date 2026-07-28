@@ -1,6 +1,36 @@
 # Spike: where the guidebook's chart color *roles* actually live
 
-**Status**: RESOLVED — the role assignment (Primary / Secondary / Neutral / semantic) is published on the guidebook's own "カラーパレットの使い方" page, **not** in `@digital-go-jp/design-tokens`. hyakkei resolves roles from the token package alone and therefore diverges from the guidebook on two of seven palettes, and on the structure of `secondary` for all seven.
+> ## Correction, 2026-07-27 (same day, after all seven palettes and all seven official templates were retrieved)
+>
+> **§1 and §3 below are wrong on their central claim, and this record is left in place rather than rewritten because it was already cited by [#122](https://github.com/yottayoshida/hyakkei/issues/122), ADR-0006, ADR-0016 and PRD §6.1/§6.3 in its wrong form.** Read the corrections here first. The decision record is [ADR-0018](../adr/0018-chart-color-roles-follow-the-guidebook-role-layer.md).
+>
+> **§1 — "Secondary is a different hue, not a different step of the same hue", read as *`palette.ts`'s `secondary` is structurally wrong*: rejected.** The guidebook's Primary is a **six-step ramp**, and the official Power BI template's 7-category stacked bar consumes four consecutive theme entries from it *before* appending the Secondary ramp (`#A58000` / `#D2A400` / `#FFC700`). Secondary is the continuation/highlight color after Primary is exhausted, not "the second series color" — which matches the page's own wording, 「ハイライトや複数系列を区別するために使用する**補助**色」. So `secondary = family 600` was Primary-ramp step 2, exactly what the official template paints category 2 with. What was actually mis-mapped is that hyakkei's **`accent`** was the guidebook's Secondary, and it was hard-coded to Yellow for all seven palettes. The defect is 2 of 7 (Cyan → Green, Green → Cyan), not 7 of 7.
+>
+> This spike named the right divergence and attached it to the wrong field. That mattered: the field name `secondary` meant two different things in the same codebase, and the confusion propagated into five records.
+>
+> **§3 — "`SECONDARY_STEP_OVERRIDE` is a workaround for a self-inflicted problem": rejected, and the conclusion inverts.** The claim that "the contrast problem the override exists to solve does not arise in the specified design" is false. Correctly mapped, cyan's second categorical color *is* Cyan 600 `#00A3BF`, which measures **2.83:1** against `#F8F8FB` — below the guidebook's own 3:1 floor, and it appears as `dataColors[1]` in the official Cyan template. **The guidebook's published assignment does not satisfy the guidebook's own floor.** hyakkei prioritises the floor and shifts the step; the override stays (renamed `PRIMARY_ALT_STEP_OVERRIDE`, since it now applies to `primaryAlt`).
+>
+> The paragraph's textual point still holds — the guidebook sanctions no "shift the color" fallback, only adjacent value text at ≥4.5:1 and hover/focus reveal — so ADR-0016's "deliberate accessibility-driven exceptions" reading remains false. But so is the replacement claim it was corrected to, that the override is purely hyakkei's artifact and disappears with #122.
+>
+> **"Not settled" items 1 and 4 are now settled** (all seven palettes retrieved; see the table below the corrections). Item 3 (dark mode) is settled by ADR-0018. Item 2 (`Cyan 50`) stands.
+>
+> ### The complete role table, all seven palettes
+>
+> | Palette | Primary (6 steps) | **Secondary** (800/600/400) | Neutral | Positive | **Negative** | Success | **Error** |
+> | --- | --- | --- | --- | --- | --- | --- | --- |
+> | Blue | Blue 1200…50 | **Yellow** | SolidGray 800/600/400/200 | Blue 600/200/50 | **Red** | `#197A4B` | `#CE0000` |
+> | LightBlue | LightBlue 1200…50 | **Yellow** | SolidGray | LightBlue | **Red** | `#197A4B` | `#CE0000` |
+> | Cyan | Cyan 1200…50 | **Green** | SolidGray | Cyan | **SolidGray** | `#197A4B` | `#CE0000` |
+> | Green | Green 1200…50 | **Cyan** | SolidGray | Green | **SolidGray** | `#197A4B` | `#CE0000` |
+> | Orange | Orange 1200…50 | **Yellow** | SolidGray | Orange | **SolidGray** | `#197A4B` | **`#850000`** |
+> | Red | Red 1200…50 | **Yellow** | SolidGray | Red | **SolidGray** | `#197A4B` | **`#850000`** |
+> | SolidGray | **900/700/536/400/200/50** | **Yellow** | **absent** | **Blue** | **Red** | `#197A4B` | `#CE0000` |
+>
+> Three things the original spike did not have: Secondary takes **three** hues, not two (Green's is Cyan); Orange and Red override **Error** to `#850000` (= `Red.1100`), so Error is not palette-independent in the guidebook; and the SolidGray palette has **no Neutral row** and a Primary ramp that skips 600 in favour of 700/536.
+>
+> **Method**: all 7 `Color Palette *.png` reference images (3840×2160) pixel-sampled, and all 7 official Power BI templates unpacked (`*.zip` → `.pbit` → `Report/Layout`). Every role hex read off the images was diffed against `@digital-go-jp/design-tokens@2.0.1`: **one mismatch, `Cyan 50`** (see "Hex divergence"). Evidentiary weight note: the seven templates all reuse Blue's `Report/Layout` verbatim (Cyan's report still paints Yellow secondaries and a stale `#E9F7F9`), so they are one design decision replicated seven times — they establish the *ordering* of Primary-then-Secondary, not the per-palette role table, which rests on the images.
+
+**Status**: SUPERSEDED IN PART — see the correction above. The role assignment (Primary / Secondary / Neutral / semantic) is published on the guidebook's own "カラーパレットの使い方" page, **not** in `@digital-go-jp/design-tokens`. That finding stands. What was wrong is which hyakkei field the divergence lands on, and whether the contrast override survives it.
 **Date**: 2026-07-27
 **Verified against**: [カラーパレットの使い方](https://www.digital.go.jp/resources/dashboard-guidebook/color-palette) (最終更新日: 2026年7月17日) and its per-palette reference images, read directly. `@digital-go-jp/design-tokens@2.0.1` inspected as the installed package.
 

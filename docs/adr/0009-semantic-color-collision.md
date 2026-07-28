@@ -3,6 +3,16 @@
 - **Status**: Accepted (2026-07-16)
 - **Deciders**: yotta
 
+> **Read forward (2026-07-27, [#122](https://github.com/yottayoshida/hyakkei/issues/122) / [ADR-0018](./0018-chart-color-roles-follow-the-guidebook-role-layer.md))**: the allowlist grows from three collisions to five, and the new two differ in kind from the three below.
+>
+> `guidebook-cyan` gains `secondary == success` in both appearances (`#197a4b` light, `#51b883` dark) once chart roles follow the guidebook's published role layer. The three collisions in this ADR are hyakkei's own construction — its dark-mode semantic fallback borrows the same `nearestStep(Green/Red, 400)` a palette's own `primary` already uses, plus a `Red.900`/`Error.2` coincidence. **The cyan pair is upstream's.** The guidebook's Cyan reference image paints Secondary 800 and Success as literally the same swatch, `#197A4B`, and design-tokens derives `Semantic.Success["2"]` from that same Green 800. Avoiding it would mean departing from the published assignment.
+>
+> **What still holds**: the Decision below. `success`/`error` are consumed by no renderer, so nothing is drawn twice in one color today, and semantic colors stay palette-independent.
+>
+> **What changes**: the shape of the revisit this ADR defers. The colliding categorical role is no longer only `primary` — `secondary` (a rendered categorical color, ECharts `color[2]`) now collides too. A future semantic-marker consumer must be designed against two categorical role families, not one. The hue-is-never-the-sole-encoder contract in the Decision applies unchanged, and with the same force.
+>
+> Separately: the guidebook assigns **Orange and Red their own Error value** (`#850000`, = `Red.1100`), which contradicts the palette-independence invariant this ADR pins deliberately. That is *not* adopted here — it reopens the invariant and `error` still has no consumer. Tracked as a follow-up; the divergence is recorded in [`docs/guidebook-coverage.md`](../guidebook-coverage.md).
+
 ## Context
 
 Issue #60 (full-codebase audit, 2026-07-11) found that `resolveChartColors` (`packages/core/src/theme/palette.ts`) produces three exact byte-identical collisions between a chart's `primary` series role and a `success`/`error` semantic role:

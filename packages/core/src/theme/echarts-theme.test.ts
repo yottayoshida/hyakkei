@@ -51,12 +51,36 @@ describe("buildEChartsTheme: contrast violation degrades, never throws (issue #6
 });
 
 describe("buildEChartsTheme", () => {
-  it("color array is exactly [primary, secondary, accent], in that order", () => {
+  it("color array is exactly [primary, primaryAlt, secondary], in that order", () => {
     const palette: Palette = "guidebook-blue";
     const colors = resolveChartColors(palette, "light");
     const theme = buildEChartsTheme(palette, "light");
 
-    expect(theme.color).toEqual([colors.primary, colors.secondary, colors.accent]);
+    expect(theme.color).toEqual([colors.primary, colors.primaryAlt, colors.secondary]);
+  });
+
+  // issue #122: `color[2]` used to be Yellow for every palette. The assertion
+  // above survives a regression back to that (it compares against whatever
+  // `resolveChartColors` returns, so both sides move together), which is
+  // exactly the mechanical-rename blind spot -- this pins the property that
+  // actually changed.
+  it("color[2] is palette-dependent (the guidebook's Secondary ramp), not a shared Yellow", () => {
+    expect(buildEChartsTheme("guidebook-cyan", "light").color[2]).not.toBe(
+      buildEChartsTheme("guidebook-blue", "light").color[2],
+    );
+    expect(buildEChartsTheme("guidebook-green", "light").color[2]).not.toBe(
+      buildEChartsTheme("guidebook-blue", "light").color[2],
+    );
+  });
+
+  // `neutral` is resolved but deliberately absent from the categorical
+  // rotation (ADR-0018 §4). Without this, adding it later looks like a free
+  // improvement rather than a role-semantics change.
+  it("neutral is NOT in the categorical color array", () => {
+    const colors = resolveChartColors("guidebook-blue", "light");
+    const theme = buildEChartsTheme("guidebook-blue", "light");
+    expect(theme.color).toHaveLength(3);
+    expect(theme.color).not.toContain(colors.neutral);
   });
 
   it("backgroundColor matches resolveChartColors' background for the same (palette, appearance)", () => {
