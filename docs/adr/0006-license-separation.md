@@ -16,7 +16,13 @@ The role layer exists. It is published on the guidebook's own [カラーパレ�
 - **Blue palette → Secondary is Yellow** (800/600/400)
 - **Cyan palette → Secondary is Green** (800/600/400)
 
-So the accent question had an answer all along, and it was per-palette. Worse for the implementation: the guidebook's Secondary is **a different hue with its own three-step ramp**, while `palette.ts` resolves `secondary` as another step of the *primary's* ramp. That is a structural mismatch, not a hex discrepancy — and it is the reason `SECONDARY_STEP_OVERRIDE` exists at all (picking secondary out of primary's ramp created a contrast collision the specified design never has).
+So the accent question had an answer all along, and it was per-palette.
+
+> **Corrected 2026-07-27 (same day, [ADR-0018](./0018-chart-color-roles-follow-the-guidebook-role-layer.md))**: this paragraph originally continued "*Worse for the implementation: the guidebook's Secondary is a different hue with its own three-step ramp, while `palette.ts` resolves `secondary` as another step of the primary's ramp. That is a structural mismatch… and it is the reason `SECONDARY_STEP_OVERRIDE` exists at all.*" Both sentences are wrong.
+>
+> The guidebook's Primary is a six-step ramp and the official template consumes four of its steps before reaching Secondary, so `palette.ts`'s same-hue second color was a legitimate Primary step — it was the field *name* that collided with the guidebook's vocabulary. The mis-mapped field was `accent` (the guidebook's actual Secondary), hard-coded to Yellow for all seven palettes; wrong for Cyan and Green only. And the override does not disappear: the guidebook's own Cyan 600 measures 2.83:1 against `#F8F8FB`, below the guidebook's own floor, so hyakkei still shifts the step.
+>
+> **What this ADR gets right and keeps**: consume the authoritative source directly. The refinement is that *authority is per-question* — design-tokens for primitive hex values, the guidebook page for role assignment.
 
 **The correction to this ADR is one of scope**: design-tokens is authoritative for **primitive hex values**; the guidebook page is authoritative for **role assignment**. Two sources, two jobs. Consuming the package directly remains right; consuming *only* the package was not.
 

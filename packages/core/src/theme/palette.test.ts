@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   assertGraphicContrast,
   CHART_COLOR_ROLES,
+  isSanctionedAbsence,
   meetsGraphicContrastFloor,
+  nearestStep,
   resolveChartColors,
 } from "./palette.js";
 import type { ChartColorRole } from "./palette.js";
@@ -51,9 +53,16 @@ const EXPECTED_PRIMARY_900: Record<Palette, string> = Object.fromEntries(
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
-// Independent of `resolveChartColors`'s own internal `assertGraphicContrast`
-// -- recomputes contrast from scratch so a bug in the shared assertion logic
-// itself wouldn't silently pass both the implementation and this test.
+// Independent of the ASSERTION PATH, not of the formula: this is byte-identical
+// to palette.ts's own implementation, so it cannot catch an error in the
+// contrast math -- both would be wrong together. What it does catch is the
+// wiring around it: `contrastViolations` comparing against the wrong
+// background, skipping a role, or `meetsGraphicContrastFloor`'s boundary
+// drifting. Do not "fix" the duplication by importing: `contrastRatio` is not
+// exported from palette.ts, and exporting it would collapse this oracle into a
+// tautology. (/simplify Reuse, which also narrowed this comment's overclaim --
+// it used to say a bug in the shared assertion logic "wouldn't silently pass
+// both," which is true only of the wiring, not of the math.)
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace("#", ""), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -78,14 +87,28 @@ describe("resolveChartColors: all 7 palettes x 2 appearances", () => {
       it(`${palette}/${appearance}: returns hex colors, all >=3:1 against background (independently recomputed)`, () => {
         const colors = resolveChartColors(palette, appearance);
 
+        // issue #122: `neutral` is legitimately `null` for exactly one
+        // palette. Counting the skips (rather than just `continue`-ing) is
+        // what keeps this from quietly degrading into a no-op if a future
+        // change makes more roles absent -- a bare skip would report "all
+        // roles pass" while checking fewer and fewer of them.
+        let skipped = 0;
         for (const role of CHART_COLOR_ROLES) {
-          expect(colors[role], `${role} should be a hex color`).toMatch(HEX);
-        }
-
-        for (const role of CHART_COLOR_ROLES) {
-          const ratio = contrastRatio(colors[role], colors.background);
+          const color = colors[role];
+          if (color === null) {
+            expect(isSanctionedAbsence(palette, role), `${role} is null but not sanctioned`).toBe(
+              true,
+            );
+            skipped += 1;
+            continue;
+          }
+          expect(color, `${role} should be a hex color`).toMatch(HEX);
+          const ratio = contrastRatio(color, colors.background);
           expect(ratio, `${palette}/${appearance} ${role} vs background`).toBeGreaterThanOrEqual(3);
         }
+        expect(skipped, `${palette}/${appearance} unexpected number of absent roles`).toBe(
+          palette === "guidebook-neutral" ? 1 : 0,
+        );
       });
     }
   }
@@ -103,11 +126,38 @@ describe("resolveChartColors: all 7 palettes x 2 appearances", () => {
     expect(new Set(Object.values(EXPECTED_PRIMARY_900)).size).toBe(PALETTES.length);
   });
 
-  it("cyan/light: secondary is the exact 1200-step override value, not the identical-to-primary 900-step", () => {
-    const { primary, secondary } = resolveChartColors("guidebook-cyan", "light");
+  it("cyan/light: primaryAlt is the exact 1200-step override value, not the identical-to-primary 900-step", () => {
+    const { primary, primaryAlt } = resolveChartColors("guidebook-cyan", "light");
     expect(primary).toBe(designTokens.Color.Primitive.Cyan["900"].$value);
-    expect(secondary).toBe(designTokens.Color.Primitive.Cyan["1200"].$value);
-    expect(secondary).not.toBe(primary);
+    expect(primaryAlt).toBe(designTokens.Color.Primitive.Cyan["1200"].$value);
+    expect(primaryAlt).not.toBe(primary);
+  });
+
+  // issue #122: guidebook-neutral's published Primary ramp is
+  // 900/700/536/400/200/50 -- it has no 600 step. `nearestStep(family, 600)`
+  // used to land on SolidGray 600, a step the guidebook does not put in this
+  // ramp. Both hexes are plausible-looking grays, so the `not.toBe` half is
+  // what makes a silent revert to the fuzzy lookup detectable.
+  it("guidebook-neutral: primaryAlt is SolidGray 536, NOT 600 (its ramp has no 600 step)", () => {
+    const gray = designTokens.Color.Neutral.SolidGray;
+    for (const appearance of APPEARANCES) {
+      const { primaryAlt } = resolveChartColors("guidebook-neutral", appearance);
+      expect(primaryAlt, `${appearance} primaryAlt`).toBe(step(gray["536"]));
+      expect(primaryAlt, `${appearance} primaryAlt must not fall back to 600`).not.toBe(
+        step(gray["600"]),
+      );
+    }
+  });
+
+  // issue #122: guidebook-neutral's light `primary` must stay SolidGray 900.
+  // A position-index implementation of the ramp (`ramp[1]`) resolves it to
+  // SolidGray 700 instead, because this palette's ramp starts at 900 while
+  // every other one starts at 1200. That is the single most likely way to get
+  // this change wrong, and nothing else in this file would catch it.
+  it("guidebook-neutral: primary stays SolidGray 900 (ramp heads are not aligned across palettes)", () => {
+    const gray = designTokens.Color.Neutral.SolidGray;
+    expect(resolveChartColors("guidebook-neutral", "light").primary).toBe(step(gray["900"]));
+    expect(resolveChartColors("guidebook-neutral", "light").primary).not.toBe(step(gray["700"]));
   });
 
   it("Semantic success/error are shared across every palette (design-tokens has no per-key variant)", () => {
@@ -116,6 +166,61 @@ describe("resolveChartColors: all 7 palettes x 2 appearances", () => {
     const errorValues = new Set(perPalette.map((c) => c.error));
     expect(successValues.size).toBe(1);
     expect(errorValues.size).toBe(1);
+  });
+
+  // The converse of the invariant directly above, and the reason it has to be
+  // stated: `secondary` (the guidebook's Secondary ramp) is palette-DEPENDENT.
+  // Without this, a regression that re-collapses it onto one shared family --
+  // which is exactly the defect issue #122 fixes -- passes every other test in
+  // this file, since contrast, hex shape and distinctness all still hold when
+  // all seven palettes share Yellow.
+  //
+  // Ground truth read from a fresh design-tokens import, not from palette.ts's
+  // own SECONDARY_FAMILY table, for the same reason as EXPECTED_PRIMARY_900.
+  const EXPECTED_SECONDARY_FAMILY: Record<Palette, Record<string, { $value?: string }>> = {
+    "guidebook-blue": designTokens.Color.Primitive.Yellow,
+    "guidebook-light-blue": designTokens.Color.Primitive.Yellow,
+    "guidebook-cyan": designTokens.Color.Primitive.Green,
+    "guidebook-green": designTokens.Color.Primitive.Cyan,
+    "guidebook-orange": designTokens.Color.Primitive.Yellow,
+    "guidebook-red": designTokens.Color.Primitive.Yellow,
+    "guidebook-neutral": designTokens.Color.Primitive.Yellow,
+  };
+
+  it("secondary is palette-dependent: three distinct hues, not one shared Yellow", () => {
+    for (const palette of PALETTES) {
+      expect(
+        resolveChartColors(palette, "light").secondary,
+        `${palette} secondary should come from its own guidebook Secondary ramp`,
+      ).toBe(step(EXPECTED_SECONDARY_FAMILY[palette]["800"]));
+      expect(resolveChartColors(palette, "dark").secondary, `${palette} dark secondary`).toBe(
+        step(EXPECTED_SECONDARY_FAMILY[palette]["400"]),
+      );
+    }
+    // Exactly three hues across seven palettes (Yellow x5, Green, Cyan). A
+    // 7-way distinctness check would be wrong here -- five palettes SHOULD
+    // share Yellow -- and a 1-way check is what the bug looked like.
+    expect(new Set(PALETTES.map((p) => resolveChartColors(p, "light").secondary)).size).toBe(3);
+  });
+
+  // V-014: the guidebook's Secondary is a DIFFERENT hue from Primary, by
+  // definition. Checking role-value inequality (rather than family-name
+  // inequality) is deliberate: a future palette whose Secondary was set to its
+  // own family would still produce different hex values per step, so a naive
+  // "secondary !== primary" would pass while the role model was broken. Both
+  // steps are compared, since the two roles use different step numbers and
+  // could coincide at one appearance only.
+  it("secondary never comes from the palette's own Primary ramp (V-014)", () => {
+    for (const palette of PALETTES) {
+      for (const appearance of APPEARANCES) {
+        const c = resolveChartColors(palette, appearance);
+        const ownRamp = Object.values(FAMILY_BY_PALETTE[palette]).map((t) => t.$value);
+        expect(
+          ownRamp,
+          `${palette}/${appearance}: secondary is a step of its own ramp`,
+        ).not.toContain(c.secondary);
+      }
+    }
   });
 
   it("background differs between light and dark appearance", () => {
@@ -175,8 +280,9 @@ describe("meetsGraphicContrastFloor: exact numeric boundary (mutation-resistance
 describe("assertGraphicContrast: exercises the real hex-to-ratio path end to end", () => {
   const baseColors = {
     primary: "#5A5A5A",
+    primaryAlt: "#5A5A5A",
     secondary: "#5A5A5A",
-    accent: "#5A5A5A",
+    neutral: "#5A5A5A",
     success: "#5A5A5A",
     error: "#5A5A5A",
     background: "#000000",
@@ -193,13 +299,89 @@ describe("assertGraphicContrast: exercises the real hex-to-ratio path end to end
       assertGraphicContrast("guidebook-blue", "light", { ...baseColors, primary: "#5A5A5A" }),
     ).not.toThrow();
   });
+
+  // issue #122, mutation-driven. `isSanctionedAbsence` gates which `null`s the
+  // contrast loop is allowed to skip, but nothing exercised its REJECTION path:
+  // in normal operation only `guidebook-neutral` ever produces a `null`, so a
+  // mutant returning `true` unconditionally killed zero tests. That is the
+  // difference between "the guard exists" and "the guard works" -- and the
+  // failure mode it protects against is silent, since an unchecked role simply
+  // stops being contrast-checked.
+  it("a null in a role that is NOT a sanctioned absence throws, naming the role", () => {
+    expect(() =>
+      assertGraphicContrast("guidebook-blue", "light", { ...baseColors, neutral: null }),
+    ).toThrow(/neutral.*not a sanctioned absence/);
+  });
+
+  it("the same null IS tolerated for guidebook-neutral, which has no Neutral row", () => {
+    expect(() =>
+      assertGraphicContrast("guidebook-neutral", "light", { ...baseColors, neutral: null }),
+    ).not.toThrow();
+  });
+});
+
+// issue #122, mutation-driven. Both guards below are defence-in-depth added on
+// the strength of a security/QA review, and a mutation run found that deleting
+// either one killed zero tests. Guards with no test are indistinguishable from
+// guards that do not work.
+describe("token-drift guards: non-finite step and non-hex value", () => {
+  // Same reset/unmock harness as the memoization block below. Without it the
+  // `vi.doMock` in the second test leaks into every later dynamic import in
+  // this file -- which is exactly what happened on the first attempt, taking
+  // an unrelated memoization test down with it.
+  beforeEach(() => {
+    vi.resetModules();
+  });
+  afterEach(() => {
+    vi.doUnmock("@digital-go-jp/design-tokens");
+  });
+
+  it("nearestStep throws on a non-finite target instead of silently returning the lowest step", () => {
+    const gray = designTokens.Color.Neutral.SolidGray as Record<string, { $value: string }>;
+    // Without the guard, `Math.abs(b - NaN) < Math.abs(a - NaN)` is always
+    // false, so `reduce` returns its seed -- the numerically lowest step. For
+    // SolidGray that is 50 (#f2f2f2), which against the DARK background clears
+    // 3:1 comfortably and would therefore ship as a silently wrong color.
+    expect(() => nearestStep(gray, Number.NaN, "test")).toThrow(/non-finite step/);
+    expect(() => nearestStep(gray, undefined as unknown as number, "test")).toThrow(
+      /non-finite step/,
+    );
+    expect(nearestStep(gray, 900, "test")).toBe(step(gray["900"]));
+  });
+
+  it("a token whose $value is not a #rrggbb literal fails loudly rather than being scored as black", async () => {
+    // The realistic drift: style-dictionary emits `rgb()` or a `var()`
+    // reference instead of a hex literal. `hexToRgb` is total and silent --
+    // `parseInt("rgb(1,2,3)", 16)` is NaN, the bit ops collapse it to [0,0,0],
+    // and the contrast gate then scores it at 19.81:1 against the light
+    // background and passes it. The value reaches an SVG paint attribute.
+    vi.doMock("@digital-go-jp/design-tokens", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("@digital-go-jp/design-tokens")>();
+      return {
+        default: {
+          ...actual.default,
+          Color: {
+            ...actual.default.Color,
+            Primitive: {
+              ...actual.default.Color.Primitive,
+              Blue: { ...actual.default.Color.Primitive.Blue, "900": { $value: "rgb(1,2,3)" } },
+            },
+          },
+        },
+      };
+    });
+    const fresh = await import("./palette.js");
+    expect(() => fresh.resolveChartColors("guidebook-blue", "light")).toThrow(
+      /not a #rrggbb literal/,
+    );
+  });
 });
 
 // issue #64 CI hard gate: `assertGraphicContrast` is exercised directly
 // against every real resolved (palette, appearance), independent of
 // `resolveChartColors`'s memoization -- a future design-tokens bump
-// shifting one of the near-margin hexes below 3:1 (orange/light secondary
-// measured 3.0023:1, neutral/dark secondary 3.0311:1) fails this
+// shifting one of the near-margin hexes below 3:1 (orange/light `primaryAlt`
+// measures 3.0023:1 -- the tightest margin in the matrix) fails this
 // regardless of which combination some other test happened to resolve
 // (and thereby cache) first. Complements, not replaces, the independent
 // hand-rolled `contrastRatio` recomputation in the very first describe
@@ -226,16 +408,32 @@ describe("assertGraphicContrast: eager CI gate across all 14 real combinations",
 // primary/success both land on Green's 400-step in dark mode). ADR-0009
 // accepts this rather than overriding the semantic step: `success`/`error`
 // are not consumed by any renderer today (`buildEChartsTheme` reads only
-// primary/secondary/accent/background), and design-tokens defines Semantic
+// primary/primaryAlt/secondary/background), and design-tokens defines Semantic
 // as palette-independent by design (pinned below) -- overriding it per
 // palette would break that invariant for a collision with no visible
 // consumer yet. This test characterizes the known collisions (so token
 // drift resolving them isn't silently un-noticed) and fails on any
 // *unlisted* pair, which would mean a NEW collision appeared.
+//
+// issue #122 adds the two cyan entries, and they differ in KIND from the
+// three above. The originals are hyakkei's own construction: its dark-mode
+// semantic fallback borrows the same `nearestStep(Green/Red, 400)` a palette's
+// own `primary` already uses, plus a `Red.900`/`Error.2` coincidence. The cyan
+// pair is UPSTREAM's -- the guidebook's Cyan reference image paints Secondary
+// 800 and Success as literally the same swatch (`#197A4B`), and design-tokens
+// derives `Semantic.Success["2"]` from that same Green 800. Avoiding it would
+// mean departing from the published assignment.
+//
+// Listed here as part of the change that causes them, with the decision
+// already recorded in ADR-0018 §6 and a dated note on ADR-0009 -- not appended
+// after a red test, which would leave no way to tell an intended design
+// decision from one nobody noticed.
 const KNOWN_ROLE_COLLISIONS = new Set([
   "guidebook-red/light/primary/error",
   "guidebook-red/dark/primary/error",
   "guidebook-green/dark/primary/success",
+  "guidebook-cyan/light/secondary/success",
+  "guidebook-cyan/dark/secondary/success",
 ]);
 
 describe("resolveChartColors: role-color distinctness (issue #60 characterization)", () => {
@@ -251,7 +449,21 @@ describe("resolveChartColors: role-color distinctness (issue #60 characterizatio
     for (const appearance of APPEARANCES) {
       it(`${palette}/${appearance}: role colors are pairwise distinct except the known collisions`, () => {
         const colors = resolveChartColors(palette, appearance);
+        let comparedPairs = 0;
         for (const [a, b] of ROLE_PAIRS) {
+          // issue #122: a `null` role must be SKIPPED, never compared. Left in,
+          // `null !== "#333333"` reads as a healthy non-collision and the pair
+          // passes without checking anything -- the most dangerous shape a
+          // distinctness matrix can take, because it grows quietly as roles are
+          // added. The pair count below is what makes the skipping visible.
+          if (colors[a] === null || colors[b] === null) {
+            expect(
+              isSanctionedAbsence(palette, colors[a] === null ? a : b),
+              `${palette}/${appearance}: ${a}/${b} skipped on an unsanctioned null`,
+            ).toBe(true);
+            continue;
+          }
+          comparedPairs += 1;
           const forward = `${palette}/${appearance}/${a}/${b}`;
           const reverse = `${palette}/${appearance}/${b}/${a}`;
           if (KNOWN_ROLE_COLLISIONS.has(forward) || KNOWN_ROLE_COLLISIONS.has(reverse)) {
@@ -265,6 +477,12 @@ describe("resolveChartColors: role-color distinctness (issue #60 characterizatio
             expect(colors[a], `unexpected new collision at ${forward}`).not.toBe(colors[b]);
           }
         }
+        // 6 roles -> 15 pairs. guidebook-neutral has no `neutral`, so its 5
+        // pairs involving that role drop out, leaving 10. Asserting the count
+        // is what stops the loop above from silently checking less over time.
+        expect(comparedPairs, `${palette}/${appearance} compared pair count`).toBe(
+          palette === "guidebook-neutral" ? 10 : 15,
+        );
       });
     }
   }
@@ -272,30 +490,54 @@ describe("resolveChartColors: role-color distinctness (issue #60 characterizatio
 
 // issue #13 (guideline nudge engine, ADR-0016): `palette-order`'s guideline
 // rule is doc-only (no runtime evaluation) because v0.1's authorable
-// surface has no way to change which ramp step primary/secondary resolve
+// surface has no way to change which ramp step the two same-hue roles resolve
 // to -- but the ramp-position RELATIONSHIP those two steps happen to have
-// is exactly why: it is not "primary always uses an earlier/lighter step
-// than secondary" everywhere. This bidirectional characterization test
+// is exactly why: it is not "the first role always uses an earlier/lighter
+// step than the second" everywhere. This bidirectional characterization test
 // pins the actual relationship per (palette, appearance), independently of
 // palette.ts's own private step constants (fresh design-tokens lookups,
 // same convention as `EXPECTED_PRIMARY_900` above) -- a future change to
-// `SECONDARY_STEP_OVERRIDE`/`DARK_PRIMARY_STEP`/`DARK_SECONDARY_STEP` fails
+// `PRIMARY_ALT_STEP_OVERRIDE`/`PRIMARY_STEP`/`PRIMARY_ALT_STEP` fails
 // here, forcing a conscious re-evaluation of ADR-0016 rather than silently
 // drifting underneath a guideline rule that no longer matches reality.
-describe("resolveChartColors: primary/secondary ramp-position relationship (issue #13 characterization)", () => {
+//
+// issue #122 renamed the second role `secondary` -> `primaryAlt` and gave
+// `secondary` to the guidebook's actual (different-hue) Secondary ramp. The
+// pair this block characterizes is still the two SAME-HUE roles, so it is
+// still the pair `palette-order` would judge -- but two things it used to
+// assert changed meaning and are worth stating so the next reader does not
+// restore the old framing:
+//
+//   1. The 3:1 floor that forces cyan/light's deeper override is HYAKKEI'S,
+//      not a guidebook exception. The guidebook publishes Cyan 600 (2.83:1)
+//      as a real categorical color and sanctions no "shift the color"
+//      fallback. ADR-0016 said the opposite; ADR-0018 §5 corrects it.
+//   2. `palette-order`'s "it would misfire against our own fixtures"
+//      objection therefore does NOT disappear with #122, contrary to what
+//      ADR-0016's read-forward note predicted: the override survives, and
+//      every dark appearance still resolves the deeper step second.
+describe("resolveChartColors: primary/primaryAlt ramp-position relationship (issue #13 characterization)", () => {
+  // guidebook-neutral's ramp has no 600 step (900/700/536/400/200/50), so its
+  // primaryAlt is 536 -- the one place where "the same step number for every
+  // palette" is not available.
+  const primaryAltStep = (palette: Palette, appearance: Appearance): string => {
+    if (appearance === "light" && palette === "guidebook-cyan") return "1200";
+    return palette === "guidebook-neutral" ? "536" : "600";
+  };
+
   for (const palette of PALETTES) {
-    it(`${palette}/light: primary=900-step, secondary=${palette === "guidebook-cyan" ? "1200-step override (KNOWN exception: secondary deeper than primary)" : "600-step (primary deeper than secondary)"}`, () => {
-      const { primary, secondary } = resolveChartColors(palette, "light");
+    it(`${palette}/light: primary=900-step, primaryAlt=${primaryAltStep(palette, "light")}-step${palette === "guidebook-cyan" ? " (KNOWN exception: primaryAlt deeper than primary, forced by hyakkei's 3:1 floor)" : ""}`, () => {
+      const { primary, primaryAlt } = resolveChartColors(palette, "light");
       const family = FAMILY_BY_PALETTE[palette];
       expect(primary).toBe(step(family["900"]));
-      expect(secondary).toBe(step(family[palette === "guidebook-cyan" ? "1200" : "600"]));
+      expect(primaryAlt).toBe(step(family[primaryAltStep(palette, "light")]));
     });
 
-    it(`${palette}/dark: primary=400-step, secondary=600-step (KNOWN exception: secondary deeper than primary, uniformly across all palettes)`, () => {
-      const { primary, secondary } = resolveChartColors(palette, "dark");
+    it(`${palette}/dark: primary=400-step, primaryAlt=${primaryAltStep(palette, "dark")}-step (KNOWN exception: primaryAlt deeper than primary, uniformly across all palettes)`, () => {
+      const { primary, primaryAlt } = resolveChartColors(palette, "dark");
       const family = FAMILY_BY_PALETTE[palette];
       expect(primary).toBe(step(family["400"]));
-      expect(secondary).toBe(step(family["600"]));
+      expect(primaryAlt).toBe(step(family[primaryAltStep(palette, "dark")]));
     });
   }
 });
@@ -414,10 +656,10 @@ describe("resolveChartColors: memoization, __proto__ guards, and contrast-degrad
 
   it("records a separate warning for every violating role, not just the first", async () => {
     // Two independent violations in the same resolution: Blue's light
-    // primary (900) AND Yellow's light accent (800), both collapsed onto
-    // the light background -- a mutant that records only the first
-    // violation in the loop would leave this at length 1, not 2 (Codex
-    // test-adversarial review).
+    // primary (900) AND Yellow's light secondary (800 -- blue's guidebook
+    // Secondary ramp is Yellow), both collapsed onto the light background --
+    // a mutant that records only the first violation in the loop would leave
+    // this at length 1, not 2 (Codex test-adversarial review).
     vi.doMock("@digital-go-jp/design-tokens", async (importOriginal) => {
       const actual = await importOriginal<typeof import("@digital-go-jp/design-tokens")>();
       return {
@@ -439,17 +681,26 @@ describe("resolveChartColors: memoization, __proto__ guards, and contrast-degrad
     fresh.resolveChartColors("guidebook-blue", "light");
     const warnings = fresh.getContrastWarnings();
     expect(warnings).toHaveLength(2);
-    expect(new Set(warnings.map((w) => w.role))).toEqual(new Set(["primary", "accent"]));
+    expect(new Set(warnings.map((w) => w.role))).toEqual(new Set(["primary", "secondary"]));
   });
 
-  it("an own key resolving to `undefined` (token-package drift, not `__proto__`) still throws the named error, not an opaque nearestStep crash", async () => {
-    // Distinct from the `__proto__` tests above: `PALETTE_FAMILY` here
-    // genuinely has `guidebook-blue` as an own key (the object literal
-    // always assigns it), but the value it resolves to is `undefined`
-    // because `Color.Primitive.Blue` itself vanished upstream. `hasOwn`
-    // alone would report `true` for this key and let `undefined` reach
-    // `nearestStep` -- the guard must combine `hasOwn` with the original
-    // truthy check, not replace it (Codex test-adversarial review).
+  it("a palette's OWN family vanishing fails at load time naming that family, not later as a misleading 'unknown palette'", async () => {
+    // Behaviour change in issue #122, deliberate and stated here so it is not
+    // read as a regression.
+    //
+    // Before: the palette->family tables stored object references, so a
+    // vanished `Color.Primitive.Blue` made `PALETTE_FAMILY["guidebook-blue"]`
+    // `undefined`, and `resolveChartColors` reported `unknown palette
+    // 'guidebook-blue'` at call time. That message was actively misleading --
+    // the palette is perfectly well known; its family is gone -- and it only
+    // surfaced once someone rendered that specific palette.
+    //
+    // Now: the tables store family NAMES, and every name they mention is
+    // probed at module load. The failure is immediate and says which family
+    // went missing. The `hasOwn` + truthy guard in `resolveChartColors`
+    // remains, but its job is now solely `__proto__` rejection (pinned by the
+    // tests above) -- an own key can no longer hold `undefined`, because the
+    // value is a string literal from a total `Record<Palette, FamilyName>`.
     vi.doMock("@digital-go-jp/design-tokens", async (importOriginal) => {
       const actual = await importOriginal<typeof import("@digital-go-jp/design-tokens")>();
       const { Blue: _drop, ...restPrimitive } = actual.default.Color.Primitive;
@@ -460,8 +711,7 @@ describe("resolveChartColors: memoization, __proto__ guards, and contrast-degrad
         },
       };
     });
-    const fresh = await import("./palette.js");
-    expect(() => fresh.resolveChartColors("guidebook-blue", "light")).toThrow(/unknown palette/);
+    await expect(import("./palette.js")).rejects.toThrow(/Color\.Primitive\.Blue/);
   });
 
   it("a missing STEP inside a surviving family degrades (nearest-step fallback + rendering continues), it does not fail the module load", async () => {
@@ -486,14 +736,22 @@ describe("resolveChartColors: memoization, __proto__ guards, and contrast-degrad
       };
     });
     const fresh = await import("./palette.js");
-    let colors: { accent: string } | undefined;
+    let colors: { secondary: string } | undefined;
     expect(() => {
       colors = fresh.resolveChartColors("guidebook-blue", "light");
     }).not.toThrow();
-    // The 800-step is gone; the light accent resolves to a real surviving
+    // The 800-step is gone; blue's light `secondary` (the guidebook's
+    // Secondary ramp = Yellow for this palette) resolves to a real surviving
     // neighbor (700 or 900), not to undefined and not to the dropped value.
+    //
+    // issue #122 note: this path stays live precisely because `nearestStep`
+    // was kept as the token-drift fallback rather than replaced by direct
+    // `family[step]` indexing. If a future change makes step lookup exact and
+    // throwing, this test must be rewritten to assert the throw -- what must
+    // not happen is the behaviour changing while the test name still says
+    // "degrades".
     const yellow = designTokens.Color.Primitive.Yellow;
-    expect([yellow["700"].$value, yellow["900"].$value]).toContain(colors?.accent);
+    expect([yellow["700"].$value, yellow["900"].$value]).toContain(colors?.secondary);
   });
 
   it("a renamed/missing Color.Semantic family fails at load time naming Semantic, not an opaque property crash", async () => {

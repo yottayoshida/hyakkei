@@ -891,7 +891,7 @@ exports[`golden: the full categorical trio (color[0..2]) reaches a rendered char
 <path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
 <path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#00a3bf"></path>
 <path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
-<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#51b883"></path>
 <path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
 <path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
 <text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
@@ -939,7 +939,7 @@ fill:rgba(0,179,210,1);
 }
 .ID5:hover {
 cursor:pointer;
-fill:rgba(255,218,0,1);
+fill:rgba(89,202,144,1);
 }
 
 ]]>
@@ -955,7 +955,7 @@ exports[`golden: the full categorical trio (color[0..2]) reaches a rendered char
 <path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
 <path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#003741"></path>
 <path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
-<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#197a4b"></path>
 <path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
 <path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
 <text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
@@ -1003,7 +1003,7 @@ fill:rgba(0,60,71,1);
 }
 .ID5:hover {
 cursor:pointer;
-fill:rgba(181,140,0,1);
+fill:rgba(27,134,82,1);
 }
 
 ]]>
@@ -1019,7 +1019,7 @@ exports[`golden: the full categorical trio (color[0..2]) reaches a rendered char
 <path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
 <path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#259d63"></path>
 <path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
-<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#2bc8e4"></path>
 <path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
 <path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
 <text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
@@ -1067,7 +1067,7 @@ fill:rgba(40,172,108,1);
 }
 .ID5:hover {
 cursor:pointer;
-fill:rgba(255,218,0,1);
+fill:rgba(47,220,250,1);
 }
 
 ]]>
@@ -1083,7 +1083,7 @@ exports[`golden: the full categorical trio (color[0..2]) reaches a rendered char
 <path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
 <path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#259d63"></path>
 <path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
-<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
+<path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#008299"></path>
 <path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
 <path class="ID1" d="M-59 -5l118 0l0 28l-118 0Z" fill="rgb(0,0,0)" fill-opacity="0" stroke="#3c3c41" stroke-width="0" transform="translate(200 20)"></path>
 <text dominant-baseline="central" fill="#3c3c41" style="font-size:18px;font-family:sans-serif;font-weight:bold;" text-anchor="middle" transform="translate(200 20)" y="9">区分別構成比</text>
@@ -1131,7 +1131,7 @@ fill:rgba(40,172,108,1);
 }
 .ID5:hover {
 cursor:pointer;
-fill:rgba(181,140,0,1);
+fill:rgba(0,143,168,1);
 }
 
 ]]>
@@ -1273,7 +1273,7 @@ exports[`golden: the full categorical trio (color[0..2]) reaches a rendered char
 <rect fill="#1A1A1A" height="300" width="400" x="0" y="0"></rect>
 <path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#999999"></path>
 <path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
-<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#666666"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#767676"></path>
 <path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
 <path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#ffc700"></path>
 <path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
@@ -1319,7 +1319,7 @@ pointer-events:none;
 }
 .ID3:hover {
 cursor:pointer;
-fill:rgba(112,112,112,1);
+fill:rgba(129,129,129,1);
 }
 .ID5:hover {
 cursor:pointer;
@@ -1337,7 +1337,7 @@ exports[`golden: the full categorical trio (color[0..2]) reaches a rendered char
 <rect fill="#F8F8FB" height="300" width="400" x="0" y="0"></rect>
 <path class="ID0" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" ecmeta_data_index="0" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#1a1a1a"></path>
 <path class="ID1" d="M200 45A105 105 0 0 1 219.30 253.20L200 150Z" fill="url(#ID2)"></path>
-<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#666666"></path>
+<path class="ID3" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" ecmeta_data_index="1" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#767676"></path>
 <path class="ID1" d="M219.30 253.20A105 105 0 0 1 106 103.20L200 150Z" fill="url(#ID4)"></path>
 <path class="ID5" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" ecmeta_data_index="2" ecmeta_series_index="0" ecmeta_ssr_type="chart" fill="#a58000"></path>
 <path class="ID1" d="M106 103.20A105 105 0 0 1 200 45L200 150Z" fill="url(#ID6)"></path>
@@ -1383,7 +1383,7 @@ pointer-events:none;
 }
 .ID3:hover {
 cursor:pointer;
-fill:rgba(112,112,112,1);
+fill:rgba(129,129,129,1);
 }
 .ID5:hover {
 cursor:pointer;

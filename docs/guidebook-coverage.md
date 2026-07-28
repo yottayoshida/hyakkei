@@ -5,9 +5,9 @@ What the Digital Agency dashboard guidebook asks for, and what hyakkei currently
 - **Guidebook version**: [ダッシュボードデザインの実践ガイドブック](https://www.digital.go.jp/resources/dashboard-guidebook) PDF v02 (2026-03-31), all 59 pages, plus the official 27-item checklist and the [カラーパレットの使い方](https://www.digital.go.jp/resources/dashboard-guidebook/color-palette) page (最終更新 2026-07-17)
 - **Machine-checkable principles found**: **22**
 - **Addressed by a named rule**: **3** — of which **1** has a runtime predicate
-- **Guaranteed in practice** (rule-enforced *or* impossible to violate): **7**
+- **Guaranteed in practice** (rule-enforced *or* impossible to violate): **8**
 - **Needs a new schema field before it can be satisfied at all**: **4** (a fifth, the vertical grid, needs a *breaking* change — see below)
-- **Known defects** (implemented, and wrong): **3**
+- **Known defects** (implemented, and wrong): **2**
 
 *These do not sum to 22 — some principles fall in two rows. See [Which number to quote](#which-number-to-quote) before citing any of them.*
 
@@ -16,6 +16,7 @@ What the Digital Agency dashboard guidebook asks for, and what hyakkei currently
 > | Date | Reconciled by | Guidebook version | Notes |
 > | --- | --- | --- | --- |
 > | 2026-07-27 | (automated inventory, unreviewed) | PDF v02 | Initial pass |
+> | 2026-07-27 | role layer re-read from all 7 official reference images (#122) | color-palette page, 最終更新 2026-07-17 | Row 8 moved defect → by construction. Retrieval date is pinned in code as `GUIDEBOOK_ROLE_SOURCE` (`packages/core/src/theme/palette.ts`); these two dates are meant to be reconciled together |
 
 ## Why this file exists
 
@@ -64,7 +65,7 @@ The A/B/C line involves judgement. **22 is "checkable without inventing a thresh
 | # | Principle | Source | Status | Notes |
 | --- | --- | --- | --- | --- |
 | 7 | Choose from the 7 palettes (Blue / LightBlue / Cyan / Green / Orange / Red / SolidGray) | p35 | **by construction** | `Palette` is a closed schema enum |
-| 8 | Chart colors follow the Primary / Secondary / Neutral + semantic role structure | p36, [color-palette page](https://www.digital.go.jp/resources/dashboard-guidebook/color-palette) | **defect** | `palette.ts` resolves `secondary` as another *step of the primary's ramp*; the guidebook gives Secondary **its own three-step ramp in a different hue** — Blue→Yellow, Cyan→Green. Two of seven palettes confirmed wrong; five unverified. Evidence: `docs/spikes/guidebook-color-roles.md`. Tracked as [#122](https://github.com/yottayoshida/hyakkei/issues/122) |
+| 8 | Chart colors follow the Primary / Secondary / Neutral + semantic role structure | p36, [color-palette page](https://www.digital.go.jp/resources/dashboard-guidebook/color-palette) | **by construction** (was **defect**, fixed 2026-07-27) | Not `active`: no runtime predicate checks this, and none is needed — `ChartOptions` has no color field and `theme` carries only `palette`/`appearance`, so a user cannot author a wrong role assignment. All seven palettes verified against the official reference images. The Secondary ramp is per-palette and takes three hues (Yellow ×5, Cyan→Green, Green→Cyan); `Neutral` now exists as a role. Two guidebook roles remain unimplemented — **Positive/Negative** (Cyan's Positive has no step meeting 3:1, deferred with a trigger) — and Orange/Red's per-palette **Error** `#850000` is not adopted (it reopens ADR-0009's palette-independence invariant). [ADR-0018](./adr/0018-chart-color-roles-follow-the-guidebook-role-layer.md); evidence `docs/spikes/guidebook-color-roles.md`. **The earlier framing of this defect ("`secondary` is another step of the primary's ramp") was itself wrong** — see the spike's dated correction |
 | 9 | Contrast between background and chart color area must be ≥3:1 | p38 | **active** (not a nudge) | Enforced by `assertGraphicContrast` in the palette layer rather than surfaced as a per-document nudge |
 | 10 | If 3:1 cannot be met, place the value next to the color area (value text ≥4.5:1 against background) | p38 | **not covered** | **Cheapest uncovered item** — cross-reference existing `getContrastWarnings()` against `showDataLabels` |
 | 11 | Provide a non-color means of distinguishing categories | p38, p47 (D10) | **by construction** | `build-options.ts:207` sets `aria: { enabled: true, decal: { show: true } }` on the shared base every ECharts-backed variant spreads over, so bar/line/area/scatter/pie all get it and **no schema field can turn it off**. The M0 chart spike verified in a real browser that this emits genuine `<pattern>` fills, and called decal "load-bearing, not decorative" after finding color alone insufficient for the orange palette under deuteranopia. Caveat for future edits: the guarantee is against *users*, not against the code — `aria` sits before `...built`, so a variant that returned its own `aria` would silently win. None does today, and no test pins that |
@@ -116,10 +117,10 @@ A full-text search of the guidebook finds no statement about ramp-position order
 | Status | Count | Items |
 | --- | --- | --- |
 | **active** | 2 | #6 (threshold unsourced), #9 |
-| **by construction** | 5 | #7, #11, #17 (partial), #18, #20 |
+| **by construction** | 6 | #7, #8, #11, #17 (partial), #18, #20 |
 | **not covered** | 7 | #3, #4, #5, #10, #14, #15, #19 |
 | **not expressible** | 5 | #2, #12, #13, #23, #24 |
-| **defect** | 3 | #1 vertical grid, #6 threshold, #8 color roles |
+| **defect** | 2 | #1 vertical grid, #6 threshold |
 
 Rows overlap on purpose, so they do not sum to 22:
 
@@ -134,11 +135,11 @@ Three defensible counts, so state which one is meant:
 | --- | --- | --- |
 | Principles a **named rule** addresses | **3** (#6, #17, #20) | What `guideline-rules.json` actually claims |
 | …of those, with a **runtime predicate** | **1** (#6) | Whenever "enforced" might be read as "checked at runtime" |
-| **active + by construction** — the guarantee actually delivered | **7** | **The headline figure.** What a user gets, rather than what the rule engine does |
+| **active + by construction** — the guarantee actually delivered | **8** | **The headline figure.** What a user gets, rather than what the rule engine does |
 
-Two of the seven are enforced outside the rule engine and so do not appear in the "3": #9's 3:1 contrast check lives in the palette layer, and #11's decal is set unconditionally by the renderer. Both run on every render; neither is a nudge.
+Two of the eight are enforced outside the rule engine and so do not appear in the "3": #9's 3:1 contrast check lives in the palette layer, and #11's decal is set unconditionally by the renderer. Both run on every render; neither is a nudge.
 
-**The honest short form: 22 principles identified, 7 guaranteed, 3 addressed by named rules, 1 with a runtime predicate, 3 known defects.**
+**The honest short form: 22 principles identified, 8 guaranteed, 3 addressed by named rules, 1 with a runtime predicate, 2 known defects.**
 
 ## The four that need schema fields
 
