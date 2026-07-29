@@ -6,8 +6,8 @@
     "threshold": 6,
     "message": "円グラフは分類が7つ以上になると、割合の大小を比べにくくなります。棒グラフなら順序どおりに並べて比較できます。",
     "citation": {
-      "label": "デジタル庁 ダッシュボードデザインガイドブック（円グラフの使い方）",
-      "url": null
+      "label": "デジタル庁 ダッシュボードデザインの実践ガイドブック v02 p34（4.2 グラフの種類と選び方）。7分類以上という閾値は hyakkei の判断で、ガイドブックは分類数の上限を定めていません",
+      "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/2a3a0ebc/20260331_resources_dashboard-guidebook_guidebook_02.pdf#page=34"
     }
   },
   {
@@ -16,8 +16,8 @@
     "severity": "warning",
     "message": "棒グラフのY軸の基準線を0以外にすると、差が実際より大きく見えてしまいます。",
     "citation": {
-      "label": "デジタル庁 ダッシュボードデザインガイドブック（軸の使い方）",
-      "url": null
+      "label": "デジタル庁 ダッシュボードデザインの実践ガイドブック v02 p47「グラフの原点は原則として0にする」（p41「表現を歪曲しない」も同旨）",
+      "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/2a3a0ebc/20260331_resources_dashboard-guidebook_guidebook_02.pdf#page=47"
     }
   },
   {
@@ -26,8 +26,8 @@
     "severity": "warning",
     "message": "同じ色のグラデーション内では、濃い色を先に、薄い色を後に使うのが基本です。",
     "citation": {
-      "label": "デジタル庁 ダッシュボードデザインガイドブック（配色の使い方）",
-      "url": null
+      "label": "デジタル庁 ダッシュボードデザインの実践ガイドブック付属 Power BI テーマ JSON の dataColors 順（濃→淡）。ガイドブック本文にランプ順序の規定はありません",
+      "url": "https://github.com/digital-go-jp/policy-dashboard-assets/blob/a520c070a2c1fb57fdccf8e89e44182110b11a4b/powerbi-templates/powerbi-theme-json/CustomThemeBlueDefault_2026.json#L29"
     }
   },
   {
@@ -36,8 +36,8 @@
     "severity": "warning",
     "message": "3Dグラフは奥行きのせいで数値が読み取りにくくなるため、Hyakkeiには3Dグラフの機能自体がありません。",
     "citation": {
-      "label": "デジタル庁 ダッシュボードデザインガイドブック（グラフの選び方）",
-      "url": null
+      "label": "デジタル庁 ダッシュボードデザインの実践ガイドブック v02 p44「不要な装飾やリッチな表現は使わない」（同項はドロップシャドウも対象で、このルールは3Dのみを見ています）",
+      "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/2a3a0ebc/20260331_resources_dashboard-guidebook_guidebook_02.pdf#page=44"
     }
   }
 ]

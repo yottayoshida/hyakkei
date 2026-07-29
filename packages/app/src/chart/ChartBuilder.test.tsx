@@ -25,6 +25,12 @@ vi.mock("@hyakkei/core/guideline", async (importOriginal) => {
   return { ...actual, evaluateGuidelines: evaluateGuidelinesSpy };
 });
 
+// Resolves through the mock above, which spreads `...actual` -- so this is the
+// rule set read from the BUILT guideline-rules.json (`@hyakkei/core`'s exports
+// point at dist/, gitignored): running this file without a prior `pnpm run
+// build` compares against whatever was built last, not current src. CI always
+// builds first (root `test` = `build && -r test`).
+import { getGuidelineRules } from "@hyakkei/core/guideline";
 import { ChartBuilder, type ChartBuilderProps } from "./ChartBuilder.js";
 import { CHART_ROW_LIMIT } from "./chart-encoding.js";
 
@@ -460,7 +466,44 @@ describe("ChartBuilder", () => {
       );
       const advisory = sevenHost.querySelector('[role="status"]');
       expect(advisory?.textContent).toContain("円グラフは分類が");
-      expect(sevenHost.textContent).toContain("出典:");
+
+      // issue #123. `toContain("出典:")` used to be the whole assertion here --
+      // which the string "出典: " satisfies, so it returned the same verdict for
+      // the old citation, the corrected one, and an empty label alike. Assert the
+      // rendered line equals the prefix plus the WHOLE label instead: that fails
+      // if the UI ever truncates or drops it.
+      //
+      // The label's *content* is pinned in
+      // packages/core/src/guideline/guideline.test.ts against a hand-written
+      // table; re-pinning the same long string here would be a second manual
+      // copy of it, and the two would drift. So the full-text check reads the
+      // real rule, and the one literal duplicated below is the disclosure
+      // clause -- short, and the actual thesis of #123, so reverting the JSON to
+      // its old wording fails this test too rather than only the core one.
+      const pieRule = getGuidelineRules().find((r) => r.id === "pie-too-many-slices");
+      expect(pieRule).toBeDefined();
+      expect(sevenHost.textContent).toContain(`出典: ${pieRule?.citation.label}`);
+      expect(sevenHost.textContent).toContain("hyakkei の判断");
+
+      // Pins the live-region boundary documented at the JSX in ChartBuilder.tsx:
+      // the citation sits outside `role="status"`, so it is not announced when
+      // the nudge appears. Asserted here so it stays a decision, not an accident.
+      //
+      // Over ALL status regions, not the first (QA Phase 8, J-1): the previous
+      // form checked `advisory` — a `querySelector` first match, i.e. the
+      // message paragraph — so giving the citation paragraph its own
+      // `role="status"` left every assertion green. The boundary was pinned in
+      // one direction only, while the comment claimed both.
+      const statusRegions = [...sevenHost.querySelectorAll('[role="status"]')];
+      expect(statusRegions.length).toBeGreaterThan(0);
+      expect(statusRegions.every((el) => !el.textContent?.includes("出典:"))).toBe(true);
+      // And the citation paragraph itself carries no live-region role. Verified
+      // against the real DOM in the Phase 8-4 dry-run (`citationRole: null`).
+      const citationP = [...sevenHost.querySelectorAll("p")].find((el) =>
+        el.textContent?.startsWith("出典:"),
+      );
+      expect(citationP).toBeDefined();
+      expect(citationP?.getAttribute("role")).toBeNull();
     });
 
     // Codex 6-B (test adversarial review, Blind Spot 3): the test above
@@ -817,7 +860,10 @@ describe("ChartBuilder", () => {
         {
           ruleId: "pie-too-many-slices",
           message: SCRIPT_PAYLOAD,
-          citation: { label: SCRIPT_PAYLOAD, url: null },
+          // `url` is now required and https-only (issue #123). It is unread by
+          // this render path, so the payload stays on `label` -- the one field
+          // the UI actually prints.
+          citation: { label: SCRIPT_PAYLOAD, url: "https://example.test/x" },
         },
       ]);
       const { host } = await renderInJsdom(
