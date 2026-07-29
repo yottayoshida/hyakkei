@@ -471,7 +471,25 @@ export const ChartBuilder = memo(function ChartBuilder({
           consistency). Citation is a plain-text 2nd line, not a link (UX
           review: this app's primary deployment target is an air-gapped
           network, so a citation that depends on reaching an external URL
-          to mean anything would go stale there -- see ADR-0016). */}
+          to mean anything would go stale there -- see ADR-0016).
+
+          `citation.url` is always populated since issue #123 and still
+          deliberately not rendered, for that same reason: what carries offline
+          is the version-and-page in `label` ("v02 p34").
+
+          Known limitation, accepted rather than overlooked (reaffirmed at QA
+          Phase 8, issue #123): `role="status"` is on the message paragraph
+          only, so the citation -- including `pie-too-many-slices`' disclosure
+          that its threshold is hyakkei's own rather than the guidebook's --
+          is NOT announced when a nudge appears. A screen-reader user
+          following only the live region hears the norm but not whose number
+          it is; the disclosure is reachable by navigation. Wrapping both
+          paragraphs in the live region would read the whole citation aloud
+          every time and bury the advisory itself; moving the disclosure into
+          `message` was considered and declined to keep the advisory short.
+          `ChartBuilder.test.tsx` pins the boundary in both directions -- no
+          status region contains 出典:, and the citation paragraph carries no
+          role -- so this stays a decision. */}
       {nudges.map((nudge) => {
         const action = NUDGE_ACTIONS[nudge.ruleId];
         return (
