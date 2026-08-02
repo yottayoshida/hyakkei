@@ -2,9 +2,53 @@
 
 **Status**: RESOLVED — **two channels, not one.** In-conversation preview is MCP Apps (`ui://` + sandboxed iframe); distribution is a written file. `tool result` direct return is structurally impossible and is the only candidate actually eliminated. MCP Apps has a host-side rendering bug open in Claude Desktop / claude.ai / Claude Code for Web as of this date, but that is a wait-and-retest condition on the host, not a reason to build a different shape — and there is now a debug host that separates host bugs from your own.
 **Date**: 2026-07-27
+**Amended**: 2026-08-02 — MCP published protocol revision `2026-07-28`, replacing the core protocol wholesale. The two-channel conclusion survives untouched; two statements in this document do not. Read the amendment before the body.
 **Scope**: Gate for issue #26's v1.0 re-scoping (see `docs/adr/` for the v1.0 redefinition ADR). Three independent Phase 2 investigations (ux, market-researcher, qa-specialist) converged on the same unknown — "can a 1.22 MiB self-contained HTML be returned as an MCP tool result?" — and all three flagged it as **unmeasured**. The plan made this gate blocking: if no transport works, the CONDITIONAL GO reverts to NO-GO.
 
 The artifact in question is the one `docs/spikes/single-file-viewer.md` produced: **1,283,005 bytes** (1.22 MiB raw / 398 KiB gzip), ECharts-dominated, with the baked data at ~0.1% of the total.
+
+## Amendment (2026-08-02): the core protocol was replaced, the conclusion was not
+
+MCP published protocol revision [`2026-07-28`](https://modelcontextprotocol.io/specification/2026-07-28/changelog). It is a wholesale replacement of the core: protocol-level sessions and the `initialize` handshake are gone, every request carries its own protocol version and client capabilities in `_meta`, servers **MUST** implement a new `server/discover` RPC, `ping` / `logging/setLevel` / SSE resumability are removed, and tasks moved out of the core into an extension.
+
+**None of that changes a verdict in this spike.** MCP Apps runs on its own track — its specification is still the 2026-01-26 revision, and the [extensions framework](https://modelcontextprotocol.io/docs/extensions/overview) the new core introduces is precisely the mechanism that lets it evolve independently. `ui://` resources, `_meta.ui.resourceUri`, the sandboxed iframe and the `postMessage` dialect are unchanged. Candidates 1 and 4 stay rejected for reasons — context arithmetic, the zero-network-request property — that never touched the wire protocol.
+
+Hyakkei has written no MCP code and carries no MCP dependency, so this is not a migration. It changes what the first line will be written against.
+
+### What the first implementation must now do
+
+| Item | Note |
+| --- | --- |
+| `server/discover` | **MUST** implement. Advertises supported versions, capabilities and identity; also serves as the backward-compatibility probe on stdio |
+| Extension negotiation | There is no `initialize` to negotiate in. Clients declare support per-request in `_meta["io.modelcontextprotocol/clientCapabilities"].extensions`; servers declare it in the `server/discover` result's `capabilities.extensions`. The negotiation example in the extensions overview names the MCP Apps identifier `io.modelcontextprotocol/ui` |
+| `resultType` | Required on every result — `"complete"` for ordinary ones, `"input_required"` only for the new multi-round-trip pattern |
+| `ttlMs` + `cacheScope` | Required on `tools/list`, `resources/list`, `resources/templates/list`, `prompts/list` **and `resources/read`** — that last one is the call that serves the `ui://` bundle |
+| Logging | `logging/setLevel` is removed and the Logging feature is deprecated. Log to `stderr` |
+| Roots / Sampling | Deprecated. Hyakkei needs neither |
+
+Statelessness is a tailwind rather than a cost here: ADR-0017's shape is a CLI core with the MCP server as a thin adapter, and a thin adapter holds no cross-call state to lose.
+
+### SDK: v2 is the target, and the MCP Apps SDK has not caught up
+
+The TypeScript SDK split at v2 (2026-07-27) into `@modelcontextprotocol/core`, `server`, `client`, `express`, `fastify`, plus a `codemod` for the v1 upgrade. **Only v2 supports `2026-07-28`**; the single-package `@modelcontextprotocol/sdk@1.30.0` does not.
+
+`@modelcontextprotocol/ext-apps@1.7.5` (2026-07-23) still declares `peerDependencies: { "@modelcontextprotocol/sdk": "^1.29.0" }` — it has not moved to the v2 package names. The SDK side has already made room: the `@modelcontextprotocol/server@2.0.0` release note for PR #2501 restores the v1 `Protocol` / `mergeCapabilities` root exports explicitly "for consumers that subclass `Protocol` (e.g. the MCP Apps SDK)". Read that as work in progress, not as a settled compatibility story — **re-check the peer range before writing the first import**. If it still has not landed, the escape hatch is documented: the `App` class is "a convenience wrapper, not a requirement," and the postMessage protocol can be implemented directly.
+
+### Two statements below no longer hold
+
+**1. The re-test trigger names a tracker that will not resolve it.** "Consequences for v1.0" says to wait for `ext-apps#671` to close. On 2026-07-31 the thread's most active investigator stated the opposite — "this repo is the spec and SDK, so triage for a host rendering bug won't happen here" — and moved the writeup to [`anthropics/claude-ai-mcp#165`](https://github.com/anthropics/claude-ai-mcp/issues/165). `#671` is still OPEN at 13 comments and may stay open indefinitely. **Track `claude-ai-mcp#165` instead.**
+
+**2. "No server-side or content-side change can fix it" is now too broad.** It was drawn from the static-no-JS-marker test and remains true of the failure that test probed. But a 36-render measurement on claude.ai web (2026-07-31, `_meta.ui.domain` as the only variable between arms) found a second failure with the same visible symptom that is entirely server-side:
+
+| `_meta.ui.domain` | iframe mounted | sandbox origin |
+| --- | --- | --- |
+| computed `sha256(endpoint)[:32] + ".claudemcpcontent.com"` | 10/10 | one stable origin every render |
+| absent | 10/10 | a different origin per conversation |
+| **present but wrong** | **0/8** | never created |
+
+Omitting the field does not stop the iframe mounting — it only unpins the sandbox origin, which is what an API server needs in order to allowlist anything. Setting it *wrong* (a trailing slash, a missing `/mcp`, the wrong scheme in the hashed string) is reliably fatal, and raises the same "Unable to reach" error as a stale cached `ui://` URI after a rebuild. One symptom, three causes: get the hashed endpoint spelling exactly right, or omit the field.
+
+`mcp-app-debug` is at 0.3.0 (2026-07-31) and now names a mismatched domain rather than leaving it to be guessed. The invocation in §3 is still current — the `--stdio -- <server command>` form and a bare URL form both work.
 
 ## Candidates evaluated
 
