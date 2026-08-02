@@ -14,6 +14,14 @@
 >
 > Worth stating plainly, because this ADR's own Decision 5 argues for count-based claims on exactly this ground: the risk RR-5 named was real, it materialised within a day, and the count-based claim form absorbed it without any published statement becoming false.
 
+> **Read forward (2026-08-02 — MCP protocol revision [`2026-07-28`](https://modelcontextprotocol.io/specification/2026-07-28/changelog))**: MCP replaced its core protocol wholesale — sessions and the `initialize` handshake removed, a mandatory `server/discover`, per-request capabilities in `_meta`. **No decision here is affected**, and Decision 3's stated reason for making the CLI the core — confining MCP specification churn to a thin adapter — is what absorbed it: the churn landed entirely inside a component that does not exist yet. Three statements in the body have gone stale, and as with the note above the body is left unedited.
+>
+> - **"SEP-1865"** (Decision 4) is superseded terminology. MCP Apps is now an official extension, `io.modelcontextprotocol/ui`, under the `extensions` framework the new core introduces — which is also the mechanism keeping it on its own release track. Its specification is still the 2026-01-26 revision: `ui://`, `_meta.ui.resourceUri`, the sandboxed iframe and the `postMessage` dialect are unchanged.
+> - **The `ext-apps#671` re-test trigger** (Decision 6 and RR-2) names a tracker that cannot resolve it. On 2026-07-31 the thread's most active investigator stated that triage for a host rendering bug does not happen in the spec and SDK repository, and moved the writeup to [`anthropics/claude-ai-mcp#165`](https://github.com/anthropics/claude-ai-mcp/issues/165). `#671` is still open and may stay open regardless of the host's state. **RR-2 itself still stands** — only its tracker changed.
+> - **"Provably host-side"** (Decision 6's constraint paragraph) is now too broad. The static-no-JS-marker argument holds for the failure it probed, but a 36-render measurement on 2026-07-31 found a second failure with the same visible symptom that is entirely server-side: a **wrong** `_meta.ui.domain` mounted the iframe in 0 of 8 renders, while **omitting** the field mounted in 10 of 10 (it only unpins the sandbox origin). Getting that value right is hyakkei's job, not the host's.
+>
+> Full detail, including what the first implementation must do under the new revision (`server/discover`, `resultType`, `ttlMs`/`cacheScope` on `resources/read`) and an SDK v2 / `ext-apps` peer-range mismatch to re-check before the first import: the 2026-08-02 amendment at the top of [`docs/spikes/mcp-transport-gate.md`](../spikes/mcp-transport-gate.md).
+
 ## Context
 
 ROADMAP defined v1.0 as *"a team operates dashboards connected to live data sources, safely, behind their own identity provider"* — a single-container server with PostgreSQL/MySQL/BigQuery/HTTP connectors, scheduled refresh, and platform-delegated auth (ARCHITECTURE §7).
