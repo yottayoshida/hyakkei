@@ -8,6 +8,7 @@ import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 import { buildAccessibleDataTable, wrapAccessibleFallback } from "./accessible-table.js";
 import { buildChartOption, buildOptions } from "./build-options.js";
+import { buildDashboardFooter } from "./dom/dashboard-footer.js";
 import { buildMessageTile } from "./dom/message-tile.js";
 import { buildStatElement } from "./dom/stat.js";
 import { buildTableElement } from "./dom/table.js";
@@ -42,6 +43,79 @@ function gridStyle(container: HTMLElement, layout: Layout) {
 function tileStyle(el: HTMLElement, x: number, y: number, w: number, h: number) {
   el.style.gridColumn = `${x + 1} / span ${w}`;
   el.style.gridRow = `${y + 1} / span ${h}`;
+}
+
+/**
+ * The grid row the dashboard footer occupies: one past whatever the content
+ * above it ends on (issue #124).
+ *
+ * The `+ 1` is not cosmetic. `tileStyle` starts a tile at `y + 1`, so a tile
+ * at `{y: 0, h: 1}` occupies row 1 and `max(y + h)` names that same row —
+ * without the increment the footer lands ON the last tile. jsdom performs no
+ * layout, so nothing in the unit suite would show it, and regenerating the
+ * pixel baselines would bake the overlap in as the expected picture.
+ *
+ * `items: []` counts as one row because `buildFullyFromScratch`/`patch` place
+ * a "配置されたチャートがありません" tile in that case. It has no explicit
+ * position, so it auto-places — and auto-placement runs after definite items,
+ * meaning a footer claiming row 1 across all columns would push that message
+ * BELOW it. Counting the message's row keeps the two in reading order.
+ *
+ * Deliberately unclamped, though an adversarial `{y: 100_000, h: 10_000}`
+ * makes this ~110,000: `tileStyle` already hands that number straight to
+ * `gridRow`, so the implicit tracks exist with or without a footer and a cap
+ * here would remove none of them. It would instead introduce two new faults —
+ * a tile at the cap row and the footer landing on the same row, and, for
+ * layouts past the cap, a "footer" rendering above every tile.
+ */
+function footerRow(layout: Layout): number {
+  const contentRows = layout.items.length
+    ? Math.max(...layout.items.map((item) => item.y + item.h))
+    : 1;
+  return contentRows + 1;
+}
+
+/**
+ * Appended by both DOM-construction paths, immediately after the empty-layout
+ * message and before the resize pass.
+ *
+ * Both, because `patch()` has three exits: two early returns that delegate to
+ * `buildFullyFromScratch` (first call on a container; duplicate chart id) and
+ * the differential path that ends in its own `replaceChildren`. Putting the
+ * call inside `buildFullyFromScratch` covers the first two for free; the
+ * third needs its own. Appending after `replaceChildren` in both is also what
+ * makes the footer un-stale — it is rebuilt every time rather than diffed.
+ *
+ * Before the resize pass, not after: appending a child changes the
+ * container's height, and `observeResize` would otherwise see that as a
+ * resize worth re-measuring every canvas for.
+ */
+function appendFooter(container: HTMLElement, model: RenderModel): void {
+  const footer = buildDashboardFooter(model.footer);
+  // Cleared unconditionally: `replaceChildren` discards children but leaves
+  // inline styles behind, so a container that showed a footer once would keep
+  // its row template after being patched with a model that has none.
+  container.style.gridTemplateRows = "";
+  if (!footer) return;
+
+  const row = footerRow(model.layout);
+  footer.style.gridRow = String(row);
+
+  // The footer's row has to size to its content, and `gridStyle`'s
+  // `gridAutoRows: 4rem` makes every implicit row exactly that. A footer
+  // holding a summary plus five provenance items needs more, and an
+  // over-full grid row does NOT grow — the content spills outside the
+  // container's own height, so the part below the fold is simply not there
+  // for the reader. Found by screenshotting the real browser output: the
+  // whole provenance line was missing while every unit test passed, because
+  // jsdom performs no layout and the elements existed either way.
+  //
+  // Declaring the rows above the footer explicitly at the same 4rem, then
+  // `auto` for the footer's own, leaves tile sizing byte-identical while
+  // letting just this one row grow. Tiles cannot be affected: they sit in the
+  // `repeat()` part at the size they already had.
+  container.style.gridTemplateRows = `repeat(${row - 1}, ${GRID_ROW_SIZE}) auto`;
+  container.appendChild(footer);
 }
 
 /**
@@ -411,6 +485,8 @@ function buildFullyFromScratch(container: HTMLElement, model: RenderModel): Map<
     container.appendChild(buildMessageTile("配置されたチャートがありません", "info"));
   }
 
+  appendFooter(container, model);
+
   // `echarts.init` above ran on a still-detached div (renderChartBody
   // builds tiles before this loop appends them), so ECharts measured 0×0
   // and rendered at its internal fallback size — the "Can't get DOM width
@@ -646,6 +722,7 @@ export function patch(container: HTMLElement, model: RenderModel): void {
   if (model.layout.items.length === 0) {
     container.appendChild(buildMessageTile("配置されたチャートがありません", "info"));
   }
+  appendFooter(container, model);
   resizeInstances(toResize);
   observeResize(container);
 

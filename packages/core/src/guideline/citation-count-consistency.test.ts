@@ -31,6 +31,7 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { BaseMeta, Chart } from "@hyakkei/schema";
 import { describe, expect, it } from "vitest";
 import rawGuidelineRules from "./guideline-rules.json" with { type: "json" };
 import { validateGuidelineRules } from "./rules.js";
@@ -64,21 +65,59 @@ const citedInCoverageTable = (id: string) =>
   new RegExp(`\\| \\d+ \\|[^\\n]*\`${id}\``).test(read(COVERAGE));
 
 /**
+ * The four fields ADR-0017 Decision 7 scopes as v1.0's schema work, each named
+ * by the schema object it belongs on. `schemaFieldsOwed` counts the ones that
+ * do not exist yet.
+ *
+ * Typed as plain `object`, not typebox's `TSchema`: `@hyakkei/schema` is the
+ * only package that declares typebox, and pnpm keeps it out of
+ * `@hyakkei/core`'s resolution, so importing the type here fails `tsc` while
+ * leaving `vitest` green — a type-only import erases before any test runs.
+ * Nothing below reads a typebox-specific property, so the two `in` narrowings
+ * give up no checking that `TSchema` was providing.
+ */
+const DO_SIDE_FIELDS: ReadonlyArray<{ schema: object; key: string }> = [
+  { schema: BaseMeta, key: "updatedAt" },
+  { schema: BaseMeta, key: "sourceNote" },
+  { schema: BaseMeta, key: "summary" },
+  { schema: Chart, key: "altText" },
+];
+
+/**
+ * `Chart` is a `Type.Intersect`, so its own `properties` is undefined and the
+ * object arm sits in `allOf` — reading `.properties` alone would report every
+ * `Chart` field as missing and quietly inflate the count.
+ */
+const hasSchemaField = ({ schema, key }: { schema: object; key: string }): boolean => {
+  const arms: readonly object[] = "allOf" in schema ? (schema.allOf as object[]) : [schema];
+  // `Object.hasOwn`, not `in`: `in` walks the prototype chain, so a future
+  // entry named `constructor` or `toString` would report as present on any
+  // schema and silently drop out of the owed count.
+  return arms.some((arm) => "properties" in arm && Object.hasOwn(arm.properties as object, key));
+};
+
+/**
  * The expected answer to each question, held once.
  *
- * Four of the six are hand-written copies of what `docs/guidebook-coverage.md`
+ * Three of the six are hand-written copies of what `docs/guidebook-coverage.md`
  * states, and that is deliberate: they are facts about the *guidebook*, so
  * deriving them from one of the documents would make the test agree with
  * whatever those documents say, including when they are wrong together — which
  * is the one case it exists to catch.
  *
- * The other two are facts about the *code*, so they are derived from it. ADR-0017
+ * The other three are facts about the *code*, so they are derived from it. ADR-0017
  * says the point of this inventory is to replace "have we covered the guidebook?"
  * (unanswerable by a test) with "does the inventory match the code?" — and for
- * these two, only derivation answers that question. Hand-typing them would let a
+ * these, only derivation answers that question. Hand-typing them would let a
  * fifth `status:"active"` rule ship while every count here stayed green.
  *
- * A function, not a const: the derived pair calls `validateGuidelineRules`, which
+ * `schemaFieldsOwed` joined the derived group in issue #124, for exactly that
+ * reason: it had been a hand-typed "4", and the PR that made it 1 is the PR
+ * that adds the fields — so editing the string and the documents together
+ * would have turned all seventeen mirrors green whether or not a single field
+ * reached the schema.
+ *
+ * A function, not a const: the derived values call `validateGuidelineRules`, which
  * throws on a malformed rules file. Evaluated at module scope, that throw lands
  * during collection and vitest reports "no tests" — a result that names neither
  * the file nor the reason. Inside a test body it fails as a test, with the
@@ -92,7 +131,7 @@ const canonical = () =>
     namedRules: String(shippedRules().filter((r) => citedInCoverageTable(r.id)).length),
     runtimePredicates: String(shippedRules().filter((r) => r.status === "active").length),
     guaranteed: "9",
-    schemaFieldsOwed: "4",
+    schemaFieldsOwed: String(DO_SIDE_FIELDS.filter((f) => !hasSchemaField(f)).length),
     knownDefects: "0",
   }) as const;
 
@@ -239,5 +278,25 @@ describe("guideline-rules.json and the coverage inventory agree on which rules e
       // official one has 「の実践」 in the middle -- so a plain match suffices.
       expect(read(file), file).not.toMatch(/ダッシュボードデザインガイドブック/);
     }
+  });
+});
+
+describe("the schema-derived count is exercised by a case that can fail", () => {
+  /**
+   * `schemaFieldsOwed` is derived from the schemas, but the four entries it
+   * derives from cannot tell a working `hasSchemaField` from one that never
+   * descends into `allOf`. `Chart.altText` is the only `Chart` entry and it is
+   * absent under both readings; all three `BaseMeta` entries are present under
+   * both. So the count stays 1 either way, and the derivation would ship with no
+   * case that distinguishes it -- the same vacuous-pass shape the mirrors above
+   * guard against, one level down.
+   *
+   * `id` fixes that: it sits on `Chart`'s object arm inside `allOf`, so a
+   * `.properties`-only read returns false for it. When issue #124 PR-2 adds
+   * `altText` to `Chart`, that entry starts discriminating on its own and this
+   * case becomes redundant -- delete it then.
+   */
+  it("hasSchemaField descends into Chart's intersect arms", () => {
+    expect(hasSchemaField({ schema: Chart, key: "id" })).toBe(true);
   });
 });

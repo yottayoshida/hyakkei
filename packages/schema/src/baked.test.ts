@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MAX_LAYOUT_Y } from "./common.js";
+import { BakedMeta } from "./baked.js";
+import { BaseMeta, MAX_LAYOUT_Y } from "./common.js";
 import { parseBakedDashboard, validateBakedDashboardReferences } from "./validate.js";
 
 // Samples B1/B2/B3 from .claude/plans/2026-07-04-hyakkei-v0.1-pr-issue6-shapes.md
@@ -420,5 +421,24 @@ describe("BakedDashboard — adversarial shapes rejected", () => {
     // A non-primitive value must still be rejected even under a pattern-breaking key —
     // if this were `true`, an object/array could ride through as a "row cell."
     expect(parseBakedDashboard(doc).ok).toBe(false);
+  });
+});
+
+// issue #124. `BakedMeta` spreads `BASE_META_FIELDS` rather than re-declaring
+// the shared fields, so "the two objects agree on the shared block" is true by
+// construction and needs no test. An earlier draft hand-copied all six fields
+// and guarded them with schema-equality and optionality assertions;
+// `/simplify` pointed at the record-sharing idiom already in `common.ts`, and
+// removing the duplication removed the need for its detector.
+//
+// What the spread does NOT decide is the set of keys unique to the baked side.
+// That stays pinned: a fourth baked-only field is a real design change — it
+// becomes something a viewer can be told that an author cannot state — and it
+// should not arrive as a side effect of an unrelated edit.
+describe("BakedMeta adds exactly the bake-time stamps", () => {
+  it("shares BaseMeta's fields and adds only the three stamps", () => {
+    const baseKeys = Object.keys(BaseMeta.properties);
+    const bakedKeys = Object.keys(BakedMeta.properties);
+    expect(bakedKeys).toEqual([...baseKeys, "generatedAt", "sourceDataAsOf", "hyakkeiVersion"]);
   });
 });

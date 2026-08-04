@@ -1,5 +1,6 @@
 import { Type, type Static } from "@sinclair/typebox";
 import {
+  BASE_META_FIELDS,
   ChartOptions,
   ChartVariant,
   ForbidFields,
@@ -21,17 +22,28 @@ import {
  * Prerelease/build metadata suffixes are not supported: hyakkei's own release
  * versions are plain `x.y.z` (rules/release-checklist.md).
  *
- * `BaseMeta`'s fields are inlined here rather than merged via
- * `Type.Composite([BaseMeta, ...])`: Composite rebuilds a fresh object schema
+ * `BaseMeta`'s fields arrive by spreading `BASE_META_FIELDS`, the raw property
+ * record `common.ts` builds `BaseMeta` from — NOT via
+ * `Type.Composite([BaseMeta, ...])`. Composite rebuilds a fresh object schema
  * from the two inputs' `properties` only, silently dropping other top-level
- * keywords like `propertyNames` — a `Composite`d meta would have re-opened
- * the AA-12 prototype-pollution guard that `SafeObject` exists to close
- * (caught by Codex R2 review).
+ * keywords like `propertyNames`; a `Composite`d meta would have re-opened the
+ * AA-12 prototype-pollution guard that `SafeObject` exists to close (caught by
+ * Codex R2 review). Spreading a plain record has no such problem — the
+ * `SafeObject` call here still applies the guard, exactly as `chartVariant`
+ * relies on for the seven chart encodings.
+ *
+ * Issue #124 took the shared block from three fields to six, and an earlier
+ * draft of that change hand-copied all six (including their `description`
+ * prose) into this file, then added drift-detection tests to notice when the
+ * two fell out of step. `/simplify` pointed at the record-sharing idiom
+ * already in `common.ts`: the two cannot drift if there is only one of them.
+ * What remains worth asserting is the set of keys unique to THIS object —
+ * see `baked.test.ts`, which pins it to exactly the three stamps below,
+ * because a fourth would be something a viewer can be told and an author
+ * cannot state.
  */
 export const BakedMeta = SafeObject({
-  title: NonEmptyString,
-  description: Type.Optional(Type.String()),
-  locale: Type.Optional(Type.String()),
+  ...BASE_META_FIELDS,
   generatedAt: Type.String({ format: "date-time" }),
   sourceDataAsOf: Type.String({ format: "date" }),
   hyakkeiVersion: Type.String({ pattern: "^\\d+\\.\\d+\\.\\d+$" }),

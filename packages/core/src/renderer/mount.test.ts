@@ -6,6 +6,7 @@ import type { Chart, Dashboard, LayoutItem } from "@hyakkei/schema";
 import * as echarts from "echarts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as accessibleTable from "./accessible-table.js";
+import { FOOTER_CLASS } from "./dom/dashboard-footer.js";
 import { mount, patch, unmount } from "./mount.js";
 import { normalizeAuthoring, normalizeBaked } from "./render-model.js";
 import type { RenderChart, RenderModel, Row } from "./render-model.js";
@@ -1239,5 +1240,223 @@ describe("patch()", () => {
     const tilesAfter = el.querySelectorAll(".hyakkei-tile");
     expect((tilesAfter[0] as HTMLElement).style.gridColumn).toBe("1 / span 6");
     expect((tilesAfter[1] as HTMLElement).style.gridColumn).toBe("7 / span 6");
+  });
+});
+
+// issue #124: the dashboard-level provenance footer. jsdom does no layout, so
+// the grid row is only observable as the inline style string -- which is
+// exactly why these assertions matter: the pixel baselines would happily
+// re-record an overlapping footer as the expected picture.
+describe("dashboard footer placement", () => {
+  const FOOTER = `.${FOOTER_CLASS}`;
+
+  function container(): HTMLElement {
+    return document.createElement("div");
+  }
+
+  function item(id: string, y: number, h: number): LayoutItem {
+    return { chart: id, x: 0, y, w: 6, h };
+  }
+
+  // A `table` chart, so these tests exercise placement without paying for an
+  // ECharts instance per case.
+  function tableChart(id: string): RenderChart {
+    const chart: Chart = {
+      id,
+      type: "table",
+      encoding: { columns: ["cat"] },
+      options: {},
+    };
+    return { id, chart, rows: [{ cat: "A" }], state: "ok" };
+  }
+
+  function footerModel(items: LayoutItem[]): RenderModel {
+    // Every layout item gets a real chart: a dangling reference would render
+    // an error tile and quietly change what the class-count assertions below
+    // are measuring.
+    const ids = [...new Set(items.map((i) => i.chart))];
+    return {
+      charts: ids.map(tableChart),
+      layout: { grid: "guidebook-12col", items },
+      theme: buildEChartsTheme("guidebook-blue", "light"),
+      footer: {
+        provenance: [{ kind: "recorded", label: "データ時点", value: "2026-07-10" }],
+      },
+    };
+  }
+
+  // Hand-written expectations, never `max(y + h) + 1` recomputed here: a test
+  // that re-derives the formula agrees with an off-by-one implementation.
+  it.each([
+    ["no items — the empty-layout message occupies row 1", [] as LayoutItem[], "2"],
+    ["a single row-1 tile", [item("a", 0, 1)], "2"],
+    ["two tiles, the taller one first", [item("a", 0, 4), item("b", 2, 3)], "6"],
+    ["a gap between tiles", [item("a", 0, 2), item("b", 5, 1)], "7"],
+    ["fully overlapping tiles", [item("a", 0, 4), item("b", 0, 4)], "5"],
+    ["items out of visual order", [item("a", 9, 1), item("b", 0, 4)], "11"],
+  ])("V-101 / V-115: %s", (_name, items, expected) => {
+    const el = container();
+    mount(el, footerModel(items));
+    const footer = el.querySelector(FOOTER) as HTMLElement;
+    expect(footer.style.gridRow).toBe(expected);
+    expect(footer.style.gridColumn).toBe("1 / -1");
+  });
+
+  it("V-101b: sits below the last tile rather than on it", () => {
+    // The off-by-one this exists for, stated as a relation instead of a
+    // number so it stays true if the fixture changes.
+    const el = container();
+    mount(el, footerModel([item("a", 0, 4)]));
+    const tile = el.querySelector(".hyakkei-tile") as HTMLElement;
+    // Both numbers parsed out of the same style string, so this stays true if
+    // the fixture's height changes — which the comment above claimed while an
+    // earlier version hardcoded the fixture's `h` of 4 (found in review: it
+    // failed on an unchanged, still-correct implementation once the fixture
+    // moved to h=2).
+    const [start, span] = tile.style.gridRow.split(" / span ").map(Number);
+    const lastTileRow = start! + span! - 1;
+    expect(Number((el.querySelector(FOOTER) as HTMLElement).style.gridRow)).toBeGreaterThan(
+      lastTileRow,
+    );
+  });
+
+  it("V-114: passes a schema-maximal layout straight through, unclamped", () => {
+    // Clamping was considered and rejected: `tileStyle` already hands these
+    // numbers to `gridRow`, so a cap here removes no implicit tracks while
+    // introducing an overlap at the cap row.
+    const el = container();
+    mount(el, footerModel([item("a", 100_000, 10_000)]));
+    expect((el.querySelector(FOOTER) as HTMLElement).style.gridRow).toBe("110001");
+  });
+
+  it("V-113: keeps the empty-layout message above the footer, in reading order", () => {
+    const el = container();
+    mount(el, footerModel([]));
+    const kids = [...el.children];
+    expect(kids[0]!.className).toBe("hyakkei-info-tile");
+    expect(kids[1]!.className).toBe(FOOTER_CLASS);
+  });
+
+  it("V-102: appears on all three DOM-construction paths", () => {
+    // patch() has three exits -- first call on a container, duplicate chart
+    // id, and the differential path -- and only the third runs its own
+    // replaceChildren. Two of them delegate to buildFullyFromScratch.
+    const first = container();
+    patch(first, footerModel([item("a", 0, 1)]));
+    expect(first.querySelectorAll(FOOTER)).toHaveLength(1);
+
+    const dup = container();
+    patch(dup, footerModel([item("a", 0, 1), item("a", 0, 1)]));
+    expect(dup.querySelectorAll(FOOTER)).toHaveLength(1);
+
+    const differential = container();
+    patch(differential, footerModel([item("a", 0, 1)]));
+    patch(differential, footerModel([item("a", 0, 2)]));
+    expect(differential.querySelectorAll(FOOTER)).toHaveLength(1);
+  });
+
+  it("V-103: does not accumulate across repeated patches, and follows the layout", () => {
+    const el = container();
+    for (let i = 1; i <= 5; i++) patch(el, footerModel([item("a", 0, i)]));
+    expect(el.querySelectorAll(FOOTER)).toHaveLength(1);
+    // Rebuilt rather than diffed, so it tracks the current layout instead of
+    // keeping the first render's row.
+    expect((el.querySelector(FOOTER) as HTMLElement).style.gridRow).toBe("6");
+  });
+
+  it("V-112: does not disturb any of the counts the rest of the suite asserts on", () => {
+    // Stated as a with/without comparison rather than fixed numbers: four
+    // test files and two e2e specs count `.hyakkei-tile` and
+    // `.hyakkei-accessible-fallback`, and the failure this guards against is
+    // the footer joining one of those selectors — which fixed numbers would
+    // only catch if they happened to be written for this exact fixture.
+    const items = [item("a", 0, 1), item("b", 1, 1)];
+    const withFooter = container();
+    mount(withFooter, footerModel(items));
+    const without = container();
+    mount(without, { ...footerModel(items), footer: undefined });
+
+    for (const selector of [
+      ".hyakkei-tile",
+      ".hyakkei-error-tile",
+      ".hyakkei-accessible-fallback",
+    ]) {
+      expect(withFooter.querySelectorAll(selector).length, selector).toBe(
+        without.querySelectorAll(selector).length,
+      );
+    }
+    // Control: the two containers genuinely differ, so the equality above is
+    // about the footer being excluded rather than about it being absent.
+    expect(withFooter.querySelectorAll(FOOTER)).toHaveLength(1);
+    expect(without.querySelectorAll(FOOTER)).toHaveLength(0);
+  });
+
+  it("V-104: renders nothing at all when the model carries no footer", () => {
+    const el = container();
+    mount(el, { ...footerModel([item("a", 0, 1)]), footer: undefined });
+    expect(el.querySelector(FOOTER)).toBeNull();
+  });
+
+  // The row-template work was added in review, after the real browser showed
+  // the whole provenance line clipped out of view: `gridAutoRows: 4rem` pins
+  // every implicit row at exactly that, and an over-full row does not grow —
+  // the content spills outside the container's own height and is simply not
+  // there for the reader. jsdom performs no layout, so the assertions below
+  // read the inline style STRING, the same technique V-101 uses for the row
+  // number. Without them, deleting the line restores the clipping bug silently.
+  it("V-121: sizes the footer's row to its content while leaving tile rows fixed", () => {
+    const el = container();
+    mount(el, footerModel([item("a", 0, 4)]));
+    // Hand-written, not recomputed from GRID_ROW_SIZE + footerRow: a test that
+    // rebuilds the string agrees with whatever the implementation produces.
+    expect(el.style.gridTemplateRows).toBe("repeat(4, 4rem) auto");
+  });
+
+  it("V-122: clears the row template when a later patch removes the footer", () => {
+    // `replaceChildren` discards children but leaves inline styles behind, so
+    // a container that showed a footer once would keep a template sized for a
+    // row that no longer exists.
+    const el = container();
+    patch(el, footerModel([item("a", 0, 4)]));
+    expect(el.style.gridTemplateRows).toBe("repeat(4, 4rem) auto");
+    patch(el, { ...footerModel([item("a", 0, 4)]), footer: undefined });
+    expect(el.style.gridTemplateRows).toBe("");
+  });
+
+  it("V-118 / V-123: a long summary changes the footer's own row only, never the tiles'", () => {
+    // The success criterion this PR set for itself, as a with/without
+    // comparison: tile geometry must be identical whether the footer holds one
+    // line or two thousand characters.
+    const items = [item("a", 0, 2), item("b", 2, 2)];
+    const short = container();
+    mount(short, { ...footerModel(items), footer: { summary: "短い", provenance: [] } });
+    const long = container();
+    mount(long, {
+      ...footerModel(items),
+      footer: { summary: "あ".repeat(2000), provenance: [] },
+    });
+
+    const tileRows = (el: HTMLElement) =>
+      [...el.querySelectorAll(".hyakkei-tile")].map((t) => (t as HTMLElement).style.gridRow);
+    expect(tileRows(long)).toEqual(tileRows(short));
+    expect(long.style.gridTemplateRows).toBe(short.style.gridTemplateRows);
+  });
+
+  it("V-120 / V-124: gives the footer row content sizing, never a fixed height", () => {
+    // The clipping this replaced came from the CONTAINER (`gridAutoRows: 4rem`
+    // pins every implicit row), not from anything on the footer element — an
+    // earlier version of this test asserted `footer.style.overflow === ""` on
+    // an element whose builder never sets `overflow`, so it could not fail.
+    // The property that actually holds the fix is the row track being `auto`.
+    const el = container();
+    mount(el, footerModel([item("a", 0, 1), item("b", 1, 1)]));
+    expect(el.style.gridTemplateRows.endsWith(" auto")).toBe(true);
+    expect(el.style.gridTemplateRows).not.toContain("auto auto");
+  });
+
+  it("V-125: is the last child, after every tile", () => {
+    const el = container();
+    mount(el, footerModel([item("a", 0, 1), item("b", 1, 1)]));
+    expect(el.lastElementChild!.className).toBe(FOOTER_CLASS);
   });
 });
