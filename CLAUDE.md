@@ -12,3 +12,15 @@ pnpm run format        # prettier --check .（違反があれば `pnpm run forma
 ```
 
 `pnpm run typecheck`/`vitest run` だけでは検出できない。
+
+**ゲートをパイプに通さない。** `pnpm run format | tail` は `tail` の exit code を返すので、
+落ちたゲートが緑に見え、`&&` チェーンもそのまま先へ進む（PR #132 で format、2026-08-04 に
+PR #137 で typecheck——2回目）。exit code は自分で受け取る:
+
+```bash
+pnpm run typecheck; echo "typecheck exit=$?"
+```
+
+出力を絞りたいならファイルへ落としてから読む。`| tail` を挟んだ時点で、そのコマンドは検査ではない。
+
+削除条件: pre-push hook 等でこの3つが機械的に走るようになり、手元での実行判断が消えたら。
