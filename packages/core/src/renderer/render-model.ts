@@ -11,6 +11,8 @@ import type {
 } from "@hyakkei/schema";
 import type { EChartsThemeObject } from "../theme/echarts-theme.js";
 import { buildEChartsTheme } from "../theme/echarts-theme.js";
+import type { FooterModel } from "./dom/dashboard-footer.js";
+import { authoringProvenance, bakedProvenance } from "./dom/dashboard-footer.js";
 
 /**
  * One source of truth for "what a baked row's cell may hold," derived from
@@ -50,10 +52,37 @@ export type RenderChart = {
   state: ChartState;
 };
 
+/**
+ * `footer` is optional so the many test fixtures that build a `RenderModel`
+ * as a bare `{charts, layout, theme}` literal keep compiling.
+ *
+ * It carries an already-split `FooterModel`, not the raw `meta`, and that is
+ * the load-bearing part of issue #124's design. Passing `meta: BaseMeta |
+ * BakedMeta` instead would look tidier and be wrong twice over:
+ *
+ * 1. On the authoring side those three baked keys are not schema-typed at
+ *    all. `BaseMeta` is a `SafeObject` with `additionalProperties` open, so a
+ *    hand-written document may carry `generatedAt: null` (or a number, or an
+ *    object) and still parse — verified against the generated validator.
+ * 2. TypeScript would then hand out a guarantee it cannot keep: narrowing a
+ *    `BaseMeta | BakedMeta` union with `"generatedAt" in meta` yields
+ *    `string`, which is a lie for exactly the values in (1). The footer is
+ *    appended outside any per-tile `try`, so the resulting `TypeError` would
+ *    take down the whole dashboard — while every other failure in this
+ *    renderer is contained to one tile (`renderTileSafely`).
+ *
+ * Splitting in `normalizeBaked`/`normalizeAuthoring` moves the question to
+ * where the input type already answers it: `normalizeBaked` receives a
+ * `BakedDashboard` whose three stamps are `required`, and
+ * `normalizeAuthoring` receives a `BaseMeta` that has no such fields to read
+ * — so "an authoring document cannot show bake-recorded provenance" is a
+ * compile error rather than a rule someone has to remember.
+ */
 export type RenderModel = {
   charts: RenderChart[];
   layout: Layout;
   theme: EChartsThemeObject;
+  footer?: FooterModel;
 };
 
 function chartState(rows: Row[] | undefined, hasQuery: boolean): ChartState {
@@ -105,6 +134,10 @@ export function normalizeAuthoring(
     charts,
     layout: doc.layout,
     theme: buildEChartsTheme(doc.theme.palette, doc.theme.appearance ?? "light"),
+    // Only what the author declared. `doc.meta` is a `BaseMeta`, so there is
+    // no `generatedAt` here to read even when the underlying JSON carries one
+    // as an additive unknown — the type is the guard (see `RenderModel`).
+    footer: { summary: doc.meta.summary, provenance: authoringProvenance(doc.meta) },
   };
 }
 
@@ -120,5 +153,10 @@ export function normalizeBaked(baked: BakedDashboard): RenderModel {
     charts,
     layout: baked.layout,
     theme: buildEChartsTheme(baked.theme.palette, baked.theme.appearance ?? "light"),
+    // Unconditional, with no "does this document have provenance?" test: the
+    // three stamps are `required` on `BakedMeta`, so every baked artifact has
+    // them and "a baked dashboard that shows no provenance" stops being a
+    // representable state rather than one we remember to avoid.
+    footer: { summary: baked.meta.summary, provenance: bakedProvenance(baked.meta) },
   };
 }

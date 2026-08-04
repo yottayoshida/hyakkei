@@ -12,15 +12,22 @@
 // invisible characters in a `/regex/` source literal -- those characters
 // are indistinguishable from each other and from nothing at all in an
 // editor or a diff, exactly the property this function exists to strip.
-// The full Unicode `Bidi_Control=Yes` set (Codex Round 1 P1: the original
-// range covered U+200E/F, U+202A-E, U+2066-9 but omitted U+061C ARABIC
-// LETTER MARK, the same character class's odd one out). U+2060-U+2064
-// (WORD JOINER etc.) are format characters, not bidi controls, and are
-// deliberately NOT included here -- they cannot reorder displayed text the
-// way an extension-spoofing attack needs.
+// `\p{Bidi_Control}` rather than the code points spelled out. This list was
+// written by hand and shipped missing U+061C ARABIC LETTER MARK until Codex
+// Round 1 caught it -- the property is the same twelve code points (verified
+// by walking all of Unicode: zero difference against the previous escapes)
+// with no opportunity to omit one, and it tracks future additions to the
+// class on its own. `renderer/dom/display-text.ts` reached the same form
+// independently for the dashboard footer; this is the older copy catching up.
+//
+// U+2060-U+2064 (WORD JOINER etc.) are format characters, not bidi controls,
+// and remain excluded here -- they cannot reorder displayed text the way an
+// extension-spoofing attack needs. (`display-text.ts` DOES strip them,
+// because its question is "does this value render as nothing", not "can it
+// reorder"; the two policies genuinely differ and are not shared.)
 const UNSAFE_CHARS = new RegExp(
   // eslint-disable-next-line no-control-regex -- the \x00-\x1f range is the point of this pattern, not an accident
-  '[\\\\/:*?"<>|\\x00-\\x1f\\u061c\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]',
+  '[\\\\/:*?"<>|\\x00-\\x1f\\p{Bidi_Control}]',
   "gu",
 );
 

@@ -166,3 +166,40 @@ describe("bake()", () => {
     expect(baked.charts[0]?.rows).toEqual([{ category: "A", total: 120 }]);
   });
 });
+
+// issue #124. The footer labels `generatedAt`/`sourceDataAsOf`/`hyakkeiVersion`
+// as *recorded* and the author's own fields as *declared*, and the entire
+// weight of that distinction rests on one spread in `bake()`. Until now it
+// rested on a doc comment: flipping the merge order so the document wins
+// passed all 660 tests, because the fixture's meta shares no keys with the
+// bake meta and carries none of the new fields.
+describe("bake() meta merge (issue #124: what makes `recorded` mean anything)", () => {
+  it("overrides a document that hand-writes the bake-only stamps", () => {
+    // `BaseMeta` is additive-open, so a hand-written dashboard.json may carry
+    // these keys with any value at all. They must not survive the bake.
+    const forging = {
+      ...doc,
+      meta: {
+        ...doc.meta,
+        generatedAt: "1999-01-01T00:00:00Z",
+        sourceDataAsOf: "1999-01-01",
+        hyakkeiVersion: "9.9.9",
+      },
+    } as Dashboard;
+    expect(bake(forging, resolvedRows, meta).meta).toMatchObject(meta);
+  });
+
+  it("V-108: carries the author's guidebook fields through untouched", () => {
+    // The other half: the three the author DOES own must survive, or the
+    // footer's `declared` half is empty for every artifact.
+    const withDoSide = {
+      ...doc,
+      meta: { ...doc.meta, updatedAt: "2026-06-30", sourceNote: "統計局", summary: "要約" },
+    };
+    expect(bake(withDoSide, resolvedRows, meta).meta).toMatchObject({
+      updatedAt: "2026-06-30",
+      sourceNote: "統計局",
+      summary: "要約",
+    });
+  });
+});

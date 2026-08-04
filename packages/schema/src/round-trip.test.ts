@@ -85,13 +85,17 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
     );
   });
 
-  it("an arbitrary unknown field nested in meta is preserved after a successful parse", () => {
+  it("V-110: an arbitrary unknown field nested in meta is preserved after a successful parse", () => {
     fc.assert(
       // Excludes every schema-typed meta key, not just the ones the fixture
       // sets: a generated "description" with a non-string value would make a
-      // CORRECT implementation fail this property (issue #72).
+      // CORRECT implementation fail this property (issue #72). The last three
+      // are issue #124's additions — `updatedAt` in particular is
+      // `format: "date"`, so a generated integer there rejects the document.
       fc.property(
-        unknownKey(new Set(["title", "description", "locale"])),
+        unknownKey(
+          new Set(["title", "description", "locale", "updatedAt", "sourceNote", "summary"]),
+        ),
         unknownValue,
         (key, value) => {
           const doc = { ...baseDashboard(), meta: { title: "x", locale: "ja", [key]: value } };
@@ -420,16 +424,20 @@ describe("round-trip: unknown fields survive validation (additive-only, S4/B4)",
     );
   });
 
-  it("BakedDashboard: an arbitrary unknown field nested in meta is preserved after a successful parse", () => {
+  it("V-110b: BakedDashboard: an arbitrary unknown field nested in meta is preserved after a successful parse", () => {
     fc.assert(
       fc.property(
         // "description"/"locale" are schema-typed optional BaseMeta keys
-        // (issue #72) — see the authoring-meta property above.
+        // (issue #72) — see the authoring-meta property above. "updatedAt"/
+        // "sourceNote"/"summary" are issue #124's, mirrored onto BakedMeta.
         unknownKey(
           new Set([
             "title",
             "description",
             "locale",
+            "updatedAt",
+            "sourceNote",
+            "summary",
             "generatedAt",
             "sourceDataAsOf",
             "hyakkeiVersion",

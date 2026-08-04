@@ -229,19 +229,72 @@ export const Layout = SafeObject({
 export type Layout = Static<typeof Layout>;
 
 /**
- * No `maxLength`/pattern on `title`/`description`/`locale` (deliberate, not
- * an oversight — QA flagged this as worth stating explicitly, unlike the
- * other security-relevant fields in this file): unlike `ChartOptions`/
+ * No `maxLength`/pattern on the free-text fields (deliberate, not an
+ * oversight — QA flagged this as worth stating explicitly, unlike the other
+ * security-relevant fields in this file): unlike `ChartOptions`/
  * `theme.tokens`, plain display text is not an injection surface here — it's
  * rendered as text, sanitized at render time, and any pre-parse size cap
  * belongs at the byte-count level (M0 finding), not as a per-field character
  * limit that would need re-tuning per field.
+ *
+ * `updatedAt`/`sourceNote`/`summary` are the guidebook's Do-side additions
+ * (issue #124, ADR-0019). They are additive optionals: a pre-#124 document
+ * omitting all three stays valid, and `"version": 1` is unchanged.
+ *
+ * `updatedAt` is `format: "date"`, the same acceptance set as
+ * `BakedMeta.sourceDataAsOf`, because the guidebook (p41 メタ情報を記載する)
+ * lists 「データの更新日」 and 「いつ時点の数値なのか」 as two separate items
+ * and a footer showing both wants one comparable spelling. They mean
+ * different things and must not be merged: `updatedAt` is the AUTHOR's claim
+ * about when the upstream dataset last changed; `sourceDataAsOf` is what
+ * `bake()` RECORDED about the rows frozen into this artifact. A dataset
+ * updated 2026-06-30 and baked 2026-08-02 legitimately disagrees.
+ * `date-time` was rejected: an author who only knows the day would have to
+ * invent `T00:00:00Z`. Widening to `date | date-time` later is additive.
  */
-export const BaseMeta = SafeObject({
+/**
+ * Exported as a raw property record, not only as the built object, so
+ * `BakedMeta` can spread it instead of hand-copying six field definitions.
+ *
+ * This is the same shape `chartVariant` uses below, and for the same stated
+ * reason: taking raw properties makes the `SafeObject` wrap unconditional at
+ * every call site. It is NOT `Type.Composite`, which `baked.ts` rules out
+ * because it rebuilds an object from `properties` alone and silently drops the
+ * `propertyNames` prototype-pollution guard — that objection is about
+ * composing two already-built objects, and does not apply to sharing the
+ * record they are built from.
+ */
+export const BASE_META_FIELDS = {
   title: NonEmptyString,
   description: Type.Optional(Type.String()),
   locale: Type.Optional(Type.String()),
-});
+  updatedAt: Type.Optional(
+    Type.String({
+      format: "date",
+      description:
+        "The author's statement of when the upstream data was last updated. Distinct from a baked artifact's `sourceDataAsOf`, which records when the frozen rows were current.",
+    }),
+  ),
+  sourceNote: Type.Optional(
+    Type.String({
+      description:
+        "Where the data came from, plus any caveats or disclaimers. Free text, per dashboard.",
+    }),
+  ),
+  // issue #61 precedent: these use the JSON Schema `description` keyword, not
+  // a `//` comment, because TypeBox does not propagate source comments into
+  // the emitted schema -- an MCP/LLM consumer reading only the published
+  // schema is the primary author of these fields (ADR-0017 Decision 1) and
+  // would otherwise never see how `summary` differs from `description`.
+  summary: Type.Optional(
+    Type.String({
+      description:
+        "A prose-and-numbers summary of the dashboard's main figures and trends, for a reader who wants the gist instead of reading every chart. Longer and more substantive than `description`, which is a one-line label.",
+    }),
+  ),
+};
+
+export const BaseMeta = SafeObject(BASE_META_FIELDS);
 export type BaseMeta = Static<typeof BaseMeta>;
 
 /**

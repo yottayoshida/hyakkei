@@ -190,3 +190,142 @@ describe.each(GOLDEN_SAMPLES)("golden sample '$id' round-trip", (sample) => {
     }
   });
 });
+
+// issue #124: the samples now carry the guidebook's Do-side meta fields, and
+// they are the reference every MCP/agent caller copies (this directory's own
+// framing). A summary that merely restates `description` would satisfy the
+// schema, satisfy the footer, and teach the wrong thing -- p56 asks for
+// 主要な指標や傾向を文章と数値で, which means actual figures from this
+// dashboard's own data.
+describe("golden samples carry substantive guidebook meta (issue #124)", () => {
+  it.each(GOLDEN_SAMPLES)(
+    "V-117: $id states an updated date, a source note and a summary",
+    (sample) => {
+      const { meta } = sample.doc;
+      expect(meta.updatedAt, "updatedAt").toBeDefined();
+      expect(meta.sourceNote, "sourceNote").toBeDefined();
+      expect(meta.summary, "summary").toBeDefined();
+    },
+  );
+
+  it.each(GOLDEN_SAMPLES)("$id's summary is not a restatement of description", (sample) => {
+    const { summary, description } = sample.doc.meta;
+    expect(summary).not.toBe(description);
+    // A length floor rather than a similarity metric: the failure being
+    // guarded against is a one-line paraphrase, and `description` is already
+    // that line. Not a "count of characters is quality" claim -- just enough
+    // to make the paraphrase shape fail.
+    expect(summary!.length).toBeGreaterThan(description!.length);
+  });
+
+  it.each(GOLDEN_SAMPLES)("$id's summary quotes figures that exist in its own rows", (sample) => {
+    // The substance check. Every number in the summary must appear in the
+    // sample's resolved rows, so a plausible-sounding summary invented
+    // without reading the data fails here rather than shipping as the
+    // reference other people copy.
+    const rowNumbers = new Set<string>();
+    for (const rows of Object.values(sample.rowsByQuery)) {
+      for (const row of rows) {
+        for (const value of Object.values(row)) {
+          if (typeof value === "number") rowNumbers.add(String(value));
+        }
+      }
+    }
+    // Calendar references are dropped before extracting figures: a month
+    // appears in the rows as part of a string ("令和8年4月"), not as a number,
+    // so "4月" would otherwise read as an uncited figure.
+    const quoted =
+      (sample.doc.meta.summary ?? "")
+        .replace(/,/g, "")
+        .replace(/(令和|平成)?\d+\s*(年度|年|月|日)/g, "")
+        .match(/\d+(?:\.\d+)?/g) ?? [];
+    expect(quoted.length, "summary quotes no figures at all").toBeGreaterThan(2);
+    for (const n of quoted) {
+      expect(rowNumbers, `summary cites ${n}, which is in no row of ${sample.id}`).toContain(n);
+    }
+  });
+
+  it.each(GOLDEN_SAMPLES)("$id's meta values do not repeat their own footer label", (sample) => {
+    // The footer renders 「出典: {sourceNote}」, so a note that opens with 出典:
+    // shows as 「出典: 出典: …」. Caught by looking at the rendered page, not by
+    // any assertion — the tests read each field on its own, where the value is
+    // correct in isolation. Pinned here because the next person writing a
+    // sample has the same instinct to make the field self-describing.
+    const { sourceNote, updatedAt, summary } = sample.doc.meta;
+    for (const [field, value] of Object.entries({ sourceNote, updatedAt, summary })) {
+      if (value === undefined) continue;
+      for (const label of ["出典", "更新日", "データ時点", "作成", "作成ツール"]) {
+        expect(value.startsWith(`${label}:`), `${field} starts with the "${label}" label`).toBe(
+          false,
+        );
+        expect(value.startsWith(`${label}：`), `${field} starts with the "${label}" label`).toBe(
+          false,
+        );
+      }
+    }
+  });
+
+  it.each(GOLDEN_SAMPLES)(
+    "$id's declared update date precedes the bake that froze it",
+    (sample) => {
+      // The footer draws 更新日 (the author's claim about the upstream data) next
+      // to データ時点 and 作成 (what bake() recorded). ADR-0019 keeps them as
+      // separate fields precisely because they mean different things — which
+      // makes an ordering they cannot have the sharpest way to teach the wrong
+      // thing. Data updated after the artifact was generated is not a late
+      // number, it is an impossible one.
+      //
+      // Caught in review: all three samples shipped an `updatedAt` months AFTER
+      // `GOLDEN_BAKE_META.generatedAt`, and every other assertion here passed.
+      const { updatedAt } = sample.doc.meta;
+      if (updatedAt === undefined) return;
+      expect(updatedAt <= GOLDEN_BAKE_META.sourceDataAsOf, `${updatedAt} vs sourceDataAsOf`).toBe(
+        true,
+      );
+      expect(
+        updatedAt <= GOLDEN_BAKE_META.generatedAt.slice(0, 10),
+        `${updatedAt} vs generatedAt`,
+      ).toBe(true);
+    },
+  );
+
+  it.each(GOLDEN_SAMPLES)("$id's summary does not call a non-maximum the maximum", (sample) => {
+    // A numeral-membership check cannot see this class: every figure in the
+    // claim can be real while the claim about them is false. Caught in review
+    // — `regional` named the second-largest population as the largest and
+    // omitted the largest entirely, with all four figures present in the rows.
+    const summary = (sample.doc.meta.summary ?? "").replace(/,/g, "");
+    if (!/最大|最多|最も多い/.test(summary)) return;
+
+    // Whole numeric tokens, not substrings: `includes("10")` matches inside
+    // 「210,000」 and inside a date, which reports figures the summary never
+    // cited. (Seen on the first run of this test — it failed on `markerSize`
+    // 10 found inside the population figure 210000.)
+    const cited = new Set(summary.match(/\d+(?:\.\d+)?/g) ?? []);
+
+    for (const [queryId, rows] of Object.entries(sample.rowsByQuery)) {
+      const columns = new Set(rows.flatMap((row) => Object.keys(row)));
+      for (const column of columns) {
+        const values = rows
+          .map((row) => row[column])
+          .filter((v): v is number => typeof v === "number");
+        if (values.length < 2) continue;
+        const quoted = values.filter((v) => cited.has(String(v)));
+        if (quoted.length === 0) continue;
+        const max = Math.max(...values);
+        expect(
+          Math.max(...quoted),
+          `${sample.id}: the summary claims a maximum from ${queryId}.${column} but never mentions ${max}`,
+        ).toBe(max);
+      }
+    }
+  });
+
+  it.each(GOLDEN_SAMPLES)("$id's source note names the file it came from", (sample) => {
+    // Ties the citation to something checkable: the guidebook (p41) asks for
+    // データのソース, and the sample's own `sources[].ref` is the only source
+    // fact this repo actually holds.
+    const names = sample.doc.sources.map((s) => (s.kind === "file" ? s.ref.name : s.ref.url));
+    expect(names.some((name) => sample.doc.meta.sourceNote!.includes(name))).toBe(true);
+  });
+});

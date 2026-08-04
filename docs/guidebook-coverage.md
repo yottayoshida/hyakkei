@@ -6,7 +6,7 @@ What the Digital Agency dashboard guidebook asks for, and what hyakkei currently
 - **Machine-checkable principles found**: **22**
 - **Addressed by a named rule**: **3** — of which **1** has a runtime predicate
 - **Guaranteed in practice** (rule-enforced *or* impossible to violate): **9**
-- **Needs a new schema field before it can be satisfied at all**: **4**
+- **Needs a new schema field before it can be satisfied at all**: **1**
 - **Known defects** (implemented, and wrong): **0** — the one runtime rule fires on a threshold hyakkei chose, disclosed in its own citation; the guidebook states no numeric limit. Separately, `getGuidelineRules()` fails open, which [ADR-0016](./adr/0016-guideline-nudge-scope.md) records as a false-compliance risk on any path that reports "0 nudges" as a guarantee — that is a property of the engine, not of a guidebook principle, so it is not counted here and is not fixed by a zero in this row
 
 *These do not sum to 22 — some principles fall in two rows. See [Which number to quote](#which-number-to-quote) before citing any of them.*
@@ -18,6 +18,7 @@ What the Digital Agency dashboard guidebook asks for, and what hyakkei currently
 > | 2026-07-27 | (automated inventory, unreviewed) | PDF v02 | Initial pass |
 > | 2026-07-27 | role layer re-read from all 7 official reference images (#122) | color-palette page, 最終更新 2026-07-17 | Row 8 moved defect → by construction. Retrieval date is pinned in code as `GUIDEBOOK_ROLE_SOURCE` (`packages/core/src/theme/palette.ts`); these two dates are meant to be reconciled together |
 > | 2026-07-29 | citation pages read individually with `pdftotext -f N -l N`, each checked against the page's own printed footer (#123) | PDF v02, retrieved 2026-07-29 | p34 / p41 / p44 / p47 confirmed; the PDF's page index and its printed page number coincide. Two things worth carrying forward: p44 *opens* on a different Do/Don't item, so "p44" alone does not identify the 3D one; and the file served at that URL has `Last-Modified: 2026-07-17` while its filename, cover and download page all still say v02 / 2026-03-31 — **the same URL and the same version label have already served more than one byte stream**, so page numbers can move without the version changing. Re-verification is tracked separately |
+> | 2026-08-02 | p41 re-read and **p56 read for the first time**, same `pdftotext -f N -l N` method, URL taken from `guideline-rules.json` rather than retyped (#124) | PDF v02, retrieved 2026-08-02, `Last-Modified: Fri, 17 Jul 2026 07:48:20 GMT` — **unchanged since the 2026-07-29 row**, 22,955,744 bytes | p41 and p56 both confirmed; PDF page index equals printed footer, as on the pages above. p41 lists データの更新日 and いつ時点の数値なのか as **two separate items**, which is why `meta.updatedAt` and `BakedMeta.sourceDataAsOf` are separate fields rather than one. p56's three items map to rows #22 / #24 / #23 in that order. **Carry forward: p56's body text reads 「グラフやグラフに代替テキストを付与し」— the duplicated word is in the source**, presumably for 「グラフや表に」. Quote the heading 「代替テキストを付与する」, not the body: correcting the body would put the citation at odds with the document it cites |
 
 ## Why this file exists
 
@@ -42,6 +43,7 @@ That test applies to **the principle**, not to hyakkei's current implementation 
 | **active** | A runtime predicate exists and fires. Counted as covered. |
 | **by construction** | The schema cannot express a violation. Counted as covered — this is a *stronger* guarantee than a warning, not a weaker one ([ADR-0016](./adr/0016-guideline-nudge-scope.md), [ADR-0017](./adr/0017-v1-is-agent-generated-dashboards.md) Decision 7) |
 | **not expressible** | The schema has no field for the thing the guidebook requires, so hyakkei cannot satisfy it at all. Needs an additive schema change |
+| **supported** | The schema can express it, the renderer publishes it, and a test pins that it is drawn — but no rule requires an author to fill it in, and nothing checks whether what they wrote is true. Presence is satisfied; content is unverified. **Not counted toward "guaranteed in practice"** (that row is `active` + `by construction` only), so this status moves no headline figure |
 | **not covered** | Expressible and checkable, just not done yet |
 | **defect** | hyakkei implements this and gets it wrong. Tracked as a conformance issue |
 
@@ -77,8 +79,8 @@ That test applies to **the principle**, not to hyakkei's current implementation 
 
 | # | Principle | Source | Status | Notes |
 | --- | --- | --- | --- | --- |
-| 12 | Define the data — what it covers, what the numbers mean, when it was updated — reachably | p41 | **not expressible** | No schema field. Presence is trivially checkable once one exists |
-| 13 | State metadata: source, update date, as-of time, notes, disclaimers | p41 | **not expressible** | `BakedDashboard.meta` carries `generatedAt` / `sourceDataAsOf` / `hyakkeiVersion`, but **the renderer never draws them** — verified: zero references to those fields anywhere in non-test `packages/core/src/renderer/`, and no `meta` reference in `mount.ts` at all. The data is in the artifact and invisible to whoever opens it. Authoring-side `sourceNote` has no field at all |
+| 12 | Define the data — what it covers, what the numbers mean, when it was updated — reachably | p41 | **supported** | `meta.sourceNote` and `meta.updatedAt` ([#124](https://github.com/yottayoshida/hyakkei/issues/124)), drawn by the dashboard footer. The guidebook asks for the definition to be 参照できる rather than inline, which free text satisfies. Presence is checkable; whether the text is accurate is not |
+| 13 | State metadata: source, update date, as-of time, notes, disclaimers | p41 | **partly by construction** | The three the artifact records itself — `sourceDataAsOf` / `generatedAt` / `hyakkeiVersion` — are `required` on `BakedMeta` and the footer draws them without a conditional, so a baked artifact that shows no as-of date is not a representable state. The rest (source, notes, disclaimers) live in the optional `sourceNote`, so a document can still omit them: that half is `supported`, not guaranteed. Counted in neither column, like #16 and #22 |
 
 ### Chapter 4.5 — Do's & Don'ts (p42–47)
 
@@ -101,7 +103,7 @@ All ten carry Do/Don't illustrations in the guidebook.
 | --- | --- | --- | --- | --- |
 | 22 | Publish the data file (Excel / CSV / HTML table) | p56 | **partly covered** | Export produces the dashboard; a downloadable data file alongside it is not part of the output |
 | 23 | Give charts alternative text | p56 | **not expressible** | No `altText` field. The renderer does emit an accessible data-table fallback per chart, which is adjacent but not the same thing |
-| 24 | Publish a text summary of the dashboard (for public-facing dashboards) | p56 | **not expressible** | No schema field |
+| 24 | Publish a text summary of the dashboard (for public-facing dashboards) | p56 | **supported** | `meta.summary` ([#124](https://github.com/yottayoshida/hyakkei/issues/124)), drawn at the top of the dashboard footer. Distinct from `description`, which is a one-line label. The three gallery samples carry real ones, and `golden-samples.roundtrip.test.ts` rejects a summary that only paraphrases `description` or cites a figure absent from the sample's own rows. Placement is a compromise: p56 frames the summary as something to read *instead of* the charts, so the top of the page would serve that reader better — a header row means shifting every tile down one row (`gridStyle`/`tileStyle` plus the editor's overlay coordinates), which is out of scope here. Revisit when M3 gives the artifact an outer shell |
 
 *(Numbering runs to 24 because #11/#21 are the same principle and #21 is a cross-reference; the count of distinct machine-checkable principles is 22.)*
 
@@ -121,13 +123,14 @@ A full-text search of the guidebook finds no statement about ramp-position order
 | --- | --- | --- |
 | **active** | 2 | #6 (threshold is hyakkei's, disclosed), #9 |
 | **by construction** | 7 | #1, #7, #8, #11, #17 (partial), #18, #20 |
+| **supported** | 2 | #12, #24 — expressible, drawn, and pinned, but unrequired and unverified. Counted toward neither `guaranteed` nor `not covered` |
 | **not covered** | 7 | #3, #4, #5, #10, #14, #15, #19 |
-| **not expressible** | 5 | #2, #12, #13, #23, #24 |
+| **not expressible** | 2 | #2, #23 |
 | **defect** | 0 | — |
 
 Rows overlap on purpose, so they do not sum to 22:
 
-- **#16 and #22 are partial** (`partly by construction`, `partly covered`) and sit in neither column cleanly
+- **#13, #16 and #22 are partial** (`partly by construction`, `partly by construction`, `partly covered`) and sit in neither column cleanly. The bold marks which reading applies: `**partly by construction**` is its own status and is not counted, while `**by construction** (partial)` — #17 — is counted with a caveat attached
 
 The `defect` row stays at 0 rather than being deleted: the status is defined in the vocabulary above and will be needed again, and a row that disappears takes with it the record that two principles were once listed here (#1, on a misreading of the guidebook, and #6, for presenting hyakkei's threshold as the guidebook's). Both were resolved on 2026-07-29 by [#123](https://github.com/yottayoshida/hyakkei/issues/123) — see those rows.
 
@@ -153,14 +156,19 @@ Three of the nine are enforced outside the rule engine and so do not appear in t
 
 These fail differently from the doc-only rules. A doc-only rule means *the schema cannot express the violation* — a guarantee. These mean *the schema cannot express the requirement* — a gap. That distinction is why [ADR-0017](./adr/0017-v1-is-agent-generated-dashboards.md) Decision 7 extends the schema for these and not for the others.
 
-| Field | Serves | Shape |
-| --- | --- | --- |
-| `altText` | #23 | Per chart |
-| summary text | #24 | Per dashboard |
-| `updatedAt` | #13 | Authoring-side, distinct from `BakedDashboard.meta.sourceDataAsOf` |
-| `sourceNote` | #12, #13 | Per source or per dashboard |
+| Field | Serves | Shape | Status |
+| --- | --- | --- | --- |
+| `meta.summary` | #24 | Per dashboard | **Landed** 2026-08-02 |
+| `meta.updatedAt` | #12, #13 | Per dashboard, `format: "date"`, distinct from `BakedMeta.sourceDataAsOf` | **Landed** 2026-08-02 |
+| `meta.sourceNote` | #12, #13 | Per dashboard | **Landed** 2026-08-02 |
+| `Chart.altText` | #23 | Per chart | Owed |
 
 All four are **additive** — new optional fields, nothing previously valid becomes invalid — and keep `"version": 1`. Tracked as [#124](https://github.com/yottayoshida/hyakkei/issues/124).
+
+Two shapes were settled when the first three landed ([ADR-0019](./adr/0019-guidebook-do-side-fields-and-dashboard-chrome.md)), and both differ from what this table said beforehand:
+
+- **`sourceNote` is per dashboard, not per source.** `BakedDashboard` forbids `sources` outright (ADR-0005), so a per-source field is structurally unable to reach the artifact a third party opens — which is the only place the requirement has an audience.
+- **The count above is no longer hand-maintained.** `citation-count-consistency.test.ts` derives "needs a new schema field" by looking each of these four up in the schema itself, because the change that moves this number is the change that adds the fields: a hand-typed count and a matching document edit would have turned every mirror green without a single field existing.
 
 ### Two that were on this list and should not have been
 

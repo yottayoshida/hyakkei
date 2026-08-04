@@ -1130,3 +1130,104 @@ describe("dashboard.json — Query.builderState (issue 11c)", () => {
     expect(parseDashboard(doc).ok).toBe(true);
   });
 });
+
+// issue #124: the guidebook's Do-side fields (p41 メタ情報を記載する, p56
+// 要約したテキスト情報を用意する). Same five-part shape the two prior additive
+// fields shipped with (ADR-0011 `typeOverrides`, ADR-0012 `builderState`):
+// absent-legacy, empty-vs-absent, valid-value plus a "still unrestricted"
+// guard, a rejection matrix, and round-trip additivity one level down
+// (round-trip.test.ts).
+describe("dashboard.json — meta.updatedAt / sourceNote / summary (issue #124)", () => {
+  const withMeta = (meta: Record<string, unknown>) => ({ ...minimal, meta });
+
+  it("MD-1: absent (legacy shape) round-trips as absent -- every pre-#124 fixture in this file omits all three and must keep passing untouched", () => {
+    const result = parseDashboard(minimal);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.meta).not.toHaveProperty("updatedAt");
+      expect(result.value.meta).not.toHaveProperty("sourceNote");
+      expect(result.value.meta).not.toHaveProperty("summary");
+    }
+  });
+
+  it("MD-2: empty strings are accepted and round-trip as empty (distinct from absent)", () => {
+    // Schema-valid on purpose: `Type.String()` has no `minLength`, matching
+    // `description`/`locale`. Emptiness is a RENDER-time concern -- the footer
+    // runs `sanitizeDisplayText` and treats a blank result as absent, so a
+    // value that is only whitespace or only bidi controls draws nothing. That
+    // belongs at the render layer, not here: rejecting `""` in the schema
+    // would make a document unopenable over a cosmetic mistake.
+    const result = parseDashboard(withMeta({ title: "t", sourceNote: "", summary: "" }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.meta).toMatchObject({ sourceNote: "", summary: "" });
+  });
+
+  it("MD-3: valid values are accepted", () => {
+    const result = parseDashboard(
+      withMeta({
+        title: "t",
+        updatedAt: "2026-06-30",
+        sourceNote: "総務省統計局「家計調査」2026年6月分",
+        summary: "申請件数は4月の51件から9月の66件へ増加した。",
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.meta).toMatchObject({
+        updatedAt: "2026-06-30",
+        sourceNote: "総務省統計局「家計調査」2026年6月分",
+        summary: "申請件数は4月の51件から9月の66件へ増加した。",
+      });
+    }
+  });
+
+  it("MD-3b: sourceNote/summary stay unrestricted free text -- URLs, newlines, CJK, quotes, injection-shaped strings", () => {
+    // Mirrors TO-3b's reasoning: MD-3 alone would still pass if these were
+    // accidentally tightened to a pattern or a maxLength. A source citation
+    // legitimately contains slashes, colons and full-width punctuation, and
+    // `common.ts` states the no-maxLength choice is deliberate.
+    const result = parseDashboard(
+      withMeta({
+        title: "t",
+        sourceNote: 'https://example.go.jp/data?a=1&b=2 — 注記: a" ; DROP TABLE t --\n免責事項',
+        summary: "一行目\n二行目\t（タブ）　全角空白",
+      }),
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("MD-4: updatedAt rejects everything that is not a calendar date", () => {
+    // `format: "date"` is strict here, so a typo makes the whole document
+    // unopenable rather than degrading -- worth pinning explicitly.
+    for (const bad of [
+      "2026-13-45",
+      "2026-02-30",
+      "not-a-date",
+      "2026-06-30T00:00:00Z",
+      "2026/06/30",
+      "２０２６-０６-３０",
+      "2026-06-30 ",
+      "",
+    ]) {
+      expect(parseDashboard(withMeta({ title: "t", updatedAt: bad })).ok, `updatedAt=${bad}`).toBe(
+        false,
+      );
+    }
+  });
+
+  it("MD-5: wrong container types are rejected for all three", () => {
+    for (const key of ["updatedAt", "sourceNote", "summary"]) {
+      for (const bad of [null, 123, [], {}, true]) {
+        expect(
+          parseDashboard(withMeta({ title: "t", [key]: bad })).ok,
+          `${key}=${JSON.stringify(bad)}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("MD-6: no length cap -- a 100,000-character summary is schema-valid (mirrors TO-14/BS-16)", () => {
+    const result = parseDashboard(withMeta({ title: "t", summary: "あ".repeat(100_000) }));
+    expect(result.ok).toBe(true);
+  });
+});
