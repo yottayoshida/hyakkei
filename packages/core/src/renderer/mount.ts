@@ -9,6 +9,7 @@ import type { EChartsOption } from "echarts";
 import { buildAccessibleDataTable, wrapAccessibleFallback } from "./accessible-table.js";
 import { buildChartOption, buildOptions } from "./build-options.js";
 import { buildDashboardFooter } from "./dom/dashboard-footer.js";
+import { buildChartAltTextElement } from "./dom/chart-alt-text.js";
 import { buildMessageTile } from "./dom/message-tile.js";
 import { buildStatElement } from "./dom/stat.js";
 import { buildTableElement } from "./dom/table.js";
@@ -243,14 +244,19 @@ function renderTile(entry: RenderChart, option: EChartsOption | undefined): HTML
         ),
       );
 
-    case "empty":
+    case "empty": {
       // Still append the (header-only) accessible fallback (Codex R1 P2): a
       // configured-but-empty chart has real column semantics worth exposing
       // to assistive tech, unlike "unconfigured" (nothing wired yet).
+      const emptyAltText = isEchartsType(entry.chart.type)
+        ? undefined
+        : buildChartAltTextElement(entry.chart.altText);
       return buildTile(
+        ...(emptyAltText ? [emptyAltText] : []),
         buildMessageTile("データがありません", "info"),
         wrapAccessibleFallback(buildAccessibleDataTable(entry.chart, entry.rows)),
       );
+    }
 
     case "ok": {
       const missing = missingColumns(entry.chart, entry.rows);
@@ -260,6 +266,9 @@ function renderTile(entry: RenderChart, option: EChartsOption | undefined): HTML
         );
       }
       const body = renderChartBody(entry, option);
+      const altText = isEchartsType(entry.chart.type)
+        ? undefined
+        : buildChartAltTextElement(entry.chart.altText);
       // The OTHER orphan path renderChartBody's own try/catch can't cover:
       // by the time body returns, echarts.init already succeeded and
       // registered a live instance -- if buildAccessibleDataTable throws
@@ -267,6 +276,7 @@ function renderTile(entry: RenderChart, option: EChartsOption | undefined): HTML
       // would otherwise leak the same way (see renderChartBody's comment).
       try {
         return buildTile(
+          ...(altText ? [altText] : []),
           body,
           wrapAccessibleFallback(buildAccessibleDataTable(entry.chart, entry.rows)),
         );

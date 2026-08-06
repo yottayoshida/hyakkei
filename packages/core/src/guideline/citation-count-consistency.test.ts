@@ -280,23 +280,3 @@ describe("guideline-rules.json and the coverage inventory agree on which rules e
     }
   });
 });
-
-describe("the schema-derived count is exercised by a case that can fail", () => {
-  /**
-   * `schemaFieldsOwed` is derived from the schemas, but the four entries it
-   * derives from cannot tell a working `hasSchemaField` from one that never
-   * descends into `allOf`. `Chart.altText` is the only `Chart` entry and it is
-   * absent under both readings; all three `BaseMeta` entries are present under
-   * both. So the count stays 1 either way, and the derivation would ship with no
-   * case that distinguishes it -- the same vacuous-pass shape the mirrors above
-   * guard against, one level down.
-   *
-   * `id` fixes that: it sits on `Chart`'s object arm inside `allOf`, so a
-   * `.properties`-only read returns false for it. When issue #124 PR-2 adds
-   * `altText` to `Chart`, that entry starts discriminating on its own and this
-   * case becomes redundant -- delete it then.
-   */
-  it("hasSchemaField descends into Chart's intersect arms", () => {
-    expect(hasSchemaField({ schema: Chart, key: "id" })).toBe(true);
-  });
-});

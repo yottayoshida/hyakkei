@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Chart } from "./dashboard.js";
 import { parseDashboard, validateDashboardReferences } from "./validate.js";
 
 // Samples S1/S2/S3 from .claude/plans/2026-07-04-hyakkei-v0.1-pr-issue6-shapes.md
@@ -125,6 +126,24 @@ describe("dashboard.json — valid shapes", () => {
     const result = parseDashboard(full);
     expect(result.ok).toBe(true);
     if (result.ok) expect(validateDashboardReferences(result.value)).toEqual([]);
+  });
+
+  it("accepts chart-level altText without widening the closed options object", () => {
+    expect(JSON.stringify(Chart)).toContain('"altText"');
+    const chartWithAltText = {
+      ...minimal.charts[0],
+      altText: "2025年度の申請件数は4月から6月に増加しました。",
+    };
+    const result = parseDashboard({ ...minimal, charts: [chartWithAltText] });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.charts[0]?.altText).toBe(chartWithAltText.altText);
+
+    expect(
+      parseDashboard({
+        ...minimal,
+        charts: [{ ...chartWithAltText, options: { ...chartWithAltText.options, altText: "x" } }],
+      }).ok,
+    ).toBe(false);
   });
 
   it.each([

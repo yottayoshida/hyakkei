@@ -238,6 +238,12 @@ export const Chart = Type.Intersect([
   ChartVariant,
   SafeObject({
     id: NonEmptyString,
+    altText: Type.Optional(
+      Type.String({
+        description:
+          "A concise text alternative that communicates the chart's purpose and main takeaway without requiring the visual chart or its data table.",
+      }),
+    ),
     query: Type.Optional(NonEmptyString),
     options: ChartOptions,
   }),

@@ -36,6 +36,7 @@
       "type": "bar",
       "encoding": { "x": "category", "y": "count" },
       "query": "q-category",
+      "altText": "区分別の申請件数を比較し、建築確認が128件で最多です。",
       "options": { "title": "区分別申請件数" }
     },
     {
@@ -43,6 +44,7 @@
       "type": "line",
       "encoding": { "x": "month", "y": "count" },
       "query": "q-monthly",
+      "altText": "月次の申請件数を示し、7月の70件が最多で8月に44件へ減少後9月に66件へ回復しています。",
       "options": { "title": "月次申請件数推移" }
     },
     {
@@ -50,6 +52,7 @@
       "type": "stat",
       "encoding": { "value": "count" },
       "query": "q-total",
+      "altText": "当月の申請総数を示し、合計は351件です。",
       "options": { "title": "今月の申請総数" }
     }
   ],

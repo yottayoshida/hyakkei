@@ -167,6 +167,13 @@ describe.each(GOLDEN_SAMPLES)("golden sample '$id' round-trip", (sample) => {
     expect(Object.keys(sample.rowsByQuery).sort()).toEqual(queryIds);
   });
 
+  it("every canonical chart carries substantive alternative text", () => {
+    for (const chart of sample.doc.charts) {
+      expect(chart.altText?.trim().length, `${sample.id}/${chart.id} altText`).toBeGreaterThan(0);
+      expect(chart.altText).not.toBe(chart.options.title);
+    }
+  });
+
   // bake() is pure and deterministic (bake.ts's own doc comment), so the two
   // baked-output assertions below share one computed value instead of each
   // recomputing it (/simplify, efficiency finding).

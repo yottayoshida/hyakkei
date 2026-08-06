@@ -73,6 +73,31 @@ describe("round-trip: theme.appearance is additive and shared (PR-A)", () => {
   });
 });
 
+describe("round-trip: chart.altText is additive and top-level", () => {
+  it("survives Dashboard and BakedDashboard validation while absent stays absent", () => {
+    const dashDoc = {
+      ...baseDashboard(),
+      charts: [{ ...baseDashboard().charts[0], altText: "月別推移の主な傾向です。" }],
+    };
+    const dashResult = parseDashboard(dashDoc);
+    expect(dashResult.ok).toBe(true);
+    if (dashResult.ok) expect(dashResult.value.charts[0]?.altText).toBe("月別推移の主な傾向です。");
+
+    const bakedDoc = {
+      ...baseBaked(),
+      charts: [{ ...baseBaked().charts[0], altText: "月別推移の主な傾向です。" }],
+    };
+    const bakedResult = parseBakedDashboard(bakedDoc);
+    expect(bakedResult.ok).toBe(true);
+    if (bakedResult.ok)
+      expect(bakedResult.value.charts[0]?.altText).toBe("月別推移の主な傾向です。");
+
+    const withoutAltText = parseDashboard(baseDashboard());
+    expect(withoutAltText.ok).toBe(true);
+    if (withoutAltText.ok) expect(withoutAltText.value.charts[0]?.altText).toBeUndefined();
+  });
+});
+
 describe("round-trip: unknown fields survive validation (additive-only, S4/B4)", () => {
   it("an arbitrary unknown top-level field is preserved after a successful parse", () => {
     fc.assert(

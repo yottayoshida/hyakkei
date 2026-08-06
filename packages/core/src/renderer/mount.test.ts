@@ -110,6 +110,58 @@ describe("mount()", () => {
     expect(el.querySelector(".hyakkei-error-tile")).toBeNull();
   });
 
+  const domAltTextCharts: Array<[string, Chart]> = [
+    ["table", { id: "c1", type: "table", encoding: { columns: ["cat"] }, options: {} }],
+    ["stat", { id: "c1", type: "stat", encoding: { value: "cat" }, options: {} }],
+  ];
+
+  it.each(domAltTextCharts)(
+    "adds one sanitized hidden alt-text paragraph for %s charts",
+    (_label, chart) => {
+      const model: RenderModel = normalizeBaked({
+        version: 1,
+        meta: { title: "t", generatedAt: "x", sourceDataAsOf: "x", hyakkeiVersion: "0.1.0" },
+        theme,
+        charts: [{ ...chart, altText: "\u202e <b>本文</b> \u202c", rows: [{ cat: "A" }] }],
+        layout: { grid: "guidebook-12col", items: [{ chart: "c1", x: 0, y: 0, w: 6, h: 4 }] },
+      });
+
+      const el = container();
+      mount(el, model);
+
+      const altText = el.querySelectorAll(".hyakkei-chart-alt-text");
+      expect(altText).toHaveLength(1);
+      expect(altText[0]?.getAttribute("dir")).toBe("auto");
+      expect(altText[0]?.textContent).toBe("<b>本文</b>");
+      expect(altText[0]?.innerHTML).not.toContain("<b>");
+    },
+  );
+
+  it("does not add a duplicate DOM alt-text paragraph to ECharts charts", () => {
+    const model: RenderModel = normalizeBaked({
+      version: 1,
+      meta: { title: "t", generatedAt: "x", sourceDataAsOf: "x", hyakkeiVersion: "0.1.0" },
+      theme,
+      charts: [
+        {
+          id: "c1",
+          type: "bar",
+          encoding: { x: "cat", y: "val" },
+          altText: "棒グラフの説明",
+          options: {},
+          rows: [{ cat: "A", val: 1 }],
+        },
+      ],
+      layout: { grid: "guidebook-12col", items: [{ chart: "c1", x: 0, y: 0, w: 6, h: 4 }] },
+    });
+
+    const el = container();
+    mount(el, model);
+
+    expect(el.querySelectorAll(".hyakkei-chart-alt-text")).toHaveLength(0);
+    expect(el.querySelector(".hyakkei-chart-canvas")).not.toBeNull();
+  });
+
   it("sizes grid rows explicitly and lets the canvas flex inside the tile (real-browser collapse regression)", () => {
     // jsdom does no layout, so this can only pin the style *contract*, not
     // the rendered box: without an explicit `gridAutoRows` the grid's
@@ -768,6 +820,59 @@ describe("patch()", () => {
       expect.anything(),
       expect.objectContaining({ notMerge: true }),
     );
+  });
+
+  it("updates aria.description when a same-id chart's altText changes through patch()", () => {
+    const el = container();
+    patch(
+      el,
+      model(
+        [
+          {
+            id: "c1",
+            chart: {
+              id: "c1",
+              type: "bar",
+              encoding: { x: "cat", y: "val" },
+              altText: "説明A",
+              options: {},
+            } as Chart,
+            rows: [{ cat: "A", val: 1 }],
+            state: "ok",
+          },
+        ],
+        [item("c1")],
+      ),
+    );
+    const instance = echarts.getInstanceByDom(
+      el.querySelector(".hyakkei-chart-canvas") as HTMLElement,
+    )!;
+    const setOptionSpy = vi.spyOn(instance, "setOption");
+
+    patch(
+      el,
+      model(
+        [
+          {
+            id: "c1",
+            chart: {
+              id: "c1",
+              type: "bar",
+              encoding: { x: "cat", y: "val" },
+              altText: "説明B",
+              options: {},
+            } as Chart,
+            rows: [{ cat: "A", val: 1 }],
+            state: "ok",
+          },
+        ],
+        [item("c1")],
+      ),
+    );
+
+    const option = setOptionSpy.mock.calls.at(-1)?.[0] as { aria?: { description?: string } };
+    expect(option.aria?.description).toBe("説明B");
+    expect(JSON.stringify(option)).not.toContain("説明A");
   });
 
   it("V-003: same id, type change (bar -> pie) disposes the old instance and builds a new one, never reusing across types", () => {

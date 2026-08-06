@@ -31,6 +31,7 @@
       "type": "scatter",
       "encoding": { "x": "density", "y": "agingRate", "size": "markerSize" },
       "query": "q-density",
+      "altText": "地区ごとの人口密度と高齢化率の関係を示し、人口密度5510人の地区で高齢化率21.1%です。",
       "options": { "title": "人口密度と高齢化率" }
     },
     {
@@ -38,6 +39,7 @@
       "type": "bar",
       "encoding": { "x": "name", "y": "population" },
       "query": "q-population",
+      "altText": "地域別人口を比較し、港北地区が210000人で最多です。",
       "options": { "title": "地域別人口" }
     }
   ],

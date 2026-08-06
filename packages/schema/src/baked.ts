@@ -66,6 +66,12 @@ export const BakedChart = Type.Intersect([
   ChartVariant,
   SafeObject({
     id: NonEmptyString,
+    altText: Type.Optional(
+      Type.String({
+        description:
+          "A concise text alternative that communicates the chart's purpose and main takeaway without requiring the visual chart or its data table.",
+      }),
+    ),
     options: ChartOptions,
     rows: Type.Array(SafeRecord(JsonPrimitive)),
   }),
