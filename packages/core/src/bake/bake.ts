@@ -74,6 +74,9 @@ export function bake(
   );
   const charts = includedCharts.map((chart) => bakeChart(chart, resolvedRows));
 
+  // guidebookVersion is deliberately last: unlike BakeMeta's three
+  // caller-supplied stamps, it is publisher provenance from GUIDEBOOK_SOURCE
+  // and cannot be selected by the document or caller.
   return {
     version: document.version,
     meta: { ...document.meta, ...meta, guidebookVersion: GUIDEBOOK_SOURCE.version },

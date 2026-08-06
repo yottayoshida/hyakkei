@@ -100,12 +100,14 @@ describe("normalizeAuthoring cannot express bake-recorded provenance", () => {
         generatedAt: "1999-01-01T00:00:00Z",
         sourceDataAsOf: "1999-01-01",
         hyakkeiVersion: "9.9.9",
+        guidebookVersion: "v99",
       }),
       {},
     );
     expect(model.footer!.provenance.every((item) => item.kind === "declared")).toBe(true);
     const values = model.footer!.provenance.map((item) => item.value);
     expect(values).not.toContain("9.9.9");
+    expect(values).not.toContain("v99");
     expect(values).not.toContain("1999-01-01");
   });
 

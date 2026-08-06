@@ -19,9 +19,10 @@ import { sanitizeDisplayText } from "./display-text.js";
 /**
  * Provenance split by WHO asserted it, not by what it says.
  *
- * `recorded` is what `bake()` stamped. `bake.ts` merges as
- * `{...document.meta, ...meta}`, so these recorded fields always come from the bake
- * call and a document cannot forge them.
+ * `recorded` is what `bake()` stamped. The freshness/tool stamps come from
+ * `BakeMeta`; `guidebookVersion` is appended from `GUIDEBOOK_SOURCE` after the
+ * document/caller spreads, so none of these recorded values can be forged by a
+ * document.
  *
  * `declared` is what the author wrote and `bake()` passed through untouched.
  * Under ADR-0017 Decision 1 the author is usually an agent, so a hallucinated

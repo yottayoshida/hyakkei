@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Row } from "../renderer/render-model.js";
 import rawGuidelineRules from "./guideline-rules.json" with { type: "json" };
+import { GUIDEBOOK_SOURCE } from "./guidebook-source.js";
 import { evaluateGuidelines, getGuidelineRules, validateGuidelineRules } from "./rules.js";
 
 function pieRows(n: number): Row[] {
@@ -333,10 +334,7 @@ describe("getGuidelineRules / validateGuidelineRules", () => {
  */
 const GUIDEBOOK_TITLE = "ダッシュボードデザインの実践ガイドブック";
 
-const GUIDEBOOK_PDF =
-  "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/" +
-  "1948e3cd-736a-4378-9e31-039b08d11106/2a3a0ebc/" +
-  "20260331_resources_dashboard-guidebook_guidebook_02.pdf";
+const GUIDEBOOK_PDF = GUIDEBOOK_SOURCE.pdfUrl;
 
 // The `dataColors` array the `palette-order` rule actually rests on, pinned to
 // a commit rather than a branch: this is the rule with no guidebook text behind

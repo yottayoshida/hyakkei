@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getGuidelineRules } from "./rules.js";
+import rawGuidelineRules from "./guideline-rules.json" with { type: "json" };
+import { validateGuidelineRules } from "./rules.js";
 import { GUIDEBOOK_SOURCE } from "./guidebook-source.js";
 
 describe("GUIDEBOOK_SOURCE", () => {
@@ -14,8 +15,15 @@ describe("GUIDEBOOK_SOURCE", () => {
   });
 
   it("keeps every shipped guidebook PDF citation on this versioned source", () => {
-    for (const rule of getGuidelineRules()) {
-      if (!rule.citation.url.startsWith(GUIDEBOOK_SOURCE.pdfUrl)) continue;
+    const rules = validateGuidelineRules(rawGuidelineRules);
+    const pdfCitations = rules.filter(({ citation }) => {
+      const url = new URL(citation.url);
+      return url.hostname === "www.digital.go.jp" && url.pathname.endsWith(".pdf");
+    });
+
+    expect(pdfCitations.length).toBeGreaterThan(0);
+    for (const rule of pdfCitations) {
+      expect(rule.citation.url.startsWith(`${GUIDEBOOK_SOURCE.pdfUrl}#`)).toBe(true);
       expect(rule.citation.label).toContain(GUIDEBOOK_SOURCE.version);
     }
   });
