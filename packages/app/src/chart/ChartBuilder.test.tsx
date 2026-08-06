@@ -276,6 +276,74 @@ describe("ChartBuilder", () => {
     );
   });
 
+  it("commits chart altText on blur, not on each keystroke", async () => {
+    const onChange = vi.fn();
+    const { host } = await renderInJsdom(<ChartBuilder {...baseProps({ onChange })} />);
+    const input = host.querySelector(
+      'textarea[aria-label="グラフの代替テキスト"]',
+    ) as HTMLTextAreaElement;
+    expect(input).not.toBeNull();
+
+    const nativeValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      "value",
+    )!.set!;
+    await act(async () => {
+      nativeValueSetter.call(input, "申請件数は6月が最大です。");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(onChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    });
+    expect(onChange).toHaveBeenCalledWith(
+      "c1",
+      expect.objectContaining({ altText: "申請件数は6月が最大です。" }),
+    );
+  });
+
+  it("commits altText on Enter and removes the property when cleared", async () => {
+    const onChange = vi.fn();
+    const chart = { ...BAR_CHART, altText: "以前の説明" };
+    const { host } = await renderInJsdom(<ChartBuilder {...baseProps({ chart, onChange })} />);
+    const input = host.querySelector(
+      'textarea[aria-label="グラフの代替テキスト"]',
+    ) as HTMLTextAreaElement;
+    const nativeValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      "value",
+    )!.set!;
+
+    await act(async () => {
+      nativeValueSetter.call(input, "新しい説明");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    expect(onChange).toHaveBeenCalledWith("c1", expect.objectContaining({ altText: "新しい説明" }));
+
+    onChange.mockClear();
+    await act(async () => {
+      nativeValueSetter.call(input, "   ");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0]?.[1]).not.toHaveProperty("altText");
+  });
+
+  it("refreshes the local altText draft when the parent replaces the chart", async () => {
+    const { host, rerender } = await renderInJsdom(<ChartBuilder {...baseProps()} />);
+    const replacement: Chart = { ...BAR_CHART, altText: "保存済みの説明" };
+
+    await rerender(<ChartBuilder {...baseProps({ chart: replacement })} />);
+
+    expect(
+      (host.querySelector('textarea[aria-label="グラフの代替テキスト"]') as HTMLTextAreaElement)
+        .value,
+    ).toBe("保存済みの説明");
+  });
+
   // QA Phase 8, V-008 (Major): the truncation advisory itself didn't exist.
   // `isTruncated`'s own boundary is unit-tested in chart-encoding.test.ts;
   // this pins the UI wiring -- the flag actually reaching a visible message.

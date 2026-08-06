@@ -20,6 +20,22 @@ function modelOf(
 }
 
 describe("buildChartOption", () => {
+  it("puts normalized altText in ECharts aria.description", () => {
+    const chart = {
+      id: "c1",
+      type: "bar" as const,
+      encoding: { x: "cat", y: "val" },
+      altText: "  月別推移です。  ",
+      options: {},
+    };
+    const option = buildChartOption(modelOf(chart, [{ cat: "A", val: 1 }]).charts[0]!, theme)!;
+    expect(option.aria).toMatchObject({
+      enabled: true,
+      decal: { show: true },
+      description: "月別推移です。",
+    });
+  });
+
   // issue #70: buildOptions' own per-chart loop body was extracted to this
   // function so patch() (mount.ts) can build one chart's option on demand --
   // this pins that extraction didn't drift the two apart (buildOptions

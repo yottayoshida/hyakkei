@@ -70,6 +70,39 @@ function ChartTitleInput({ value, onCommit }: ChartTitleInputProps) {
   );
 }
 
+type ChartAltTextInputProps = { value: string; onCommit: (value: string) => void };
+
+/**
+ * Alternative text is a prose draft for the same reason as the title: keep
+ * keystrokes local so the preview does not rebuild on every character. Enter
+ * commits intentionally, rather than inserting a newline, because this field
+ * is a concise single-paragraph description.
+ */
+function ChartAltTextInput({ value, onCommit }: ChartAltTextInputProps) {
+  const [draft, setDraft] = useState(value);
+  return (
+    <textarea
+      aria-label="グラフの代替テキスト"
+      value={draft}
+      rows={3}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => onCommit(draft)}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+        event.preventDefault();
+        onCommit(draft);
+      }}
+      style={{ display: "block", marginTop: 4, minHeight: 88, width: "100%" }}
+    />
+  );
+}
+
+function chartWithAltText(chart: Chart, value: string): Chart {
+  const { altText: _previous, ...withoutAltText } = chart;
+  const normalized = value.trim();
+  return normalized === "" ? withoutAltText : { ...withoutAltText, altText: normalized };
+}
+
 /**
  * `CHART_TYPE_TILES` grouped by `group`, computed once at module load
  * (`/simplify` Simplification finding): this depended on nothing but that
@@ -244,6 +277,10 @@ export const ChartBuilder = memo(function ChartBuilder({
     });
   }
 
+  function updateAltText(altText: string) {
+    commitChartChange(chartWithAltText(chart, altText));
+  }
+
   function toggleDonut(donut: boolean) {
     commitChartChange({ ...chart, options: { ...chart.options, donut } });
   }
@@ -408,6 +445,19 @@ export const ChartBuilder = memo(function ChartBuilder({
             タイトル
             <ChartTitleInput value={chart.options.title ?? ""} onCommit={updateTitle} />
           </label>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <label>
+            グラフの代替テキスト
+            <ChartAltTextInput
+              key={`${chart.id}:${chart.altText ?? ""}`}
+              value={chart.altText ?? ""}
+              onCommit={updateAltText}
+            />
+          </label>
+          <span style={{ display: "block", marginTop: 4, fontSize: 12, color: "#6b7280" }}>
+            見た目を使わず、目的と主な傾向が伝わる説明
+          </span>
         </div>
         {chart.type === "pie" && (
           <div style={{ marginTop: 4 }}>

@@ -58,6 +58,18 @@ describe("bake()", () => {
     expect(baked.charts[0]?.rows).toEqual([{ category: "A", total: 120 }]);
   });
 
+  it("copies Chart.altText into BakedChart without moving it into options", () => {
+    const document: Dashboard = {
+      ...doc,
+      charts: doc.charts.map((chart) =>
+        chart.id === "c1" ? { ...chart, altText: "月別件数の推移です。" } : chart,
+      ),
+    };
+    const result = bake(document, resolvedRows, meta);
+    expect(result.charts[0]?.altText).toBe("月別件数の推移です。");
+    expect(result.charts[0]?.options).not.toHaveProperty("altText");
+  });
+
   it("merges document meta with caller-supplied bake-time fields", () => {
     const baked = bake(doc, resolvedRows, meta);
     expect(baked.meta).toEqual({

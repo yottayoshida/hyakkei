@@ -6,7 +6,7 @@ What the Digital Agency dashboard guidebook asks for, and what hyakkei currently
 - **Machine-checkable principles found**: **22**
 - **Addressed by a named rule**: **3** — of which **1** has a runtime predicate
 - **Guaranteed in practice** (rule-enforced *or* impossible to violate): **9**
-- **Needs a new schema field before it can be satisfied at all**: **1**
+- **Needs a new schema field before it can be satisfied at all**: **0**
 - **Known defects** (implemented, and wrong): **0** — the one runtime rule fires on a threshold hyakkei chose, disclosed in its own citation; the guidebook states no numeric limit. Separately, `getGuidelineRules()` fails open, which [ADR-0016](./adr/0016-guideline-nudge-scope.md) records as a false-compliance risk on any path that reports "0 nudges" as a guarantee — that is a property of the engine, not of a guidebook principle, so it is not counted here and is not fixed by a zero in this row
 
 *These do not sum to 22 — some principles fall in two rows. See [Which number to quote](#which-number-to-quote) before citing any of them.*
@@ -102,7 +102,7 @@ All ten carry Do/Don't illustrations in the guidebook.
 | # | Principle | Source | Status | Notes |
 | --- | --- | --- | --- | --- |
 | 22 | Publish the data file (Excel / CSV / HTML table) | p56 | **partly covered** | Export produces the dashboard; a downloadable data file alongside it is not part of the output |
-| 23 | Give charts alternative text | p56 | **not expressible** | No `altText` field. The renderer does emit an accessible data-table fallback per chart, which is adjacent but not the same thing |
+| 23 | Give charts alternative text | p56 | **supported** | Optional top-level `Chart.altText` / `BakedChart.altText` survives bake; ECharts receives `aria.description`, and table/stat charts render one sanitized visually-hidden paragraph. The adjacent data-table fallback remains a separate affordance |
 | 24 | Publish a text summary of the dashboard (for public-facing dashboards) | p56 | **supported** | `meta.summary` ([#124](https://github.com/yottayoshida/hyakkei/issues/124)), drawn at the top of the dashboard footer. Distinct from `description`, which is a one-line label. The three gallery samples carry real ones, and `golden-samples.roundtrip.test.ts` rejects a summary that only paraphrases `description` or cites a figure absent from the sample's own rows. Placement is a compromise: p56 frames the summary as something to read *instead of* the charts, so the top of the page would serve that reader better — a header row means shifting every tile down one row (`gridStyle`/`tileStyle` plus the editor's overlay coordinates), which is out of scope here. Revisit when M3 gives the artifact an outer shell |
 
 *(Numbering runs to 24 because #11/#21 are the same principle and #21 is a cross-reference; the count of distinct machine-checkable principles is 22.)*
@@ -123,9 +123,9 @@ A full-text search of the guidebook finds no statement about ramp-position order
 | --- | --- | --- |
 | **active** | 2 | #6 (threshold is hyakkei's, disclosed), #9 |
 | **by construction** | 7 | #1, #7, #8, #11, #17 (partial), #18, #20 |
-| **supported** | 2 | #12, #24 — expressible, drawn, and pinned, but unrequired and unverified. Counted toward neither `guaranteed` nor `not covered` |
+| **supported** | 3 | #12, #23, #24 — expressible, drawn, and pinned, but unrequired and unverified. Counted toward neither `guaranteed` nor `not covered` |
 | **not covered** | 7 | #3, #4, #5, #10, #14, #15, #19 |
-| **not expressible** | 2 | #2, #23 |
+| **not expressible** | 1 | #2 |
 | **defect** | 0 | — |
 
 Rows overlap on purpose, so they do not sum to 22:
@@ -152,7 +152,7 @@ Three of the nine are enforced outside the rule engine and so do not appear in t
 
 **The honest short form: 22 principles identified, 9 guaranteed, 3 addressed by named rules, 1 with a runtime predicate (on hyakkei's own threshold, disclosed), 0 known defects.**
 
-## The four that need schema fields
+## The four schema fields for Do-side principles
 
 These fail differently from the doc-only rules. A doc-only rule means *the schema cannot express the violation* — a guarantee. These mean *the schema cannot express the requirement* — a gap. That distinction is why [ADR-0017](./adr/0017-v1-is-agent-generated-dashboards.md) Decision 7 extends the schema for these and not for the others.
 
@@ -161,9 +161,9 @@ These fail differently from the doc-only rules. A doc-only rule means *the schem
 | `meta.summary` | #24 | Per dashboard | **Landed** 2026-08-02 |
 | `meta.updatedAt` | #12, #13 | Per dashboard, `format: "date"`, distinct from `BakedMeta.sourceDataAsOf` | **Landed** 2026-08-02 |
 | `meta.sourceNote` | #12, #13 | Per dashboard | **Landed** 2026-08-02 |
-| `Chart.altText` | #23 | Per chart | Owed |
+| `Chart.altText` | #23 | Per chart | **Landed** 2026-08-06 |
 
-All four are **additive** — new optional fields, nothing previously valid becomes invalid — and keep `"version": 1`. Tracked as [#124](https://github.com/yottayoshida/hyakkei/issues/124).
+All four are **additive** — optional fields, nothing previously valid becomes invalid — and keep `"version": 1`. The four-field batch is now landed under [#124](https://github.com/yottayoshida/hyakkei/issues/124).
 
 Two shapes were settled when the first three landed ([ADR-0019](./adr/0019-guidebook-do-side-fields-and-dashboard-chrome.md)), and both differ from what this table said beforehand:
 

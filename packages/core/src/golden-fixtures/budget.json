@@ -28,6 +28,7 @@
       "type": "area",
       "encoding": { "x": "month", "y": "rate" },
       "query": "q-rate",
+      "altText": "第1四半期の執行率の推移を示し、4月18.5%から6月49.8%へ上昇しています。",
       "options": { "title": "執行率推移（％）" }
     },
     {
@@ -35,6 +36,7 @@
       "type": "pie",
       "encoding": { "category": "item", "value": "amount" },
       "query": "q-breakdown",
+      "altText": "費目別予算額を比較し、人件費4200千円が最多です。",
       "options": { "title": "費目別内訳", "legend": { "show": true, "position": "right" } }
     },
     {
@@ -42,6 +44,7 @@
       "type": "table",
       "encoding": { "columns": ["item", "budget", "actual"] },
       "query": "q-detail",
+      "altText": "第1四半期の費目別予算額と支出済額を表で示し、人件費は予算4200千円、支出済2075千円です。",
       "options": { "title": "第１四半期 明細" }
     }
   ],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BakedMeta } from "./baked.js";
+import { BakedChart, BakedMeta } from "./baked.js";
 import { BaseMeta, MAX_LAYOUT_Y } from "./common.js";
 import { parseBakedDashboard, validateBakedDashboardReferences } from "./validate.js";
 
@@ -91,6 +91,24 @@ describe("BakedDashboard — valid shapes", () => {
     const result = parseBakedDashboard(doc);
     expect(result.ok).toBe(true);
     if (result.ok) expect(validateBakedDashboardReferences(result.value)).toEqual([]);
+  });
+
+  it("accepts chart-level altText without widening the closed options object", () => {
+    expect(JSON.stringify(BakedChart)).toContain('"altText"');
+    const chartWithAltText = {
+      ...minimalBaked.charts[0],
+      altText: "地域別の申請件数を比較した棒グラフです。",
+    };
+    const result = parseBakedDashboard({ ...minimalBaked, charts: [chartWithAltText] });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.charts[0]?.altText).toBe(chartWithAltText.altText);
+
+    expect(
+      parseBakedDashboard({
+        ...minimalBaked,
+        charts: [{ ...chartWithAltText, options: { ...chartWithAltText.options, altText: "x" } }],
+      }).ok,
+    ).toBe(false);
   });
 
   it("DB-4: an empty rows array is valid (a genuinely empty query result, baked)", () => {

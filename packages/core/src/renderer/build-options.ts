@@ -6,6 +6,7 @@
 import type { BakedChart, Chart } from "@hyakkei/schema";
 import type { EChartsOption } from "echarts";
 import { cellText } from "./dom/cell-text.js";
+import { normalizedAltText } from "./dom/chart-alt-text.js";
 import type { EChartsThemeObject } from "../theme/echarts-theme.js";
 import type { RenderChart, RenderModel } from "./render-model.js";
 
@@ -199,12 +200,17 @@ export function buildChartOption(
     }
   })();
   if (!built) return undefined;
+  const description = normalizedAltText(entry.chart.altText);
   return {
     backgroundColor: theme.backgroundColor,
     color: theme.color,
     textStyle: theme.textStyle,
     animation: false,
-    aria: { enabled: true, decal: { show: true } },
+    aria: {
+      enabled: true,
+      decal: { show: true },
+      ...(description ? { description } : {}),
+    },
     tooltip: { show: true },
     ...built,
   };

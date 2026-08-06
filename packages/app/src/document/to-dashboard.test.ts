@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { WorkspaceSource } from "../App.js";
 import type { WorkspaceQuery } from "../intake/types.js";
 import { assertNoRuntimeKeys, RuntimeKeyLeakError } from "./assert-no-runtime-keys.js";
-import { toDashboard } from "./to-dashboard.js";
+import { toDashboard, type ToDashboardInput } from "./to-dashboard.js";
 
 function emptyBuilderState() {
   return { filters: [], groupBy: [], measures: [] };
@@ -40,7 +40,7 @@ function query(overrides: Partial<WorkspaceQuery> = {}): WorkspaceQuery {
   };
 }
 
-function minimalInput() {
+function minimalInput(): ToDashboardInput {
   return {
     meta: { title: "月次KPI" },
     theme: {
@@ -91,6 +91,14 @@ describe("toDashboard", () => {
     const result = toDashboard(input);
     expect(result.charts).toBe(input.charts);
     expect(result.layout).toBe(input.layout);
+  });
+
+  it("preserves a chart's top-level altText", () => {
+    const input = minimalInput();
+    input.charts = [{ ...input.charts[0]!, altText: "申請件数の推移を示す棒グラフです。" }];
+    const result = toDashboard(input);
+    expect(result.charts[0]?.altText).toBe("申請件数の推移を示す棒グラフです。");
+    expect(result.charts[0]?.options).not.toHaveProperty("altText");
   });
 
   it("passes meta/theme through as given", () => {
