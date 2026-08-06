@@ -3,6 +3,7 @@
 // always produces byte-identical output (golden-test determinism, plan
 // §技術選定 "golden 3 層").
 import type { BakedDashboard, Dashboard } from "@hyakkei/schema";
+import { GUIDEBOOK_SOURCE } from "../guideline/guidebook-source.js";
 import { lookupRows, type Row } from "../renderer/render-model.js";
 
 export type BakeMeta = {
@@ -75,7 +76,7 @@ export function bake(
 
   return {
     version: document.version,
-    meta: { ...document.meta, ...meta },
+    meta: { ...document.meta, ...meta, guidebookVersion: GUIDEBOOK_SOURCE.version },
     theme: document.theme,
     charts,
     layout: {

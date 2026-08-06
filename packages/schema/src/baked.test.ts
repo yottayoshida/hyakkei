@@ -454,9 +454,30 @@ describe("BakedDashboard — adversarial shapes rejected", () => {
 // becomes something a viewer can be told that an author cannot state — and it
 // should not arrive as a side effect of an unrelated edit.
 describe("BakedMeta adds exactly the bake-time stamps", () => {
-  it("shares BaseMeta's fields and adds only the three stamps", () => {
+  it("shares BaseMeta's fields and adds only the four recorded fields", () => {
     const baseKeys = Object.keys(BaseMeta.properties);
     const bakedKeys = Object.keys(BakedMeta.properties);
-    expect(bakedKeys).toEqual([...baseKeys, "generatedAt", "sourceDataAsOf", "hyakkeiVersion"]);
+    expect(bakedKeys).toEqual([
+      ...baseKeys,
+      "generatedAt",
+      "sourceDataAsOf",
+      "hyakkeiVersion",
+      "guidebookVersion",
+    ]);
+  });
+
+  it("accepts an optional publisher-labelled guidebook version for old artifact compatibility", () => {
+    expect(
+      parseBakedDashboard({
+        ...minimalBaked,
+        meta: { ...minimalBaked.meta, guidebookVersion: "v02" },
+      }).ok,
+    ).toBe(true);
+    expect(
+      parseBakedDashboard({
+        ...minimalBaked,
+        meta: { ...minimalBaked.meta, guidebookVersion: "forged" },
+      }).ok,
+    ).toBe(false);
   });
 });

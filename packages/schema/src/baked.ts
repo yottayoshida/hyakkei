@@ -38,15 +38,22 @@ import {
  * two fell out of step. `/simplify` pointed at the record-sharing idiom
  * already in `common.ts`: the two cannot drift if there is only one of them.
  * What remains worth asserting is the set of keys unique to THIS object —
- * see `baked.test.ts`, which pins it to exactly the three stamps below,
- * because a fourth would be something a viewer can be told and an author
- * cannot state.
+ * see `baked.test.ts`, which pins it to exactly the four recorded fields below;
+ * each is something a viewer can be told that an author cannot authoritatively
+ * state.
  */
 export const BakedMeta = SafeObject({
   ...BASE_META_FIELDS,
   generatedAt: Type.String({ format: "date-time" }),
   sourceDataAsOf: Type.String({ format: "date" }),
   hyakkeiVersion: Type.String({ pattern: "^\\d+\\.\\d+\\.\\d+$" }),
+  guidebookVersion: Type.Optional(
+    Type.String({
+      pattern: "^v\\d{2}$",
+      description:
+        "The guidebook version used for Hyakkei's recorded conformance evaluation. Written by bake(), not copied from authoring metadata.",
+    }),
+  ),
 });
 export type BakedMeta = Static<typeof BakedMeta>;
 

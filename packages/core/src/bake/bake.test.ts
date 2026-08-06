@@ -1,7 +1,7 @@
 import type { Dashboard } from "@hyakkei/schema";
 import { parseBakedDashboard } from "@hyakkei/schema";
 import { describe, expect, it } from "vitest";
-import { bake } from "./bake.js";
+import { bake, type BakeMeta } from "./bake.js";
 
 const meta = {
   generatedAt: "2026-07-11T00:00:00Z",
@@ -79,7 +79,17 @@ describe("bake()", () => {
       generatedAt: meta.generatedAt,
       sourceDataAsOf: meta.sourceDataAsOf,
       hyakkeiVersion: meta.hyakkeiVersion,
+      guidebookVersion: "v02",
     });
+  });
+
+  it("stamps the current guidebook version and ignores an author-forged value", () => {
+    expect(bake(doc, resolvedRows, meta).meta.guidebookVersion).toBe("v02");
+    const forged = {
+      ...doc,
+      meta: { ...doc.meta, guidebookVersion: "forged" },
+    } as Dashboard;
+    expect(bake(forged, resolvedRows, meta).meta.guidebookVersion).toBe("v02");
   });
 
   it("is pure: identical inputs produce deep-equal output on repeated calls", () => {
@@ -186,6 +196,17 @@ describe("bake()", () => {
 // passed all 660 tests, because the fixture's meta shares no keys with the
 // bake meta and carries none of the new fields.
 describe("bake() meta merge (issue #124: what makes `recorded` mean anything)", () => {
+  it("keeps guidebookVersion out of caller-controlled BakeMeta", () => {
+    const invalidBakeMeta: BakeMeta = {
+      generatedAt: meta.generatedAt,
+      sourceDataAsOf: meta.sourceDataAsOf,
+      hyakkeiVersion: meta.hyakkeiVersion,
+      // @ts-expect-error guidebookVersion is stamped from GUIDEBOOK_SOURCE, not selected by callers.
+      guidebookVersion: "forged",
+    };
+    void invalidBakeMeta;
+  });
+
   it("overrides a document that hand-writes the bake-only stamps", () => {
     // `BaseMeta` is additive-open, so a hand-written dashboard.json may carry
     // these keys with any value at all. They must not survive the bake.

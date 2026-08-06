@@ -24,7 +24,7 @@ What the Digital Agency dashboard guidebook asks for, and what hyakkei currently
 
 "Have we covered the guidebook?" cannot be answered by a test — what the guidebook contains is external knowledge. "Does this inventory match the code?" can be. This file makes that substitution: it is the denominator for every conformance claim hyakkei makes, and a test can pin the id set here against `guideline-rules.json`.
 
-The claim form is therefore *"conforms to N of the 22 machine-checkable principles in guidebook version X"* — never "fully conformant" ([ADR-0017](./adr/0017-v1-is-agent-generated-dashboards.md) Decision 5).
+The claim form is therefore *"conforms to N of the 22 machine-checkable principles in guidebook version X"* — never "fully conformant" ([ADR-0017](./adr/0017-v1-is-agent-generated-dashboards.md) Decision 5). A newly baked artifact records that publisher label as `BakedMeta.guidebookVersion` and the footer displays it as `ガイドブック: v02`; older baked artifacts may omit the optional field.
 
 ## How principles were classified
 
@@ -80,7 +80,7 @@ That test applies to **the principle**, not to hyakkei's current implementation 
 | # | Principle | Source | Status | Notes |
 | --- | --- | --- | --- | --- |
 | 12 | Define the data — what it covers, what the numbers mean, when it was updated — reachably | p41 | **supported** | `meta.sourceNote` and `meta.updatedAt` ([#124](https://github.com/yottayoshida/hyakkei/issues/124)), drawn by the dashboard footer. The guidebook asks for the definition to be 参照できる rather than inline, which free text satisfies. Presence is checkable; whether the text is accurate is not |
-| 13 | State metadata: source, update date, as-of time, notes, disclaimers | p41 | **partly by construction** | The three the artifact records itself — `sourceDataAsOf` / `generatedAt` / `hyakkeiVersion` — are `required` on `BakedMeta` and the footer draws them without a conditional, so a baked artifact that shows no as-of date is not a representable state. The rest (source, notes, disclaimers) live in the optional `sourceNote`, so a document can still omit them: that half is `supported`, not guaranteed. Counted in neither column, like #16 and #22 |
+| 13 | State metadata: source, update date, as-of time, notes, disclaimers | p41 | **partly by construction** | The three freshness/tool stamps the artifact records itself — `sourceDataAsOf` / `generatedAt` / `hyakkeiVersion` — are `required` on `BakedMeta` and the footer draws them without a conditional, while the optional recorded `guidebookVersion` identifies the edition used for the conformance claim. The guidebook's data metadata (source, notes, disclaimers) lives in optional `sourceNote`, so a document can still omit that half: it is `supported`, not guaranteed. Counted in neither column, like #16 and #22 |
 
 ### Chapter 4.5 — Do's & Don'ts (p42–47)
 
@@ -164,6 +164,8 @@ These fail differently from the doc-only rules. A doc-only rule means *the schem
 | `Chart.altText` | #23 | Per chart | **Landed** 2026-08-06 |
 
 All four are **additive** — optional fields, nothing previously valid becomes invalid — and keep `"version": 1`. The four-field batch is now landed under [#124](https://github.com/yottayoshida/hyakkei/issues/124).
+
+`BakedMeta.guidebookVersion` is a separate recorded provenance stamp for the claim form, not a fifth authoring Do-side field: `bake()` writes it from the immutable `GUIDEBOOK_SOURCE` record, and old baked artifacts remain valid because it is optional. The publisher's `v02` label is not a content hash; the dated attestation above remains the source-drift record.
 
 Two shapes were settled when the first three landed ([ADR-0019](./adr/0019-guidebook-do-side-fields-and-dashboard-chrome.md)), and both differ from what this table said beforehand:
 

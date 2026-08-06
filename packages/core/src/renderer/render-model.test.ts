@@ -54,6 +54,16 @@ describe("normalizeBaked wires provenance into every render model", () => {
     ]);
   });
 
+  it("wires an optional baked guidebookVersion as recorded provenance", () => {
+    const model = normalizeBaked(bakedDoc({ guidebookVersion: "v02" }));
+    expect(model.footer!.provenance.map((item) => [item.kind, item.label, item.value])).toEqual([
+      ["recorded", "データ時点", "2026-07-10"],
+      ["recorded", "作成", "2026-08-02T09:00:00Z"],
+      ["recorded", "ガイドブック", "v02"],
+      ["recorded", "作成ツール", "0.1.0"],
+    ]);
+  });
+
   it("carries the author's own fields alongside the recorded ones", () => {
     const model = normalizeBaked(
       bakedDoc({ updatedAt: "2026-06-30", sourceNote: "統計局", summary: "要約" }),

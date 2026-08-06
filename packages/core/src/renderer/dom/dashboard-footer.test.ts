@@ -105,6 +105,20 @@ describe("buildDashboardFooter", () => {
     ]);
   });
 
+  it("renders the optional recorded guidebook version between creation and tool", () => {
+    const el = buildDashboardFooter(
+      model({
+        provenance: bakedProvenance({ ...bakedMeta, guidebookVersion: "v02" }),
+      }),
+    )!;
+    expect(itemsOf(el).map((i) => i.text)).toEqual([
+      "データ時点: 2026-07-10",
+      "作成: 2026-08-02T09:00:00Z",
+      "ガイドブック: v02",
+      "作成ツール: 0.1.0",
+    ]);
+  });
+
   it("tags each item with who asserted it, and never lets a document supply a label", () => {
     const el = buildDashboardFooter(
       model({
@@ -253,7 +267,7 @@ describe("provenance builders", () => {
     expect(items).toHaveLength(2);
   });
 
-  it("a baked document always carries the three stamps", () => {
+  it("a baked document always carries the three required freshness/tool stamps", () => {
     const items = bakedProvenance(bakedMeta);
     expect(items.filter((i) => i.kind === "recorded")).toHaveLength(3);
   });

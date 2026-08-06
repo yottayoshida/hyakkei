@@ -1,0 +1,22 @@
+import { describe, expect, it } from "vitest";
+import { getGuidelineRules } from "./rules.js";
+import { GUIDEBOOK_SOURCE } from "./guidebook-source.js";
+
+describe("GUIDEBOOK_SOURCE", () => {
+  it("pins the publisher label and dated source record", () => {
+    expect(GUIDEBOOK_SOURCE).toEqual({
+      version: "v02",
+      pdfUrl:
+        "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/2a3a0ebc/20260331_resources_dashboard-guidebook_guidebook_02.pdf",
+      retrievedAt: "2026-08-02",
+      sourceLastModified: "2026-07-17",
+    });
+  });
+
+  it("keeps every shipped guidebook PDF citation on this versioned source", () => {
+    for (const rule of getGuidelineRules()) {
+      if (!rule.citation.url.startsWith(GUIDEBOOK_SOURCE.pdfUrl)) continue;
+      expect(rule.citation.label).toContain(GUIDEBOOK_SOURCE.version);
+    }
+  });
+});
