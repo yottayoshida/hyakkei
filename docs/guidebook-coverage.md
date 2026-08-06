@@ -123,7 +123,7 @@ A full-text search of the guidebook finds no statement about ramp-position order
 | --- | --- | --- |
 | **active** | 2 | #6 (threshold is hyakkei's, disclosed), #9 |
 | **by construction** | 7 | #1, #7, #8, #11, #17 (partial), #18, #20 |
-| **supported** | 2 | #12, #24 — expressible, drawn, and pinned, but unrequired and unverified. Counted toward neither `guaranteed` nor `not covered` |
+| **supported** | 3 | #12, #23, #24 — expressible, drawn, and pinned, but unrequired and unverified. Counted toward neither `guaranteed` nor `not covered` |
 | **not covered** | 7 | #3, #4, #5, #10, #14, #15, #19 |
 | **not expressible** | 1 | #2 |
 | **defect** | 0 | — |
