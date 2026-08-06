@@ -3,7 +3,7 @@
 // applies a grid to the caller's container and fills it with tiles.
 //
 // Why it exists: `BakedMeta` carries `generatedAt`/`sourceDataAsOf`/
-// `hyakkeiVersion` as REQUIRED fields, and `baked.ts`'s own comment calls
+// `hyakkeiVersion` as REQUIRED fields (plus the optional guidebook edition), and `baked.ts`'s own comment calls
 // `sourceDataAsOf` "the viewer's only signal of how fresh the frozen data
 // is" — yet nothing drew any of them. A baked artifact is terminal
 // (ADR-0005): someone opens it a year later with no way to ask when the
@@ -19,9 +19,10 @@ import { sanitizeDisplayText } from "./display-text.js";
 /**
  * Provenance split by WHO asserted it, not by what it says.
  *
- * `recorded` is what `bake()` stamped. `bake.ts` merges as
- * `{...document.meta, ...meta}`, so these three always come from the bake
- * call and a document cannot forge them.
+ * `recorded` is what `bake()` stamped. The freshness/tool stamps come from
+ * `BakeMeta`; `guidebookVersion` is appended from `GUIDEBOOK_SOURCE` after the
+ * document/caller spreads, so none of these recorded values can be forged by a
+ * document.
  *
  * `declared` is what the author wrote and `bake()` passed through untouched.
  * Under ADR-0017 Decision 1 the author is usually an agent, so a hallucinated
@@ -75,6 +76,7 @@ const PROVENANCE_ORDER = [
   { field: "updatedAt", kind: "declared", label: "更新日" },
   { field: "sourceDataAsOf", kind: "recorded", label: "データ時点" },
   { field: "generatedAt", kind: "recorded", label: "作成" },
+  { field: "guidebookVersion", kind: "recorded", label: "ガイドブック" },
   { field: "hyakkeiVersion", kind: "recorded", label: "作成ツール" },
 ] as const satisfies ReadonlyArray<{
   field: string;
@@ -179,7 +181,8 @@ export function buildDashboardFooter(model: FooterModel | undefined): HTMLElemen
 }
 
 /**
- * Built by `normalizeBaked`, where the three stamps are `required` by schema,
+ * Built by `normalizeBaked`, where the three freshness/tool stamps are
+ * `required` by schema and the guidebook edition is optional for old artifacts,
  * so "this came from bake()" is a fact about the input type rather than a
  * guess about the value.
  */
@@ -188,6 +191,7 @@ export function bakedProvenance(meta: {
   sourceNote?: string;
   sourceDataAsOf: string;
   generatedAt: string;
+  guidebookVersion?: string;
   hyakkeiVersion: string;
 }): ProvenanceItem[] {
   return orderedProvenance(meta);

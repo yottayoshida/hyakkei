@@ -54,6 +54,16 @@ describe("normalizeBaked wires provenance into every render model", () => {
     ]);
   });
 
+  it("wires an optional baked guidebookVersion as recorded provenance", () => {
+    const model = normalizeBaked(bakedDoc({ guidebookVersion: "v02" }));
+    expect(model.footer!.provenance.map((item) => [item.kind, item.label, item.value])).toEqual([
+      ["recorded", "データ時点", "2026-07-10"],
+      ["recorded", "作成", "2026-08-02T09:00:00Z"],
+      ["recorded", "ガイドブック", "v02"],
+      ["recorded", "作成ツール", "0.1.0"],
+    ]);
+  });
+
   it("carries the author's own fields alongside the recorded ones", () => {
     const model = normalizeBaked(
       bakedDoc({ updatedAt: "2026-06-30", sourceNote: "統計局", summary: "要約" }),
@@ -90,12 +100,14 @@ describe("normalizeAuthoring cannot express bake-recorded provenance", () => {
         generatedAt: "1999-01-01T00:00:00Z",
         sourceDataAsOf: "1999-01-01",
         hyakkeiVersion: "9.9.9",
+        guidebookVersion: "v99",
       }),
       {},
     );
     expect(model.footer!.provenance.every((item) => item.kind === "declared")).toBe(true);
     const values = model.footer!.provenance.map((item) => item.value);
     expect(values).not.toContain("9.9.9");
+    expect(values).not.toContain("v99");
     expect(values).not.toContain("1999-01-01");
   });
 

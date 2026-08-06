@@ -3,6 +3,7 @@
 // always produces byte-identical output (golden-test determinism, plan
 // §技術選定 "golden 3 層").
 import type { BakedDashboard, Dashboard } from "@hyakkei/schema";
+import { GUIDEBOOK_SOURCE } from "../guideline/guidebook-source.js";
 import { lookupRows, type Row } from "../renderer/render-model.js";
 
 export type BakeMeta = {
@@ -73,9 +74,12 @@ export function bake(
   );
   const charts = includedCharts.map((chart) => bakeChart(chart, resolvedRows));
 
+  // guidebookVersion is deliberately last: unlike BakeMeta's three
+  // caller-supplied stamps, it is publisher provenance from GUIDEBOOK_SOURCE
+  // and cannot be selected by the document or caller.
   return {
     version: document.version,
-    meta: { ...document.meta, ...meta },
+    meta: { ...document.meta, ...meta, guidebookVersion: GUIDEBOOK_SOURCE.version },
     theme: document.theme,
     charts,
     layout: {

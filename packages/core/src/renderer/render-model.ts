@@ -73,7 +73,8 @@ export type RenderChart = {
  *
  * Splitting in `normalizeBaked`/`normalizeAuthoring` moves the question to
  * where the input type already answers it: `normalizeBaked` receives a
- * `BakedDashboard` whose three stamps are `required`, and
+ * `BakedDashboard` whose three freshness/tool stamps are `required` and whose
+ * guidebook edition is optional, and
  * `normalizeAuthoring` receives a `BaseMeta` that has no such fields to read
  * — so "an authoring document cannot show bake-recorded provenance" is a
  * compile error rather than a rule someone has to remember.
@@ -153,10 +154,8 @@ export function normalizeBaked(baked: BakedDashboard): RenderModel {
     charts,
     layout: baked.layout,
     theme: buildEChartsTheme(baked.theme.palette, baked.theme.appearance ?? "light"),
-    // Unconditional, with no "does this document have provenance?" test: the
-    // three stamps are `required` on `BakedMeta`, so every baked artifact has
-    // them and "a baked dashboard that shows no provenance" stops being a
-    // representable state rather than one we remember to avoid.
+    // Unconditional for the three required freshness/tool stamps; the
+    // optional guidebook edition is projected when an artifact carries it.
     footer: { summary: baked.meta.summary, provenance: bakedProvenance(baked.meta) },
   };
 }

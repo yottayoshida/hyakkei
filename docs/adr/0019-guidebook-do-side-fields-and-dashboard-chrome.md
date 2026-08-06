@@ -168,6 +168,12 @@ One consequence worth stating: for an adversarial layout this emits
 ones. The track count is unchanged — `tileStyle` already forced them into existence — but the
 declaration is now explicit, and no test observes the container template at that scale.
 
+## Read-forward: recorded guidebook edition (2026-08-06, issue #130)
+
+The original decision above deliberately kept the guidebook edition outside the authoring Do-side fields. The claim form now has a separate optional `BakedMeta.guidebookVersion`: `bake()` stamps it from the immutable `GUIDEBOOK_SOURCE` constant, overriding any author or caller value, and the footer renders it as `ガイドブック: v02` between the creation and tool stamps. The field is optional so pre-#130 baked artifacts continue to parse and render.
+
+`v02` is the publisher's edition label, not a content hash. The same PDF URL and label have served different byte streams, so the retrieval and `Last-Modified` dates in `GUIDEBOOK_SOURCE` and the coverage attestation remain the staleness evidence. This note extends the accepted decision without rewriting the historical rationale above.
+
 ## Alternatives considered
 
 | Option | Rejected because |
