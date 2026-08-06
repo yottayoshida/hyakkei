@@ -700,6 +700,7 @@ describe("QueryBuilder", () => {
   it("calls onDelete with the query's own id when its delete button is clicked", async () => {
     const onDelete = vi.fn();
     const { host } = await renderInJsdom(<QueryBuilder {...baseProps({ onDelete })} />);
+    expect(host.querySelector(".hyakkei-query-card")?.getAttribute("tabindex")).toBe("-1");
     const button = host.querySelector(
       'button[aria-label="「06-shift_jis.csv」の集計を削除"]',
     ) as HTMLButtonElement;

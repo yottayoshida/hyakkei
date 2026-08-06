@@ -22,7 +22,10 @@ import {
   DashboardErrorBoundary,
   DashboardPreview,
   emptyBuilderState,
+  findEnabledDataAttributeElement,
   mergeWorkspaceSource,
+  siblingFocusId,
+  sourceDeleteOrdinals,
   toRow,
   upsertOverride,
 } from "./App.js";
@@ -110,6 +113,47 @@ describe("app package scaffold", () => {
     expect(mountSpy).not.toHaveBeenCalled();
 
     await unmount();
+  });
+});
+
+describe("issue #110 deletion naming and focus policy", () => {
+  const source = (tableId: string, sourceLabel: string) =>
+    ({ sample: { table: { id: tableId } }, sourceLabel }) as const;
+
+  it("adds ordinals only to duplicate source labels, keyed by stable table id", () => {
+    const ordinals = sourceDeleteOrdinals([
+      source("t1", "data.csv"),
+      source("t2", "data.csv"),
+      source("t3", "other.csv"),
+    ]);
+    expect(ordinals.get("t1")).toBe(1);
+    expect(ordinals.get("t2")).toBe(2);
+    expect(ordinals.get("t3")).toBeNull();
+  });
+
+  it.each([
+    [["q1", "q2", "q3"], "q1", "q2"],
+    [["q1", "q2", "q3"], "q2", "q3"],
+    [["q1", "q2", "q3"], "q3", "q2"],
+    [["q1"], "q1", null],
+  ] as const)(
+    "chooses next, then previous, never body (ids=%j, deleted=%s)",
+    (ids, deleted, expected) => {
+      expect(siblingFocusId(ids, deleted)).toBe(expected);
+    },
+  );
+
+  it("does not select a disabled graph control for chart-delete fallback", () => {
+    const disabled = document.createElement("button");
+    disabled.dataset.addChartFor = "q1";
+    disabled.disabled = true;
+    document.body.appendChild(disabled);
+
+    try {
+      expect(findEnabledDataAttributeElement("data-add-chart-for", "q1")).toBeNull();
+    } finally {
+      disabled.remove();
+    }
   });
 });
 

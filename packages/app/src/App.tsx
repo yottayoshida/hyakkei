@@ -250,6 +250,37 @@ function ordinalIfMultiple(index: number, siblingCount: number): number | null {
   return siblingCount > 1 ? index + 1 : null;
 }
 
+/** Source-delete ordinals are keyed by stable table id, never filename. */
+export function sourceDeleteOrdinals(
+  sources: ReadonlyArray<{ sourceLabel: string; sample: { table: { id: string } } }>,
+): Map<string, number | null> {
+  const counts = new Map<string, number>();
+  for (const source of sources) {
+    counts.set(source.sourceLabel, (counts.get(source.sourceLabel) ?? 0) + 1);
+  }
+  const seen = new Map<string, number>();
+  return new Map(
+    sources.map((source) => {
+      if ((counts.get(source.sourceLabel) ?? 0) < 2) {
+        return [source.sample.table.id, null] as const;
+      }
+      const ordinal = (seen.get(source.sourceLabel) ?? 0) + 1;
+      seen.set(source.sourceLabel, ordinal);
+      return [source.sample.table.id, ordinal] as const;
+    }),
+  );
+}
+
+/** Deleted-card focus policy: next sibling, then previous sibling. */
+export function siblingFocusId(ids: readonly string[], deletedId: string): string | null {
+  const index = ids.indexOf(deletedId);
+  if (index < 0) return null;
+  return ids[index + 1] ?? ids[index - 1] ?? null;
+}
+
+type PendingQueryDeleteFocus = { queryId: string | null; sourceTableId: string };
+type PendingChartDeleteFocus = { chartId: string | null; queryId: string };
+
 /**
  * Shared body for the "wait until the DOM element a pending id refers to has
  * actually mounted, then focus it" effects below (/simplify Reuse/Altitude/
@@ -269,6 +300,27 @@ function focusPendingChartElement(
   if (!id || !exists(id)) return;
   pendingIdRef.current = null;
   document.querySelector<HTMLElement>(`[${attribute}="${id}"]`)?.focus();
+}
+
+function findDataAttributeElement(attribute: string, value: string): HTMLElement | null {
+  return (
+    Array.from(document.querySelectorAll<HTMLElement>(`[${attribute}]`)).find(
+      (element) => element.getAttribute(attribute) === value,
+    ) ?? null
+  );
+}
+
+export function findEnabledDataAttributeElement(
+  attribute: string,
+  value: string,
+): HTMLElement | null {
+  const element = findDataAttributeElement(attribute, value);
+  return element && (!(element instanceof HTMLButtonElement) || !element.disabled) ? element : null;
+}
+
+/** Native confirm() can restore focus after the handler returns (WebKit). */
+function refocusAfterConfirmCancel(attribute: string, value: string): void {
+  window.setTimeout(() => findDataAttributeElement(attribute, value)?.focus(), 0);
 }
 
 function toJsonPrimitive(value: unknown): JsonPrimitive {
@@ -543,6 +595,8 @@ export function App() {
   // so the existing add-chart effect (scoped to `[charts]`) would never
   // re-fire for it.
   const focusMovedChartIdRef = useRef<string | null>(null);
+  const focusPendingQueryDeleteRef = useRef<PendingQueryDeleteFocus | null>(null);
+  const focusPendingChartDeleteRef = useRef<PendingChartDeleteFocus | null>(null);
 
   const [layout, setLayout] = useState<Layout>({ grid: "guidebook-12col", items: [] });
   const layoutRef = useRef(layout);
@@ -1141,6 +1195,7 @@ export function App() {
           `「${sourceLabel}」を削除します。関連する集計・グラフもすべて削除され、取り込んだデータは復元できません。よろしいですか？`,
         )
       ) {
+        refocusAfterConfirmCancel("data-delete-source-for", tableId);
         return;
       }
       try {
@@ -1256,7 +1311,20 @@ export function App() {
           "この集計を削除します。関連するグラフもすべて削除されます。よろしいですか？",
         )
       ) {
+        refocusAfterConfirmCancel("data-delete-query-for", queryId);
         return;
+      }
+      const query = queriesRef.current.find((candidate) => candidate.id === queryId);
+      if (query) {
+        const siblingIds = queriesRef.current
+          .filter((candidate) => candidate.sourceTableId === query.sourceTableId)
+          .map((candidate) => candidate.id);
+        // Capture stable ids before the cascade/state mutation; array
+        // indices are not meaningful once React removes this card.
+        focusPendingQueryDeleteRef.current = {
+          queryId: siblingFocusId(siblingIds, queryId),
+          sourceTableId: query.sourceTableId,
+        };
       }
       // Cascade first (issue #12, plan §カスケード削除): removes every chart
       // that references this query (pruning `chartRowsByQuery`'s entry once
@@ -1346,7 +1414,23 @@ export function App() {
       // also the cascade primitive `cascadeDeleteQuery` calls per-chart (a
       // source/query delete cascading through N charts must prompt once,
       // not N times).
-      if (!window.confirm("このグラフを削除します。よろしいですか？")) return;
+      if (!window.confirm("このグラフを削除します。よろしいですか？")) {
+        refocusAfterConfirmCancel("data-delete-chart-for", chartId);
+        return;
+      }
+      const chart = chartsRef.current.find((candidate) => candidate.id === chartId);
+      if (chart?.query) {
+        const siblingIds = chartsRef.current
+          .filter((candidate) => candidate.query === chart.query)
+          .map((candidate) => candidate.id);
+        // Capture stable ids before the chart/layout state commit. The
+        // owning query's add-chart control is the fallback when no sibling
+        // remains.
+        focusPendingChartDeleteRef.current = {
+          chartId: siblingFocusId(siblingIds, chartId),
+          queryId: chart.query,
+        };
+      }
       handleChartDelete(chartId);
       setAnnouncement("グラフを削除しました。");
     },
@@ -1411,6 +1495,37 @@ export function App() {
       "data-layout-item-chart-id",
     );
   }, [layout]);
+
+  // Query delete focus: next query -> previous query -> owning source's
+  // stable 集計 control. Resolve after the state commit so no detached node
+  // can receive focus.
+  useEffect(() => {
+    const pending = focusPendingQueryDeleteRef.current;
+    if (!pending) return;
+    const target =
+      (pending.queryId && findDataAttributeElement("data-query-id", pending.queryId)) ||
+      findDataAttributeElement("data-add-query-for", pending.sourceTableId);
+    if (!target) return;
+    focusPendingQueryDeleteRef.current = null;
+    target.focus();
+  }, [queries, sources]);
+
+  // Chart delete focus: next chart -> previous chart -> owning query's
+  // stable グラフ化 control. Query/source cascades do not set this ref, so
+  // their own section-level focus policy remains authoritative.
+  useEffect(() => {
+    const pending = focusPendingChartDeleteRef.current;
+    if (!pending) return;
+    const target =
+      (pending.chartId && findDataAttributeElement("data-chart-id", pending.chartId)) ||
+      findEnabledDataAttributeElement("data-add-chart-for", pending.queryId) ||
+      // A query refresh can temporarily disable グラフ化. Never leave focus
+      // on body in that window; the owning query card is always focusable.
+      findDataAttributeElement("data-query-id", pending.queryId);
+    if (!target) return;
+    focusPendingChartDeleteRef.current = null;
+    target.focus();
+  }, [charts, queries]);
 
   // issue #15/F7: the save button's click handler. `canSave` is called
   // twice (here for the disabled/copy state, again inside the handler) --
@@ -1533,6 +1648,7 @@ export function App() {
   }, [dirty]);
 
   const hasSources = sources.length > 0;
+  const sourceDeleteOrdinalMap = sourceDeleteOrdinals(sources);
 
   // Rendered OUTSIDE either branch below (code review finding): deleting
   // the last remaining source flips `hasSources` back to `false` in the
@@ -1718,6 +1834,7 @@ export function App() {
               // props haven't changed now skips re-rendering when some OTHER
               // source is added/removed or `announcement` updates.
               onDelete={handleSourceDelete}
+              sourceDeleteOrdinal={sourceDeleteOrdinalMap.get(sample.table.id) ?? null}
               onOverrideChange={handleOverrideChange}
               onAddQuery={handleAddQuery}
             />

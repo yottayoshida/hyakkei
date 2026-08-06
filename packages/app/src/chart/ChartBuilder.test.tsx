@@ -215,6 +215,7 @@ describe("ChartBuilder", () => {
   it("calls onDelete with the chart id", async () => {
     const onDelete = vi.fn();
     const { host } = await renderInJsdom(<ChartBuilder {...baseProps({ onDelete })} />);
+    expect(host.querySelector(".hyakkei-chart-card")?.getAttribute("tabindex")).toBe("-1");
     const deleteButton = host.querySelector(
       "[aria-label='「売上.csv」のグラフを削除']",
     ) as HTMLButtonElement;
