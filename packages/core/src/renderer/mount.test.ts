@@ -873,6 +873,32 @@ describe("patch()", () => {
     const option = setOptionSpy.mock.calls.at(-1)?.[0] as { aria?: { description?: string } };
     expect(option.aria?.description).toBe("説明B");
     expect(JSON.stringify(option)).not.toContain("説明A");
+
+    patch(
+      el,
+      model(
+        [
+          {
+            id: "c1",
+            chart: {
+              id: "c1",
+              type: "bar",
+              encoding: { x: "cat", y: "val" },
+              options: {},
+            } as Chart,
+            rows: [{ cat: "A", val: 1 }],
+            state: "ok",
+          },
+        ],
+        [item("c1")],
+      ),
+    );
+
+    const clearedOption = setOptionSpy.mock.calls.at(-1)?.[0] as {
+      aria?: { description?: string };
+    };
+    expect(clearedOption.aria?.description).toBeUndefined();
+    expect(JSON.stringify(clearedOption)).not.toContain("説明B");
   });
 
   it("V-003: same id, type change (bar -> pie) disposes the old instance and builds a new one, never reusing across types", () => {
