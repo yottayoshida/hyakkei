@@ -279,6 +279,7 @@ test.describe("editor shell: chart builder (issue #12)", () => {
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
     await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
     await expect(page.getByRole("status").filter({ hasText: "削除しました" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "「06-shift_jis.csv」を削除" })).toBeFocused();
   });
 
   // Codex Round 1 (P1): the source-delete cancel path above was covered,
@@ -296,6 +297,9 @@ test.describe("editor shell: chart builder (issue #12)", () => {
 
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(1);
     await expect(page.locator(".hyakkei-chart-card")).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "「06-shift_jis.csv」の集計を削除" }),
+    ).toBeFocused();
   });
 
   test("cancelling the chart-delete confirm leaves the chart untouched, no delete announcement", async ({
@@ -312,6 +316,82 @@ test.describe("editor shell: chart builder (issue #12)", () => {
     await expect(page.getByRole("status").filter({ hasText: "グラフを削除しました" })).toHaveCount(
       0,
     );
+    await expect(
+      page.getByRole("button", { name: "「06-shift_jis.csv」のグラフを削除" }),
+    ).toBeFocused();
+  });
+
+  test("query deletion focuses next, then previous, then the source's add-query control", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    const queries = page.locator(".hyakkei-query-card");
+    await expect(queries).toHaveCount(3);
+
+    page.on("dialog", (dialog) => void dialog.accept());
+    await queries.nth(1).getByRole("button", { name: "「06-shift_jis.csv」の集計2を削除" }).click();
+    await expect(queries).toHaveCount(2);
+    await expect(queries.nth(1)).toBeFocused(); // next sibling
+
+    await queries.nth(1).getByRole("button", { name: "「06-shift_jis.csv」の集計2を削除" }).click();
+    await expect(queries).toHaveCount(1);
+    await expect(queries.first()).toBeFocused(); // previous sibling
+
+    await queries.first().getByRole("button", { name: "「06-shift_jis.csv」の集計を削除" }).click();
+    await expect(queries).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "「06-shift_jis.csv」を集計" })).toBeFocused();
+  });
+
+  test("chart deletion focuses next, then previous, then the owning query's add-chart control", async ({
+    page,
+  }) => {
+    await setUpAggregatedQuery(page);
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    await page.getByRole("button", { name: GRAPH_BUTTON }).click();
+    const charts = page.locator(".hyakkei-chart-card");
+    await expect(charts).toHaveCount(3);
+
+    page.on("dialog", (dialog) => void dialog.accept());
+    await charts
+      .nth(1)
+      .getByRole("button", { name: "「06-shift_jis.csv」のグラフ2を削除" })
+      .click();
+    await expect(charts).toHaveCount(2);
+    await expect(charts.nth(1)).toBeFocused(); // next sibling
+
+    await charts
+      .nth(1)
+      .getByRole("button", { name: "「06-shift_jis.csv」のグラフ2を削除" })
+      .click();
+    await expect(charts).toHaveCount(1);
+    await expect(charts.first()).toBeFocused(); // previous sibling
+
+    await charts
+      .first()
+      .getByRole("button", { name: "「06-shift_jis.csv」のグラフを削除" })
+      .click();
+    await expect(charts).toHaveCount(0);
+    await expect(page.getByRole("button", { name: GRAPH_BUTTON })).toBeFocused();
+  });
+
+  test("same-named source delete buttons get stable 1-based ordinals", async ({ page }) => {
+    const file = fixturePath("06-shift_jis.csv");
+    await page.locator('input[type="file"]').setInputFiles(file);
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "データを追加" }).click();
+    await page.locator('input[type="file"]').setInputFiles(file);
+    await expect(page.locator(".hyakkei-source-card")).toHaveCount(2);
+    await expect(
+      page.getByRole("button", { name: "「06-shift_jis.csv」（1件目）を削除" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "「06-shift_jis.csv」（2件目）を削除" }),
+    ).toBeVisible();
   });
 
   // issue #102 (V-002): a source with N charts on its one query must still

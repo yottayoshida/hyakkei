@@ -35,6 +35,8 @@ export type RegisteredSummaryProps = {
    * source is added/removed/renders its own announcement.
    */
   onDelete: (tableId: string, sourceLabel: string) => void;
+  /** 1-based ordinal only when another displayed source has the same label. */
+  sourceDeleteOrdinal?: number | null;
   /** Same stable-reference discipline as `onDelete` (issue #11b). */
   onOverrideChange: (tableId: string, column: string, category: ColumnCategory) => void;
   /** Same stable-reference discipline as `onDelete` (issue 11c). Opens a new `QueryBuilder` for this source. */
@@ -80,6 +82,7 @@ export const RegisteredSummary = memo(function RegisteredSummary({
   previewRows,
   previewPending,
   onDelete,
+  sourceDeleteOrdinal = null,
   onOverrideChange,
   onAddQuery,
 }: RegisteredSummaryProps) {
@@ -149,6 +152,7 @@ export const RegisteredSummary = memo(function RegisteredSummary({
             type="button"
             onClick={() => onAddQuery(table.id)}
             aria-label={`「${sourceLabel}」を集計`}
+            data-add-query-for={table.id}
             style={{ minHeight: 44, padding: "0 12px" }}
           >
             このデータを集計
@@ -159,7 +163,8 @@ export const RegisteredSummary = memo(function RegisteredSummary({
             // code review P2 #4: with 2+ sources, every card's button was
             // identically named "削除" -- indistinguishable by a screen
             // reader's control list. Tied to this card's own source.
-            aria-label={`「${sourceLabel}」を削除`}
+            aria-label={`「${sourceLabel}」${sourceDeleteOrdinal == null ? "" : `（${sourceDeleteOrdinal}件目）`}を削除`}
+            data-delete-source-for={table.id}
             style={{ minHeight: 44, padding: "0 12px", background: "transparent" }}
           >
             削除

@@ -277,6 +277,7 @@ export const QueryBuilder = memo(function QueryBuilder({
     <div
       className="hyakkei-query-card"
       data-query-id={query.id}
+      tabIndex={-1}
       style={{ marginTop: 16, border: "1px solid #e5e7eb", borderRadius: 8, padding: 16 }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -285,6 +286,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           type="button"
           onClick={() => onDelete(query.id)}
           aria-label={`「${sourceLabel}」の集計${ordinalSuffix}を削除`}
+          data-delete-query-for={query.id}
           style={{ minHeight: 44, padding: "0 12px", background: "transparent", flexShrink: 0 }}
         >
           削除
@@ -592,6 +594,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           // `handleAddChart`'s own guard silently no-op the click.
           disabled={usableColumns(query.previewColumns).length === 0 || query.previewPending}
           aria-label={`「${sourceLabel}」の集計${ordinalSuffix}をグラフ化`}
+          data-add-chart-for={query.id}
           style={{
             minHeight: 44,
             padding: "0 16px",

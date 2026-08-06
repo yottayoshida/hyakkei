@@ -309,6 +309,7 @@ export const ChartBuilder = memo(function ChartBuilder({
           type="button"
           onClick={() => onDelete(chart.id)}
           aria-label={`「${sourceLabel}」のグラフ${chartOrdinal ?? ""}を削除`}
+          data-delete-chart-for={chart.id}
           style={{ minHeight: 44, padding: "0 12px", background: "transparent", flexShrink: 0 }}
         >
           削除
