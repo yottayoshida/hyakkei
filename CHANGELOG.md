@@ -76,6 +76,7 @@ This project has not yet reached a versioned release; entries are grouped by dat
 ## 2026-07-14
 
 - **fix(lint,ci): close residual lint bypasses and CI gaps found in PR #78 re-review (#80)** — An independent re-review of the previous day's lint-hardening PR found 10 confirmed bypasses still open: `self.eval`/`window.Function` had no `.call`/`.apply`/`.bind`/`Reflect.apply` indirection coverage even though other sinks did; double-cast (`window as unknown as T`) and bracket-notation forms slipped past the eval/Function selectors; `DOMParser` and `Object.defineProperties` were missing receiver/computed-key forms their sibling rules already had; the DOM-sink glob excluded `e2e/**` and root config files despite a comment claiming otherwise; `react-hooks/exhaustive-deps` shipped at `warn` with no `--max-warnings`, so CI could not have caught the bug it was added to prevent; CI's concurrency group keyed on branch name instead of PR number, letting unrelated PRs cancel each other's runs. All fixed and verified with dedicated `eslint --stdin` probes.
+- **feat(app,schema): PR-A1.5 containment wiring (CSP, DuckDB self-host, Ajv standalone codegen) (#81)** — Wires the editor's Content-Security-Policy as a real artifact ahead of PR-A2 (issue #7's next PR, the first to instantiate real DuckDB-WASM), so the primary containment mechanism exists before the thing it needs to contain lands. Includes a prerequisite fix moving `packages/schema`'s Ajv validators from runtime compilation to build-time standalone codegen, discovered mid-implementation when the CSP first broke rendering with `EvalError` (`script-src` deliberately excludes `'unsafe-eval'`, since this repo has invested multiple rounds of lint hardening against eval-based XSS bypasses that `unsafe-eval` would silently undo).
 
 ## 2026-07-12
 
@@ -117,9 +118,3 @@ Six PRs landed the same day, closing out M1's remaining audit and golden-test wo
 - **chore: bootstrap repository with README, LICENSE, .gitignore** — Initial commit.
 - **docs: add design docs — PRD, roadmap, architecture, ADRs 0001-0004 (#1)** — Established the problem statement, personas (P1 government staff / P2 small orgs / P3 civic tech developers), v0.1 scope, component boundaries, security model, and the first 4 ADRs (browser-complete, single-JSON dashboards, auth outside the app, tech stack).
 - **docs: add hero illustration to README header (#27)** — Ukiyo-e style artwork visualizing the project thesis (Edo-period townspeople gathered around public chart boards), AI-generated provenance noted in the README.
-
----
-
-## In progress (not yet merged)
-
-**feat(app,schema): PR-A1.5 containment wiring (CSP, DuckDB self-host, Ajv standalone codegen)** ([#81](https://github.com/yottayoshida/hyakkei/pull/81)) — Wires the editor's Content-Security-Policy as a real artifact ahead of PR-A2 (issue #7's next PR, the first to instantiate real DuckDB-WASM), so the primary containment mechanism exists before the thing it needs to contain lands. Includes a prerequisite fix moving `packages/schema`'s Ajv validators from runtime compilation to build-time standalone codegen, discovered mid-implementation when the CSP first broke rendering with `EvalError` (`script-src` deliberately excludes `'unsafe-eval'`, since this repo has invested multiple rounds of lint hardening against eval-based XSS bypasses that `unsafe-eval` would silently undo).
