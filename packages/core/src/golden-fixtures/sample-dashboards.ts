@@ -6,13 +6,13 @@
 // importable by both this package's own golden tests and `packages/app`'s
 // pixel-golden harness (single source, no fixture drift between the two).
 //
-// Content is public-open-data-shaped (行政手続き/予算/地域統計, the kind of
-// monthly PDF report P1 is meant to replace), deliberately using CJK
-// category labels, 和暦 (Japanese era) month labels, and 全角 digits in free
-// text -- exactly the label shapes that motivated the PR-0 CJK-label-
-// dropping fix and PR-B's `cellText`/`interval:0` handling. All three
-// dashboards collectively cover all 7 `ChartVariant` types; each dashboard
-// individually stays close to a single printed page.
+// Content is a fixed snapshot of official e-Stat tables (population,
+// economic foundation, and administrative foundation). The source URL,
+// table id, acquisition date, and SHA-256 of each normalized CSV live beside
+// the rows in `data/provenance.json`; no gallery build or viewer fetches the
+// source at runtime. All three dashboards collectively cover all 7
+// `ChartVariant` types; each dashboard individually stays close to a single
+// printed page.
 //
 // issue #6/#10: each dashboard's authoring document is a canonical JSON
 // exemplar (`applications.json`/`budget.json`/`regional.json`, this
@@ -39,8 +39,8 @@ import type { BakeMeta } from "../bake/bake.js";
 import type { Row } from "../renderer/render-model.js";
 
 export const GOLDEN_BAKE_META: BakeMeta = {
-  generatedAt: "2026-07-11T00:00:00Z",
-  sourceDataAsOf: "2026-07-10",
+  generatedAt: "2026-08-09T00:00:00Z",
+  sourceDataAsOf: "2026-02-20",
   hyakkeiVersion: "0.1.0",
 };
 
