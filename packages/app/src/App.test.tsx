@@ -422,6 +422,11 @@ describe("toRow", () => {
     expect(toRow({ a: 42n })).toEqual({ a: 42 });
   });
 
+  it("keeps a BigInt as a string when numeric conversion is non-finite", () => {
+    const huge = 10n ** 400n;
+    expect(toRow({ a: huge })).toEqual({ a: huge.toString() });
+  });
+
   it("converts a Date to its ISO string", () => {
     const date = new Date("2026-07-23T00:00:00.000Z");
     expect(toRow({ a: date })).toEqual({ a: "2026-07-23T00:00:00.000Z" });

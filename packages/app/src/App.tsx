@@ -333,7 +333,10 @@ function toJsonPrimitive(value: unknown): JsonPrimitive {
   if (value === null || value === undefined) return null;
   if (typeof value === "string" || typeof value === "boolean") return value;
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "bigint") {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : value.toString();
+  }
   if (value instanceof Date) return value.toISOString();
   return String(value);
 }

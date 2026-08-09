@@ -78,6 +78,11 @@ describe("rowToPlainObject", () => {
     expect(rowToPlainObject([["count", 42n]])).toEqual({ count: 42 });
   });
 
+  it("keeps a bigint as a string when numeric conversion is non-finite", () => {
+    const huge = 10n ** 400n;
+    expect(rowToPlainObject([["count", huge]])).toEqual({ count: huge.toString() });
+  });
+
   it("/simplify altitude pass: a column literally named __proto__ becomes a genuine own data property, not the exotic setter", () => {
     const row = rowToPlainObject([
       ["id", 1],
