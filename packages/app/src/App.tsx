@@ -41,6 +41,7 @@ import { canSave } from "./document/can-save.js";
 import { downloadDashboard } from "./document/download-dashboard.js";
 import { downloadFilename } from "./document/download-filename.js";
 import { fromDashboard } from "./document/from-dashboard.js";
+import { downloadSingleFileDashboard } from "./document/export-dashboard.js";
 import { readDashboardFile, DashboardReadError } from "./document/read-dashboard.js";
 import { SAVE_NARRATIVE_EXCLUDED, SAVE_NARRATIVE_INCLUDED } from "./document/save-narrative.js";
 import { DEFAULT_THEME } from "./document/theme.js";
@@ -1628,6 +1629,31 @@ export function App() {
     setAnnouncement(`保存しました: ${filename}`);
   }, [meta, theme, sources, queries, charts, layout]);
 
+  const handleExport = useCallback(() => {
+    const blockReason = canSave({ meta, queries });
+    if (blockReason) {
+      setAnnouncement(
+        blockReason === "empty-title"
+          ? "タイトルを入力してください。"
+          : "まだ準備中の集計があります。",
+      );
+      return;
+    }
+    try {
+      const dashboard = toDashboard({ meta, theme, sources, queries, charts, layout });
+      const verifyFailure = verifyBeforeSave(dashboard);
+      if (verifyFailure) {
+        setAnnouncement("配布用HTMLを書き出せませんでした。ダッシュボードを確認してください。");
+        return;
+      }
+      const filename = downloadFilename(meta.title, new Date()).replace(/\.json$/i, ".html");
+      downloadSingleFileDashboard(dashboard, filename);
+      setAnnouncement(`配布用HTMLを書き出しました: ${filename}`);
+    } catch {
+      setAnnouncement("配布用HTMLを書き出せませんでした。もう一度お試しください。");
+    }
+  }, [meta, theme, sources, queries, charts, layout]);
+
   const handleOpenDashboard = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -1869,6 +1895,15 @@ export function App() {
           }}
         >
           保存
+        </button>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={saveBlockReason !== null}
+          aria-disabled={saveBlockReason !== null}
+          style={{ minHeight: 44, padding: "0 12px", background: "transparent" }}
+        >
+          配布用HTML
         </button>
       </div>
 
