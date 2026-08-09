@@ -1,0 +1,38 @@
+{
+  "snapshotVersion": 1,
+  "acquiredAt": "2026-08-09",
+  "encoding": "UTF-8",
+  "normalization": "e-Statの画面表示値から対象列と5地域を抽出し、桁区切りを除いたUTF-8 CSVへ正規化。欠測記号は今回の対象列に含まれない。数値の単位と指標コードはヘッダーへ保持した。",
+  "sources": [
+    {
+      "sampleId": "applications",
+      "tableId": "0000010201",
+      "title": "Ａ 人口・世帯",
+      "url": "https://www.e-stat.go.jp/dbview?sid=0000010201",
+      "publishedAt": "2026-02-20T14:00:00+09:00",
+      "surveyYear": "1975年度",
+      "snapshot": "data/applications.csv",
+      "rawCsvSha256": "5a7dd6c76b24caba8b8870d588698258cb6574c6e620186739458bc273a80abb"
+    },
+    {
+      "sampleId": "budget",
+      "tableId": "0000010203",
+      "title": "Ｃ 経済基盤",
+      "url": "https://www.e-stat.go.jp/dbview?sid=0000010203",
+      "publishedAt": "2026-02-20T14:00:00+09:00",
+      "surveyYear": "画面表示値",
+      "snapshot": "data/budget.csv",
+      "rawCsvSha256": "6c51318752dac32d911a19066cb438e7ecf6611dd0bf46deff1ca18e822ef685"
+    },
+    {
+      "sampleId": "regional",
+      "tableId": "0000010204",
+      "title": "Ｄ 行政基盤",
+      "url": "https://www.e-stat.go.jp/dbview?sid=0000010204",
+      "publishedAt": "2026-02-20T14:00:00+09:00",
+      "surveyYear": "画面表示値",
+      "snapshot": "data/regional.csv",
+      "rawCsvSha256": "ffcee8357401b35a7d45248aa79a06f55e7d6831938624f94a29ad0224b1ba7f"
+    }
+  ]
+}

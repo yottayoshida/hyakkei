@@ -37,7 +37,7 @@ describe("ExportSizeDialog", () => {
       "フォルダーZIPで書き出す",
       "キャンセル",
     ]);
-    expect(document.activeElement).toBe(buttons[0]);
+    expect(document.activeElement).toBe(buttons[1]);
     await act(async () => buttons[1]!.click());
     expect(onFolderZip).toHaveBeenCalledTimes(1);
     expect(onSingleFile).not.toHaveBeenCalled();

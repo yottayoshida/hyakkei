@@ -1,0 +1,22 @@
+{
+  "q-rate": [
+    { "month": "全国", "rate": 22.69 },
+    { "month": "北海道", "rate": 13.44 },
+    { "month": "青森県", "rate": 13.21 },
+    { "month": "岩手県", "rate": 16.47 },
+    { "month": "宮城県", "rate": 17.96 }
+  ],
+  "q-breakdown": [
+    { "item": "第2次産業事業所", "amount": 22.69 },
+    { "item": "第3次産業事業所", "amount": 76.89 },
+    { "item": "耕地面積", "amount": 15 },
+    { "item": "土地生産性", "amount": 161.1 }
+  ],
+  "q-detail": [
+    { "item": "全国", "budget": 22.69, "actual": 76.89 },
+    { "item": "北海道", "budget": 13.44, "actual": 84.92 },
+    { "item": "青森県", "budget": 13.21, "actual": 85.85 },
+    { "item": "岩手県", "budget": 16.47, "actual": 82.33 },
+    { "item": "宮城県", "budget": 17.96, "actual": 81.41 }
+  ]
+}

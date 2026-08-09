@@ -13,8 +13,8 @@ export function ExportSizeDialog({
   onFolderZip,
   onCancel,
 }: ExportSizeDialogProps) {
-  const singleFileRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => singleFileRef.current?.focus(), []);
+  const folderZipRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => folderZipRef.current?.focus(), []);
   const mib = (bytes / (1024 * 1024)).toFixed(1);
   return (
     <div
@@ -30,10 +30,10 @@ export function ExportSizeDialog({
           このダッシュボードは約{mib} MiBです。20 MiBを超えるため、配布方法を選んでください。
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button ref={singleFileRef} type="button" onClick={onSingleFile}>
+          <button type="button" onClick={onSingleFile}>
             単一HTMLで書き出す
           </button>
-          <button type="button" onClick={onFolderZip}>
+          <button ref={folderZipRef} type="button" onClick={onFolderZip}>
             フォルダーZIPで書き出す
           </button>
           <button type="button" onClick={onCancel}>

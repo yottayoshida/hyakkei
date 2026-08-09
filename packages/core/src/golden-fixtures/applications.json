@@ -1,34 +1,34 @@
 {
   "version": 1,
   "meta": {
-    "title": "行政手続き申請状況（令和8年度）",
+    "title": "都道府県別人口（1975年度）",
     "locale": "ja",
-    "description": "行政手続きの申請件数を区分別・月次に集計し、当月の総数と合わせて示すダッシュボード。",
-    "updatedAt": "2026-07-08",
-    "sourceNote": "建築指導課ほか各課の申請受付簿を集計（applications_r8.xlsx「申請状況」シート）。速報値のため、後日の取下げ・再申請により確定値と差が生じることがあります。",
-    "summary": "令和8年度上半期の申請は総数351件。区分別では建築確認が128件で最多、次いで廃棄物処理63件、農地転用47件。月次では4月の51件から7月の70件まで増加した後8月に44件へ落ち込み、9月は66件で持ち直している。"
+    "description": "e-Statの社会・人口統計体系から、都道府県別の総人口と男女別人口を読み取るダッシュボード。",
+    "updatedAt": "2026-02-20",
+    "sourceNote": "e-Stat 表番号0000010201（Ａ 人口・世帯）、調査年1975年度。applications.csv の単位は万人。",
+    "summary": "1975年度の総人口は全国11194万人。都道府県別では東京都1167万人、大阪府828万人、神奈川県640万人、沖縄県104万人。全国の男女別人口は男性5509万人、女性5685万人。"
   },
   "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-blue" },
   "sources": [
     {
-      "id": "apps",
+      "id": "population",
       "kind": "file",
-      "format": "xlsx",
-      "ref": { "name": "applications_r8.xlsx", "sheet": "申請状況" }
+      "format": "csv",
+      "ref": { "name": "applications.csv", "encoding": "UTF-8", "url": "https://www.e-stat.go.jp/dbview?sid=0000010201", "tableId": "0000010201", "surveyYear": "1975年度" }
     }
   ],
   "queries": [
     {
       "id": "q-category",
-      "source": "apps",
-      "sql": "SELECT category, COUNT(*) AS count FROM apps GROUP BY category"
+      "source": "population",
+      "sql": "SELECT prefecture AS category, population AS count FROM population"
     },
     {
       "id": "q-monthly",
-      "source": "apps",
-      "sql": "SELECT month, COUNT(*) AS count FROM apps GROUP BY month ORDER BY month"
+      "source": "population",
+      "sql": "SELECT sex AS month, population AS count FROM population ORDER BY sex"
     },
-    { "id": "q-total", "source": "apps", "sql": "SELECT COUNT(*) AS count FROM apps" }
+    { "id": "q-total", "source": "population", "sql": "SELECT population AS count FROM population WHERE prefecture = '全国'" }
   ],
   "charts": [
     {
@@ -36,24 +36,24 @@
       "type": "bar",
       "encoding": { "x": "category", "y": "count" },
       "query": "q-category",
-      "altText": "区分別の申請件数を比較し、建築確認が128件で最多です。",
-      "options": { "title": "区分別申請件数" }
+      "altText": "都道府県別の総人口を比較し、東京都が1167万人で最多です。",
+      "options": { "title": "都道府県別総人口（万人）" }
     },
     {
       "id": "app-monthly",
       "type": "line",
       "encoding": { "x": "month", "y": "count" },
       "query": "q-monthly",
-      "altText": "月次の申請件数を示し、7月の70件が最多で8月に44件へ減少後9月に66件へ回復しています。",
-      "options": { "title": "月次申請件数推移" }
+      "altText": "全国の男女別人口を示し、女性5685万人が男性5509万人を上回ります。",
+      "options": { "title": "全国の男女別人口（万人）" }
     },
     {
       "id": "app-total",
       "type": "stat",
       "encoding": { "value": "count" },
       "query": "q-total",
-      "altText": "当月の申請総数を示し、合計は351件です。",
-      "options": { "title": "今月の申請総数" }
+      "altText": "全国の総人口を示し、1975年度は11194万人です。",
+      "options": { "title": "全国の総人口（万人）" }
     }
   ],
   "layout": {
