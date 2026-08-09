@@ -65,6 +65,9 @@ importers:
       '@hyakkei/schema':
         specifier: workspace:*
         version: link:../schema
+      jszip:
+        specifier: 3.10.1
+        version: 3.10.1
       react:
         specifier: ^18.3.0
         version: 18.3.1

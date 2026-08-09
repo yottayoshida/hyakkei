@@ -31,12 +31,12 @@ const FORBIDDEN_MARKERS = ["duckdb", "exceljs", "iconv", "AsyncDuckDB", "q-categ
 
 function scriptSrcsFromHtml(htmlPath: string): string[] {
   const html = readFileSync(htmlPath, "utf-8");
-  return [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.js)"/g)].map((m) => m[1]!);
+  return [...html.matchAll(/(?:src|href)="((?:\.\/)?assets\/[^"]+\.js)"/g)].map((m) => m[1]!);
 }
 
 function readAssets(srcs: string[]): string {
   return srcs
-    .map((src) => readFileSync(join(DIST_DIR, src.replace(/^\//, "")), "utf-8"))
+    .map((src) => readFileSync(join(DIST_DIR, src.replace(/^\.?\//, "")), "utf-8"))
     .join("\n");
 }
 
@@ -137,12 +137,24 @@ const DATA_LAYER_MODULE_KEYS = ["../core/dist/datasource/index.js", "src/duckdb/
  */
 function stripChunkPathReferences(text: string): string {
   return text.replaceAll(
-    /__vite__mapDeps=[^;]*?\[(?:"assets\/[^"]+\.(?:js|css)",?)+\]/g,
+    /__vite__mapDeps=[^;]*?\[(?:"(?:\.\/)?(?:assets\/)?[^"]+\.(?:js|css)",?)+\]/g,
     "__vite__mapDeps=STRIPPED",
   );
 }
 
 describe("packages/app real build output isolation (CI assert)", () => {
+  it("uses only relative app asset URLs, so a GitHub Pages repository subpath remains deployable", () => {
+    for (const htmlFile of ["index.html", "golden.html", "register-harness.html"]) {
+      const html = readFileSync(join(DIST_DIR, htmlFile), "utf-8");
+      expect(html, `${htmlFile} must not root-anchor Vite assets`).not.toMatch(
+        /(?:src|href)="\/(?:assets|vendor)\//,
+      );
+      expect(html, `${htmlFile} must retain a relative Vite asset reference`).toMatch(
+        /(?:src|href)="\.\/assets\//,
+      );
+    }
+  });
+
   // issue #11a (single-SPA editor, ADR-0010): index.html is no longer a
   // pure viewer with zero legitimate reason to reference the data layer --
   // it legitimately reaches it now, but only lazily (Stage B, below). This

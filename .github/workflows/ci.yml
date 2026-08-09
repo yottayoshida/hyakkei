@@ -198,3 +198,37 @@ jobs:
           path: test-results
           retention-days: 7
           if-no-files-found: ignore
+
+  deploy-pages:
+    # Public hosting is a post-merge action: PRs only validate the artifact,
+    # while main publishes the exact dist artifact all required checks passed.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-and-test, pixel-golden]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Download packages/app/dist (built and tested by build-and-test)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: app-dist
+          path: packages/app/dist
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: packages/app/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

@@ -7,6 +7,7 @@
 // accumulated `sources[]`, and the sample dashboard preview.
 import { mount, normalizeBaked, unmount, type Row } from "@hyakkei/core/renderer";
 import { bake } from "@hyakkei/core/bake";
+import { planDashboardExport } from "@hyakkei/export";
 // `import type` only (issue #54/#11a bundle isolation): a value import from
 // `@hyakkei/core/datasource` would statically pull duckdb/exceljs/iconv into
 // this entry chunk. Every runtime call to a column-types builder goes
@@ -42,13 +43,16 @@ import { canSave } from "./document/can-save.js";
 import { downloadDashboard } from "./document/download-dashboard.js";
 import { downloadFilename } from "./document/download-filename.js";
 import { fromDashboard } from "./document/from-dashboard.js";
-import { downloadSingleFileDashboard } from "./document/export-dashboard.js";
+import { downloadSingleFileHtml } from "./document/export-dashboard.js";
+import { downloadExportFolder } from "./document/download-export-folder.js";
 import { mergeDashboardSource } from "./document/merge-dashboard.js";
 import { readDashboardFile, DashboardReadError } from "./document/read-dashboard.js";
 import { SAVE_NARRATIVE_EXCLUDED, SAVE_NARRATIVE_INCLUDED } from "./document/save-narrative.js";
 import { DEFAULT_THEME } from "./document/theme.js";
 import { toDashboard } from "./document/to-dashboard.js";
 import { verifyBeforeSave } from "./document/verify-before-save.js";
+import { ExportSizeDialog } from "./export/ExportSizeDialog.js";
+import { ExportRowsError, resolveExportRows } from "./export/resolve-export-rows.js";
 // Re-exported (not just imported) so existing consumers of `./App.js` keep
 // working unchanged -- the class body moved out (issue #12) so `chart/
 // ChartBuilder.tsx` can use the same boundary without an App.tsx <-> chart/
@@ -70,6 +74,7 @@ import {
   type WorkspaceQuery,
 } from "./intake/types.js";
 import { classifyQueryError } from "./intake/query-error.js";
+import { GalleryPanel } from "./gallery/GalleryPanel.js";
 
 export type DashboardPreviewProps = { dashboard: BakedDashboard };
 
@@ -358,6 +363,15 @@ export function toRow(plain: Record<string, unknown>): Row {
  */
 const PENDING_ROW_STATE: ChartRowState = { status: "pending" };
 
+function PublicDisclaimer() {
+  return (
+    <footer style={{ maxWidth: 960, margin: "0 auto", padding: "16px 24px 24px", fontSize: 12 }}>
+      Hyakkei
+      はコミュニティプロジェクトです。デジタル庁の公式製品ではなく、提携・承認関係もありません。
+    </footer>
+  );
+}
+
 export function App() {
   const [sources, setSources] = useState<WorkspaceSource[]>([]);
   // issue #15/F7: `meta`/`theme` are the two `Dashboard` top-level fields
@@ -389,6 +403,15 @@ export function App() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [announcement, setAnnouncement] = useState<string | null>(null);
+  const [exportPending, setExportPending] = useState(false);
+  const [exportSizePrompt, setExportSizePrompt] = useState<{
+    baked: BakedDashboard;
+    html: string;
+    filename: string;
+    bytes: number;
+  } | null>(null);
+  const [largeExportPending, setLargeExportPending] = useState(false);
+  const largeExportPendingRef = useRef(false);
   // Shell-owned (mirror-review Major 3): every id this session has ever
   // reserved must outlive each individual `IntakeApp` mount ("add source"
   // mounts a fresh instance per attempt), so it lives here, not inside
@@ -407,6 +430,7 @@ export function App() {
 
   const workspaceHeadingRef = useRef<HTMLHeadingElement>(null);
   const openFileInputRef = useRef<HTMLInputElement>(null);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
   // /simplify (Altitude): a real ref, not a DOM `id` string matched across
   // files -- the previous version relied on `IntakeApp.tsx` keeping a
   // literal `id="hyakkei-onboard-heading"` attribute in sync with this
@@ -1670,7 +1694,7 @@ export function App() {
         )
       : undefined;
     const rowState = chartRowsByQuery.get(chart.query);
-    return !query || !source || rowState?.status !== "ready" || rowState.truncated;
+    return !query || !source || rowState?.status !== "ready";
   });
   const handleSave = useCallback(() => {
     const blockReason = canSave({ meta, queries });
@@ -1729,7 +1753,7 @@ export function App() {
     setAnnouncement(`保存しました: ${filename}`);
   }, [meta, theme, sources, queries, charts, layout, documentExtras, queryExtras]);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     const blockReason = canSave({ meta, queries });
     if (blockReason) {
       setAnnouncement(
@@ -1749,7 +1773,7 @@ export function App() {
           )
         : undefined;
       const rowState = chartRowsByQueryRef.current.get(chart.query);
-      return !query || !source || rowState?.status !== "ready" || rowState.truncated;
+      return !query || !source || rowState?.status !== "ready";
     });
     if (exportNotReady) {
       setAnnouncement(
@@ -1757,6 +1781,7 @@ export function App() {
       );
       return;
     }
+    setExportPending(true);
     try {
       const dashboard = toDashboard({
         meta,
@@ -1774,22 +1799,76 @@ export function App() {
         return;
       }
       const generatedAt = new Date().toISOString();
-      const rowsByQuery: Record<string, Row[]> = Object.create(null);
-      for (const [queryId, state] of chartRowsByQueryRef.current) {
-        rowsByQuery[queryId] = state.status === "ready" ? state.rows : [];
-      }
+      const rowsByQuery = await resolveExportRows({
+        charts,
+        queries,
+        previewRowsByQuery: chartRowsByQueryRef.current,
+        execute: async (sql) => {
+          const { layer, handle } = await getDuckDBHandleWithLayer();
+          const result = await handle.conn.query(sql);
+          return result
+            .toArray()
+            .map((row) =>
+              toRow(
+                layer.datasource.rowToPlainObject(row as unknown as Iterable<[string, unknown]>),
+              ),
+            );
+        },
+      });
       const baked = bake(dashboard, rowsByQuery, {
         generatedAt,
         sourceDataAsOf: generatedAt.slice(0, 10),
         hyakkeiVersion: "0.1.0",
       });
       const filename = downloadFilename(meta.title, new Date()).replace(/\.json$/i, ".html");
-      downloadSingleFileDashboard(baked, filename);
+      const exportPlan = planDashboardExport(baked);
+      if (exportPlan.exceedsSingleFileLimit) {
+        setExportSizePrompt({ baked, html: exportPlan.html, filename, bytes: exportPlan.bytes });
+        return;
+      }
+      downloadSingleFileHtml(exportPlan.html, filename);
       setAnnouncement(`配布用HTMLを書き出しました: ${filename}`);
-    } catch {
+    } catch (error) {
+      if (error instanceof ExportRowsError) {
+        setAnnouncement(error.message);
+        return;
+      }
       setAnnouncement("配布用HTMLを書き出せませんでした。もう一度お試しください。");
+    } finally {
+      setExportPending(false);
     }
   }, [meta, theme, sources, queries, charts, layout, documentExtras, queryExtras]);
+
+  const handleLargeExportSingleFile = useCallback(() => {
+    if (!exportSizePrompt) return;
+    downloadSingleFileHtml(exportSizePrompt.html, exportSizePrompt.filename);
+    setAnnouncement(`配布用HTMLを書き出しました: ${exportSizePrompt.filename}`);
+    setExportSizePrompt(null);
+    exportButtonRef.current?.focus();
+  }, [exportSizePrompt]);
+
+  const handleLargeExportFolderZip = useCallback(async () => {
+    if (!exportSizePrompt || largeExportPendingRef.current) return;
+    largeExportPendingRef.current = true;
+    setLargeExportPending(true);
+    try {
+      const filename = exportSizePrompt.filename.replace(/\.html$/i, ".zip");
+      await downloadExportFolder(exportSizePrompt.baked, filename);
+      setAnnouncement(`配布用フォルダーZIPを書き出しました: ${filename}`);
+      setExportSizePrompt(null);
+      exportButtonRef.current?.focus();
+    } catch {
+      setAnnouncement("配布用フォルダーZIPを書き出せませんでした。もう一度お試しください。");
+    } finally {
+      largeExportPendingRef.current = false;
+      setLargeExportPending(false);
+    }
+  }, [exportSizePrompt]);
+
+  const handleCancelLargeExport = useCallback(() => {
+    setExportSizePrompt(null);
+    exportButtonRef.current?.focus();
+  }, []);
 
   const handleOpenDashboard = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2056,6 +2135,10 @@ export function App() {
           onComplete={handleSourceComplete}
           onboardHeadingRef={onboardHeadingRef}
         />
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px 24px" }}>
+          <GalleryPanel />
+        </div>
+        <PublicDisclaimer />
       </>
     );
   }
@@ -2148,12 +2231,25 @@ export function App() {
         </button>
         <button
           type="button"
+          ref={exportButtonRef}
           onClick={handleExport}
-          disabled={saveBlockReason !== null || exportBlocked}
-          aria-disabled={saveBlockReason !== null || exportBlocked}
+          disabled={
+            saveBlockReason !== null ||
+            exportBlocked ||
+            exportPending ||
+            exportSizePrompt !== null ||
+            largeExportPending
+          }
+          aria-disabled={
+            saveBlockReason !== null ||
+            exportBlocked ||
+            exportPending ||
+            exportSizePrompt !== null ||
+            largeExportPending
+          }
           style={{ minHeight: 44, padding: "0 12px", background: "transparent" }}
         >
-          配布用HTML
+          {exportPending ? "書き出し中…" : "配布用HTML"}
         </button>
       </div>
 
@@ -2347,6 +2443,16 @@ export function App() {
           <IntakeApp mode="panel" usedIds={usedIds} onComplete={handleSourceComplete} />
         </div>
       )}
+      {exportSizePrompt && (
+        <ExportSizeDialog
+          bytes={exportSizePrompt.bytes}
+          onSingleFile={handleLargeExportSingleFile}
+          onFolderZip={() => void handleLargeExportFolderZip()}
+          onCancel={handleCancelLargeExport}
+          busy={largeExportPending}
+        />
+      )}
+      <PublicDisclaimer />
     </div>
   );
 }

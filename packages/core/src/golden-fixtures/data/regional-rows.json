@@ -1,0 +1,16 @@
+{
+  "q-density": [
+    { "density": 0.506, "agingRate": 85.3, "markerSize": 30 },
+    { "density": 0.448, "agingRate": 85.7, "markerSize": 35.4 },
+    { "density": 0.258, "agingRate": 80.8, "markerSize": 41 },
+    { "density": 0.253, "agingRate": 77, "markerSize": 33.8 },
+    { "density": 0.5, "agingRate": 85.9, "markerSize": 29.7 }
+  ],
+  "q-population": [
+    { "name": "全国", "population": 243.7 },
+    { "name": "北海道", "population": 306.2 },
+    { "name": "青森県", "population": 291.5 },
+    { "name": "岩手県", "population": 287.9 },
+    { "name": "宮城県", "population": 221.5 }
+  ]
+}
