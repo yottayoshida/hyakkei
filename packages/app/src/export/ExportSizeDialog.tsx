@@ -14,7 +14,17 @@ export function ExportSizeDialog({
   onCancel,
 }: ExportSizeDialogProps) {
   const folderZipRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => folderZipRef.current?.focus(), []);
+  useEffect(() => {
+    folderZipRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onCancel]);
   const mib = (bytes / (1024 * 1024)).toFixed(1);
   return (
     <div

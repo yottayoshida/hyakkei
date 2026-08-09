@@ -13,7 +13,7 @@ async function renderDialog(props: ComponentProps<typeof ExportSizeDialog>) {
   document.body.appendChild(host);
   const root = createRoot(host);
   await act(async () => root.render(<ExportSizeDialog {...props} />));
-  return { host, root };
+  return { host, root, unmount: async () => act(async () => root.unmount()) };
 }
 
 describe("ExportSizeDialog", () => {
@@ -21,7 +21,7 @@ describe("ExportSizeDialog", () => {
     const onSingleFile = vi.fn();
     const onFolderZip = vi.fn();
     const onCancel = vi.fn();
-    const { host } = await renderDialog({
+    const { host, unmount } = await renderDialog({
       bytes: 20 * 1024 * 1024 + 1,
       onSingleFile,
       onFolderZip,
@@ -42,5 +42,21 @@ describe("ExportSizeDialog", () => {
     expect(onFolderZip).toHaveBeenCalledTimes(1);
     expect(onSingleFile).not.toHaveBeenCalled();
     expect(onCancel).not.toHaveBeenCalled();
+    await unmount();
+  });
+
+  it("cancels on Escape and removes the key listener on unmount", async () => {
+    const onCancel = vi.fn();
+    const { unmount } = await renderDialog({
+      bytes: 21 * 1024 * 1024,
+      onSingleFile: vi.fn(),
+      onFolderZip: vi.fn(),
+      onCancel,
+    });
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    await unmount();
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });
