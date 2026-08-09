@@ -40,7 +40,10 @@ describe("dashboard export", () => {
   it("provides deterministic folder descriptors without network dependencies", () => {
     const files = buildExportFolder(DASHBOARD);
     expect(Object.keys(files)).toEqual(["index.html", "renderer.js", "dashboard.json"]);
-    expect(files["index.html"]).not.toContain("hyakkei-export-payload");
+    // The folder keeps dashboard.json for inspection, but also embeds the
+    // payload so index.html remains launchable directly from file:// where
+    // fetch("./dashboard.json") is blocked by the browser origin policy.
+    expect(files["index.html"]).toContain("hyakkei-export-payload");
     expect(files["renderer.js"]).toContain("dashboard.json");
     expect(JSON.parse(files["dashboard.json"]!).meta.title).toContain("</script>");
   });

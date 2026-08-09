@@ -14,7 +14,13 @@
       "id": "administrative",
       "kind": "file",
       "format": "csv",
-      "ref": { "name": "regional.csv", "encoding": "UTF-8", "url": "https://www.e-stat.go.jp/dbview?sid=0000010204", "tableId": "0000010204", "surveyYear": "画面表示値" }
+      "ref": {
+        "name": "regional.csv",
+        "encoding": "UTF-8",
+        "url": "https://www.e-stat.go.jp/dbview?sid=0000010204",
+        "tableId": "0000010204",
+        "surveyYear": "画面表示値"
+      }
     }
   ],
   "queries": [
@@ -23,7 +29,11 @@
       "source": "administrative",
       "sql": "SELECT fiscal_power_index AS density, current_balance_ratio AS agingRate, investment_expense_ratio AS markerSize FROM administrative"
     },
-    { "id": "q-population", "source": "administrative", "sql": "SELECT prefecture AS name, per_capita_expenditure AS population FROM administrative" }
+    {
+      "id": "q-population",
+      "source": "administrative",
+      "sql": "SELECT prefecture AS name, per_capita_expenditure AS population FROM administrative"
+    }
   ],
   "charts": [
     {

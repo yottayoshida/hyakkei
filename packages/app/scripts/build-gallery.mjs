@@ -1,4 +1,5 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import { argv } from "node:process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { bake } from "@hyakkei/core/bake";
@@ -37,12 +38,17 @@ export async function writeGalleryArtifacts(outputDir = DEFAULT_OUTPUT_DIR) {
   await rm(outputDir, { recursive: true, force: true });
   await mkdir(outputDir, { recursive: true });
   await Promise.all([
-    ...[...artifacts.files].map(([filename, html]) => writeFile(resolve(outputDir, filename), html)),
-    writeFile(resolve(outputDir, "manifest.json"), `${JSON.stringify(artifacts.manifest, null, 2)}\n`),
+    ...[...artifacts.files].map(([filename, html]) =>
+      writeFile(resolve(outputDir, filename), html),
+    ),
+    writeFile(
+      resolve(outputDir, "manifest.json"),
+      `${JSON.stringify(artifacts.manifest, null, 2)}\n`,
+    ),
   ]);
   return artifacts.manifest;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) {
   await writeGalleryArtifacts();
 }

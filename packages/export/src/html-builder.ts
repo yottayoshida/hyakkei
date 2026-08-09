@@ -26,9 +26,11 @@ function documentHtml(dashboard: BakedDashboard, externalRenderer: boolean): str
   const script = externalRenderer
     ? '<script src="./renderer.js"></script>'
     : `<script>${EXPORT_RENDERER_JS}</script>`;
-  const payloadScript = externalRenderer
-    ? ""
-    : `<script type="application/json" id="${PAYLOAD_ID}">${payload}</script>`;
+  // Keep the payload in both variants. The folder archive also carries the
+  // pretty `dashboard.json` for inspection, but its index must remain
+  // launchable from `file://` where fetch("./dashboard.json") is blocked by
+  // the browser's origin policy.
+  const payloadScript = `<script type="application/json" id="${PAYLOAD_ID}">${payload}</script>`;
   const title = escapeText(String(dashboard.meta.title));
   const policy = `default-src 'none'; style-src 'unsafe-inline'; script-src 'self' '${RENDERER_HASH}'; connect-src 'self'; img-src data:; object-src 'none'`;
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="${policy}"><title>${title}</title><style>${style()}</style></head><body><main id="app"><h1>${title}</h1><div id="dashboard"></div></main>${payloadScript}${script}</body></html>`;

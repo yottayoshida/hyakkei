@@ -14,13 +14,31 @@
       "id": "economic",
       "kind": "file",
       "format": "csv",
-      "ref": { "name": "budget.csv", "encoding": "UTF-8", "url": "https://www.e-stat.go.jp/dbview?sid=0000010203", "tableId": "0000010203", "surveyYear": "画面表示値" }
+      "ref": {
+        "name": "budget.csv",
+        "encoding": "UTF-8",
+        "url": "https://www.e-stat.go.jp/dbview?sid=0000010203",
+        "tableId": "0000010203",
+        "surveyYear": "画面表示値"
+      }
     }
   ],
   "queries": [
-    { "id": "q-rate", "source": "economic", "sql": "SELECT prefecture AS month, secondaryIndustryShare AS rate FROM economic ORDER BY prefecture" },
-    { "id": "q-breakdown", "source": "economic", "sql": "SELECT indicator AS item, value AS amount FROM economic WHERE prefecture = '全国'" },
-    { "id": "q-detail", "source": "economic", "sql": "SELECT prefecture AS item, secondaryIndustryShare AS budget, tertiaryIndustryShare AS actual FROM economic" }
+    {
+      "id": "q-rate",
+      "source": "economic",
+      "sql": "SELECT prefecture AS month, secondaryIndustryShare AS rate FROM economic ORDER BY prefecture"
+    },
+    {
+      "id": "q-breakdown",
+      "source": "economic",
+      "sql": "SELECT indicator AS item, value AS amount FROM economic WHERE prefecture = '全国'"
+    },
+    {
+      "id": "q-detail",
+      "source": "economic",
+      "sql": "SELECT prefecture AS item, secondaryIndustryShare AS budget, tertiaryIndustryShare AS actual FROM economic"
+    }
   ],
   "charts": [
     {

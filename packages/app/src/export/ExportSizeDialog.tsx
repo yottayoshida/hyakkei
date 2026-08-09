@@ -13,6 +13,7 @@ export function ExportSizeDialog({
   onFolderZip,
   onCancel,
 }: ExportSizeDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const folderZipRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     folderZipRef.current?.focus();
@@ -20,6 +21,24 @@ export function ExportSizeDialog({
       if (event.key === "Escape") {
         event.preventDefault();
         onCancel();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (!dialogRef.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     };
     document.addEventListener("keydown", onKeyDown);
@@ -28,6 +47,7 @@ export function ExportSizeDialog({
   const mib = (bytes / (1024 * 1024)).toFixed(1);
   return (
     <div
+      ref={dialogRef}
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="export-size-dialog-title"

@@ -59,4 +59,27 @@ describe("ExportSizeDialog", () => {
     await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it("traps Tab and Shift+Tab within the dialog", async () => {
+    const { host, unmount } = await renderDialog({
+      bytes: 21 * 1024 * 1024,
+      onSingleFile: vi.fn(),
+      onFolderZip: vi.fn(),
+      onCancel: vi.fn(),
+    });
+    const buttons = [...host.querySelectorAll("button")];
+    buttons[2]!.focus();
+    await act(async () =>
+      buttons[2]!.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true })),
+    );
+    expect(document.activeElement).toBe(buttons[0]);
+    buttons[0]!.focus();
+    await act(async () =>
+      buttons[0]!.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true }),
+      ),
+    );
+    expect(document.activeElement).toBe(buttons[2]);
+    await unmount();
+  });
 });

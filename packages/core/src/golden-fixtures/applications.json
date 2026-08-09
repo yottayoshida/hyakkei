@@ -14,7 +14,13 @@
       "id": "population",
       "kind": "file",
       "format": "csv",
-      "ref": { "name": "applications.csv", "encoding": "UTF-8", "url": "https://www.e-stat.go.jp/dbview?sid=0000010201", "tableId": "0000010201", "surveyYear": "1975年度" }
+      "ref": {
+        "name": "applications.csv",
+        "encoding": "UTF-8",
+        "url": "https://www.e-stat.go.jp/dbview?sid=0000010201",
+        "tableId": "0000010201",
+        "surveyYear": "1975年度"
+      }
     }
   ],
   "queries": [
@@ -28,7 +34,11 @@
       "source": "population",
       "sql": "SELECT sex AS month, population AS count FROM population ORDER BY sex"
     },
-    { "id": "q-total", "source": "population", "sql": "SELECT population AS count FROM population WHERE prefecture = '全国'" }
+    {
+      "id": "q-total",
+      "source": "population",
+      "sql": "SELECT population AS count FROM population WHERE prefecture = '全国'"
+    }
   ],
   "charts": [
     {

@@ -58,7 +58,9 @@ describe("GalleryPanel", () => {
     const { host, unmount } = await renderInJsdom(<GalleryPanel />);
     await act(async () => Promise.resolve());
 
-    expect(host.querySelector('[role="alert"]')?.textContent).toContain("ギャラリーを読み込めませんでした");
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+      "ギャラリーを読み込めませんでした",
+    );
     expect(host.querySelector("button")?.textContent).toContain("再試行");
     await unmount();
   });

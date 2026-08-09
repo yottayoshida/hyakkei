@@ -13,13 +13,12 @@ type GalleryManifest = {
 };
 
 type GalleryState =
-  | { status: "loading" }
-  | { status: "ready"; samples: GallerySample[] }
-  | { status: "error" };
+  { status: "loading" } | { status: "ready"; samples: GallerySample[] } | { status: "error" };
 
 function manifestUrl(): string {
   const url = new URL("gallery/manifest.json", document.baseURI);
-  if (url.origin !== window.location.origin) throw new Error("gallery manifest must be same-origin");
+  if (url.origin !== window.location.origin)
+    throw new Error("gallery manifest must be same-origin");
   return url.href;
 }
 
@@ -45,7 +44,10 @@ function parseManifest(value: unknown): GalleryManifest {
 
 function artifactUrl(href: string, sourceManifestUrl: string): string {
   const url = new URL(href, sourceManifestUrl);
-  if (url.origin !== window.location.origin || !url.pathname.startsWith(new URL("gallery/", document.baseURI).pathname)) {
+  if (
+    url.origin !== window.location.origin ||
+    !url.pathname.startsWith(new URL("gallery/", document.baseURI).pathname)
+  ) {
     throw new Error("gallery artifact must be same-origin");
   }
   return url.href;
@@ -62,15 +64,20 @@ export function GalleryPanel() {
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
+    const setStateAsync = (next: GalleryState) => {
+      queueMicrotask(() => {
+        if (active) setState(next);
+      });
+    };
     let url: string;
     try {
       url = manifestUrl();
     } catch {
-      setState({ status: "error" });
+      setStateAsync({ status: "error" });
       return () => controller.abort();
     }
 
-    setState({ status: "loading" });
+    setStateAsync({ status: "loading" });
     void fetch(url, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(`gallery manifest request failed: ${response.status}`);

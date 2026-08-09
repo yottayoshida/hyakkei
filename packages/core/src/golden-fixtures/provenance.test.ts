@@ -6,7 +6,9 @@ import provenance from "./data/provenance.json" with { type: "json" };
 describe("golden fixture provenance", () => {
   it("pins the official source table and exact normalized snapshot bytes", () => {
     for (const source of provenance.sources) {
-      const csv = readFileSync(new URL(`./data/${source.snapshot.split("/").at(-1)}`, import.meta.url));
+      const csv = readFileSync(
+        new URL(`./data/${source.snapshot.split("/").at(-1)}`, import.meta.url),
+      );
       const digest = createHash("sha256").update(csv).digest("hex");
       expect(digest, `${source.sampleId} snapshot hash`).toBe(source.rawCsvSha256);
       expect(source.url).toMatch(/^https:\/\/www\.e-stat\.go\.jp\/dbview\?sid=000001020[134]$/);

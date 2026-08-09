@@ -83,7 +83,7 @@ describe("single-file packaging", () => {
     expect(JSON.stringify(baked)).not.toContain("SELECT");
     const folder = buildExportFolder(DASHBOARD);
     expect(Object.keys(folder)).toEqual(["index.html", "renderer.js", "dashboard.json"]);
-    expect(folder["index.html"]).not.toContain("hyakkei-export-payload");
+    expect(folder["index.html"]).toContain("hyakkei-export-payload");
     expect(folder["renderer.js"]).toContain("dashboard.json");
   });
 });

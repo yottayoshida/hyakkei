@@ -46,4 +46,18 @@ describe("resolveExportRows", () => {
       message: "配布用データが10万行を超えています。条件や集計を追加してください。",
     } satisfies Partial<ExportRowsError>);
   });
+
+  it("accepts exactly 100,000 rows", async () => {
+    const rows = Array.from({ length: EXPORT_ROW_LIMIT }, (_, index) => ({ value: index }));
+    await expect(
+      resolveExportRows({
+        charts: [{ query: "q1" }],
+        queries: [{ id: "q1", sql: "SELECT * FROM data" }],
+        previewRowsByQuery: new Map([
+          ["q1", { status: "ready" as const, rows: [ROW], truncated: true }],
+        ]),
+        execute: async () => rows,
+      }),
+    ).resolves.toEqual({ q1: rows });
+  });
 });

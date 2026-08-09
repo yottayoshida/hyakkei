@@ -74,6 +74,7 @@ import {
   type WorkspaceQuery,
 } from "./intake/types.js";
 import { classifyQueryError } from "./intake/query-error.js";
+import { GalleryPanel } from "./gallery/GalleryPanel.js";
 
 export type DashboardPreviewProps = { dashboard: BakedDashboard };
 
@@ -417,6 +418,7 @@ export function App() {
 
   const workspaceHeadingRef = useRef<HTMLHeadingElement>(null);
   const openFileInputRef = useRef<HTMLInputElement>(null);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
   // /simplify (Altitude): a real ref, not a DOM `id` string matched across
   // files -- the previous version relied on `IntakeApp.tsx` keeping a
   // literal `id="hyakkei-onboard-heading"` attribute in sync with this
@@ -1830,6 +1832,7 @@ export function App() {
     downloadSingleFileDashboard(exportSizePrompt.baked, exportSizePrompt.filename);
     setAnnouncement(`配布用HTMLを書き出しました: ${exportSizePrompt.filename}`);
     setExportSizePrompt(null);
+    exportButtonRef.current?.focus();
   }, [exportSizePrompt]);
 
   const handleLargeExportFolderZip = useCallback(async () => {
@@ -1839,10 +1842,16 @@ export function App() {
       await downloadExportFolder(exportSizePrompt.baked, filename);
       setAnnouncement(`配布用フォルダーZIPを書き出しました: ${filename}`);
       setExportSizePrompt(null);
+      exportButtonRef.current?.focus();
     } catch {
       setAnnouncement("配布用フォルダーZIPを書き出せませんでした。もう一度お試しください。");
     }
   }, [exportSizePrompt]);
+
+  const handleCancelLargeExport = useCallback(() => {
+    setExportSizePrompt(null);
+    exportButtonRef.current?.focus();
+  }, []);
 
   const handleOpenDashboard = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2109,6 +2118,9 @@ export function App() {
           onComplete={handleSourceComplete}
           onboardHeadingRef={onboardHeadingRef}
         />
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px 24px" }}>
+          <GalleryPanel />
+        </div>
       </>
     );
   }
@@ -2201,6 +2213,7 @@ export function App() {
         </button>
         <button
           type="button"
+          ref={exportButtonRef}
           onClick={handleExport}
           disabled={saveBlockReason !== null || exportBlocked || exportPending}
           aria-disabled={saveBlockReason !== null || exportBlocked || exportPending}
@@ -2405,7 +2418,7 @@ export function App() {
           bytes={exportSizePrompt.bytes}
           onSingleFile={handleLargeExportSingleFile}
           onFolderZip={() => void handleLargeExportFolderZip()}
-          onCancel={() => setExportSizePrompt(null)}
+          onCancel={handleCancelLargeExport}
         />
       )}
     </div>
