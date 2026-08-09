@@ -16,7 +16,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function setUpAggregatedQuery(page: import("@playwright/test").Page): Promise<void> {
-  await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+  await page
+    .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+    .setInputFiles(fixturePath("06-shift_jis.csv"));
   await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
   await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
 

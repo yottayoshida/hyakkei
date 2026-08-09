@@ -94,7 +94,7 @@ test("multi-second CSV parse keeps the main thread responsive", async ({ page },
   // retry/worker) instead of an in-memory buffer.
   await page
     .getByRole("button", { name: "ファイルを選択" })
-    .locator('input[type="file"]')
+    .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
     .setInputFiles(fixturePath);
   await page.waitForFunction(
     () => {
