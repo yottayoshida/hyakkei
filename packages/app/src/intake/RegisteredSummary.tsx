@@ -24,6 +24,7 @@ export type RegisteredSummaryProps = {
    * single column's own `"pending"` validation status.
    */
   previewPending: boolean;
+  disconnected?: boolean;
   /**
    * Takes `(tableId, sourceLabel)` rather than being pre-bound to one
    * source (/simplify Efficiency finding): the shell (App.tsx) passes its
@@ -81,6 +82,7 @@ export const RegisteredSummary = memo(function RegisteredSummary({
   validation,
   previewRows,
   previewPending,
+  disconnected = false,
   onDelete,
   sourceDeleteOrdinal = null,
   onOverrideChange,
@@ -126,8 +128,8 @@ export const RegisteredSummary = memo(function RegisteredSummary({
   });
 
   return (
-    <div
-      className="hyakkei-source-card"
+      <div
+        className="hyakkei-source-card"
       // `data-table-id` (code review Mirror-Check finding): the only way an
       // e2e test can tell "the underlying DuckDB table was genuinely
       // dropped and its id reused" apart from "the id was silently
@@ -136,7 +138,12 @@ export const RegisteredSummary = memo(function RegisteredSummary({
       // between those two outcomes for a same-named re-registration.
       data-table-id={table.id}
       style={{ marginTop: 16, border: "1px solid #e5e7eb", borderRadius: 8, padding: 16 }}
-    >
+      >
+        {disconnected && (
+          <p role="alert" style={{ margin: "4px 0", color: "#92400e" }}>
+            元データが未接続です。「データを追加」から元ファイルを取り込むと集計できます。
+          </p>
+        )}
       {/* Scoped for e2e (distinguishes this card's own preview table from
           DashboardPreview's accessible-fallback table, which is also a
           plain `<table>` in the same workspace DOM) and consistent with

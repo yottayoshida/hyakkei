@@ -39,6 +39,8 @@ import { getDuckDBHandleWithLayer, getResolvedDataLayer } from "./data-layer.js"
 import { canSave } from "./document/can-save.js";
 import { downloadDashboard } from "./document/download-dashboard.js";
 import { downloadFilename } from "./document/download-filename.js";
+import { fromDashboard } from "./document/from-dashboard.js";
+import { readDashboardFile, DashboardReadError } from "./document/read-dashboard.js";
 import { SAVE_NARRATIVE_EXCLUDED, SAVE_NARRATIVE_INCLUDED } from "./document/save-narrative.js";
 import { DEFAULT_THEME } from "./document/theme.js";
 import { toDashboard } from "./document/to-dashboard.js";
@@ -157,6 +159,8 @@ export type WorkspaceSource = {
   validation: Map<string, ColumnValidationState>;
   previewRows: PreviewRow[] | null;
   previewPending: boolean;
+  /** Imported dashboard source awaiting the user's original data file. */
+  disconnected?: boolean;
 };
 
 /**
@@ -364,7 +368,7 @@ export function App() {
   // rather than a bare constant so PR-2b's `fromDashboard` can set it from
   // an opened file without a shape change here.
   const [meta, setMeta] = useState<BaseMeta>({ title: "" });
-  const [theme] = useState<Theme>(DEFAULT_THEME);
+  const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
   // issue #15/F7 (UX review D3): save is the ONLY persistence this app has
   // -- DuckDB-WASM is in-memory/session-scoped, so a reload or closed tab
   // discards every registered table regardless of `dirty`. `dirty`/
@@ -388,6 +392,7 @@ export function App() {
   const [usedIds] = useState<Set<string>>(() => new Set());
 
   const workspaceHeadingRef = useRef<HTMLHeadingElement>(null);
+  const openFileInputRef = useRef<HTMLInputElement>(null);
   // /simplify (Altitude): a real ref, not a DOM `id` string matched across
   // files -- the previous version relied on `IntakeApp.tsx` keeping a
   // literal `id="hyakkei-onboard-heading"` attribute in sync with this
@@ -1610,6 +1615,56 @@ export function App() {
     setAnnouncement(`保存しました: ${filename}`);
   }, [meta, theme, sources, queries, charts, layout]);
 
+  const handleOpenDashboard = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      if (
+        dirty &&
+        !window.confirm(
+          "未保存の変更があります。ダッシュボードを開くと現在の編集内容は置き換わります。続けますか？",
+        )
+      ) {
+        return;
+      }
+      try {
+        const dashboard = await readDashboardFile(file);
+        const imported = fromDashboard(dashboard);
+        // The state slices are committed from one validated snapshot. React
+        // batches this event's updates, so a malformed/partial document can
+        // never leave a half-imported workspace on screen.
+        updateSources(() => imported.sources);
+        updateQueries(() => imported.queries);
+        updateCharts(() => imported.charts);
+        updateLayout(() => imported.layout);
+        setMeta(imported.meta);
+        setTheme(imported.theme);
+        for (const source of imported.sources) usedIds.add(source.sample.table.id);
+        const numericQueryIds = imported.queries
+          .map((query) => /^query_(\d+)$/.exec(query.id)?.[1])
+          .filter((value): value is string => value !== undefined)
+          .map(Number);
+        queryIdSeqRef.current = Math.max(queryIdSeqRef.current, ...numericQueryIds, 0);
+        setPanelOpen(false);
+        setDirty(false);
+        setLastSavedAt(null);
+        setAnnouncement(
+          imported.sources.length > 0
+            ? `「${file.name}」を開きました。元データを再接続すると集計を実行できます。`
+            : `「${file.name}」を開きました。`,
+        );
+      } catch (error) {
+        setAnnouncement(
+          error instanceof DashboardReadError
+            ? error.message
+            : "ダッシュボードファイルを読み込めませんでした。",
+        );
+      }
+    },
+    [dirty, updateSources, updateQueries, updateCharts, updateLayout, usedIds],
+  );
+
   // Marks the document dirty on any change to a persistable slice --
   // deliberately NOT threaded through each individual handler (12+ of
   // them), since "did any of these 6 values change since the last render"
@@ -1690,6 +1745,22 @@ export function App() {
     return (
       <>
         {announcementRegion}
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
+          <button
+            type="button"
+            onClick={() => openFileInputRef.current?.click()}
+            style={{ minHeight: 44, padding: "0 16px", background: "transparent" }}
+          >
+            作業ファイルを開く
+          </button>
+          <input
+            ref={openFileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleOpenDashboard}
+            style={{ display: "none" }}
+          />
+        </div>
         <IntakeApp
           mode="onboard"
           usedIds={usedIds}
@@ -1750,6 +1821,20 @@ export function App() {
             borderRadius: 4,
             fontSize: 16,
           }}
+        />
+        <button
+          type="button"
+          onClick={() => openFileInputRef.current?.click()}
+          style={{ minHeight: 44, padding: "0 12px", background: "transparent" }}
+        >
+          開く
+        </button>
+        <input
+          ref={openFileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleOpenDashboard}
+          style={{ display: "none" }}
         />
         {/* Label stays the short "保存" (UX design's own header mockup
             renders it as `[ 保存 ]`) -- "作業ファイル" names the PURPOSE
@@ -1845,7 +1930,15 @@ export function App() {
       )}
 
       {sources.map(
-        ({ sourceLabel, sample, typeOverrides, validation, previewRows, previewPending }) => (
+        ({
+          sourceLabel,
+          sample,
+          typeOverrides,
+          validation,
+          previewRows,
+          previewPending,
+          disconnected,
+        }) => (
           <div key={sample.table.id}>
             <RegisteredSummary
               sourceLabel={sourceLabel}
@@ -1854,6 +1947,7 @@ export function App() {
               validation={validation}
               previewRows={previewRows}
               previewPending={previewPending}
+              disconnected={disconnected}
               // The SAME stable callback reference passed to every card,
               // unchanged across renders (/simplify Efficiency finding --
               // `sources.map(...)` previously allocated a fresh closure per
