@@ -78,6 +78,7 @@ export type AuthoringDashboardPreviewProps = {
   chartRowsByQuery: Map<string, ChartRowState>;
   /** issue #14: reorders `layout.items` (array-index move + full repack). */
   onReorderLayout: (fromIndex: number, toIndex: number) => void;
+  onResizeLayout?: (chartId: string, deltaW: number, deltaH: number) => void;
 };
 
 /**
@@ -126,7 +127,7 @@ function buildDoc(charts: Chart[], layout: Layout): Dashboard {
   };
 }
 
-type GridProps = Omit<AuthoringDashboardPreviewProps, "onReorderLayout">;
+type GridProps = Omit<AuthoringDashboardPreviewProps, "onReorderLayout" | "onResizeLayout">;
 
 /**
  * The component whose OWN effect calls `patch()` -- split out from
@@ -178,6 +179,7 @@ type LayoutReorderOverlayProps = {
   items: LayoutItem[];
   gridWidth: number;
   onReorderLayout: (fromIndex: number, toIndex: number) => void;
+  onResizeLayout: (chartId: string, deltaW: number, deltaH: number) => void;
 };
 
 /**
@@ -200,7 +202,12 @@ type LayoutReorderOverlayProps = {
  * `getBoundingClientRect()` comparisons (via `slotRefs`) work regardless of
  * `pointer-events` and don't depend on what's rendered on top.
  */
-function LayoutReorderOverlay({ items, gridWidth, onReorderLayout }: LayoutReorderOverlayProps) {
+function LayoutReorderOverlay({
+  items,
+  gridWidth,
+  onReorderLayout,
+  onResizeLayout,
+}: LayoutReorderOverlayProps) {
   const [dragFromChartId, setDragFromChartId] = useState<string | null>(null);
   const [dragOverChartId, setDragOverChartId] = useState<string | null>(null);
   // Keyed by chart id, NOT array index (fixed after an actual bug found
@@ -381,6 +388,41 @@ function LayoutReorderOverlay({ items, gridWidth, onReorderLayout }: LayoutReord
                   {label}
                 </button>
               ))}
+              <button
+                type="button"
+                aria-label="幅を狭くする"
+                onClick={() => onResizeLayout(item.chart, -1, 0)}
+                disabled={item.w <= 1}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                幅−
+              </button>
+              <button
+                type="button"
+                aria-label="幅を広くする"
+                onClick={() => onResizeLayout(item.chart, 1, 0)}
+                disabled={item.w >= gridWidth}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                幅＋
+              </button>
+              <button
+                type="button"
+                aria-label="高さを低くする"
+                onClick={() => onResizeLayout(item.chart, 0, -1)}
+                disabled={item.h <= 1}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                高さ−
+              </button>
+              <button
+                type="button"
+                aria-label="高さを高くする"
+                onClick={() => onResizeLayout(item.chart, 0, 1)}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                高さ＋
+              </button>
               {/* Pointer-only drag handle (WCAG 2.5.7): the two buttons
                   above already satisfy "keyboard operable" (2.1.1) and
                   "non-dragging single-pointer alternative" (2.5.7) on their
@@ -434,6 +476,7 @@ export function AuthoringDashboardPreview({
   layout,
   chartRowsByQuery,
   onReorderLayout,
+  onResizeLayout = () => {},
 }: AuthoringDashboardPreviewProps) {
   // UX review (Phase 2, silent-wrong-render recovery): patch()'s failure
   // modes are internal-state bugs (a stale/wrong reuse), not throws -- the
@@ -579,6 +622,7 @@ export function AuthoringDashboardPreview({
               items={layout.items}
               gridWidth={GRID_WIDTHS[layout.grid]}
               onReorderLayout={onReorderLayout}
+              onResizeLayout={onResizeLayout}
             />
           )}
         </div>

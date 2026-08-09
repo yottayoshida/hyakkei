@@ -27,6 +27,13 @@ const CHART_A: Chart = {
   query: "q1",
   options: {},
 };
+const CHART_B: Chart = {
+  id: "c2",
+  type: "bar",
+  encoding: { x: "category", y: "total" },
+  query: "q1",
+  options: {},
+};
 const LAYOUT = {
   grid: "guidebook-12col" as const,
   items: [{ chart: "c1", x: 0, y: 0, w: 6, h: 6 }],
@@ -235,7 +242,9 @@ describe("AuthoringDashboardPreview", () => {
   });
 
   it("shows a safe memory-specific alert for a failed chart query", async () => {
-    const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "error", kind: "oom" }]]);
+    const chartRowsByQuery = new Map<string, ChartRowState>([
+      ["q1", { status: "error", kind: "oom" }],
+    ]);
     const { host, unmount: cleanup } = await renderInJsdom(
       <AuthoringDashboardPreview
         charts={[CHART_A]}
@@ -247,6 +256,38 @@ describe("AuthoringDashboardPreview", () => {
 
     expect(host.textContent).toContain("メモリ不足でグラフを表示できませんでした");
     expect(host.textContent).not.toContain("Out of Memory Error");
+    await cleanup();
+  });
+
+  it("offers pointer/keyboard resize buttons in edit mode", async () => {
+    const onResizeLayout = vi.fn();
+    const { host, unmount: cleanup } = await renderInJsdom(
+      <AuthoringDashboardPreview
+        charts={[CHART_A, CHART_B]}
+        layout={{
+          grid: "guidebook-12col",
+          items: [
+            { chart: "c1", x: 0, y: 0, w: 6, h: 6 },
+            { chart: "c2", x: 6, y: 0, w: 6, h: 6 },
+          ],
+        }}
+        chartRowsByQuery={new Map([["q1", { status: "ready", rows: [], truncated: false }]])}
+        onReorderLayout={NOOP_REORDER}
+        onResizeLayout={onResizeLayout}
+      />,
+    );
+    await act(async () => {
+      const editButton = [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "並び順を編集",
+      ) as HTMLButtonElement;
+      editButton.click();
+    });
+    const widthButton = host.querySelector(
+      'button[aria-label="幅を広くする"]',
+    ) as HTMLButtonElement;
+    expect(widthButton).not.toBeNull();
+    await act(async () => widthButton.click());
+    expect(onResizeLayout).toHaveBeenCalledWith("c1", 1, 0);
     await cleanup();
   });
 

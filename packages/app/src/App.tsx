@@ -35,6 +35,7 @@ import {
 } from "./chart/chart-encoding.js";
 import { CHART_DEFAULT_SIZE, nextFreeCell } from "./chart/layout-placement.js";
 import { reorderLayout } from "./chart/layout-reorder.js";
+import { resizeLayout } from "./chart/layout-resize.js";
 import { getDuckDBHandleWithLayer, getResolvedDataLayer } from "./data-layer.js";
 import { canSave } from "./document/can-save.js";
 import { downloadDashboard } from "./document/download-dashboard.js";
@@ -1503,6 +1504,18 @@ export function App() {
     [updateLayout],
   );
 
+  const handleResizeLayout = useCallback(
+    (chartId: string, deltaW: number, deltaH: number) => {
+      const gridWidth = GRID_WIDTHS[layoutRef.current.grid];
+      const prevItems = layoutRef.current.items;
+      const nextItems = resizeLayout(prevItems, chartId, deltaW, deltaH, gridWidth);
+      if (nextItems === prevItems) return;
+      updateLayout((prev) => ({ ...prev, items: nextItems }));
+      setAnnouncement("グラフの大きさを変更しました。");
+    },
+    [updateLayout],
+  );
+
   // Moves focus to a newly-added chart card once it has actually mounted
   // (UX review, Phase 8, Major finding C-6) -- same "wait for the DOM this
   // id refers to exist, then focus it" timing as the source/onboarding
@@ -1903,6 +1916,7 @@ export function App() {
           layout={layout}
           chartRowsByQuery={chartRowsByQuery}
           onReorderLayout={handleReorderLayout}
+          onResizeLayout={handleResizeLayout}
         />
       ) : (
         <>
