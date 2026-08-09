@@ -392,6 +392,7 @@ export function App() {
   // -- `useState`'s returned value carries the same one-time-created,
   // referentially-stable object without that restriction.
   const [usedIds] = useState<Set<string>>(() => new Set());
+  const pendingReattachRef = useRef<{ oldSourceId: string; newSourceId: string } | null>(null);
 
   const workspaceHeadingRef = useRef<HTMLHeadingElement>(null);
   const openFileInputRef = useRef<HTMLInputElement>(null);
@@ -518,6 +519,15 @@ export function App() {
 
   const handleSourceComplete = useCallback(
     (sourceLabel: string, sample: IntakeSample) => {
+      const disconnected = sourcesRef.current.find(
+        (source) => source.disconnected && source.sourceLabel === sourceLabel,
+      );
+      if (disconnected) {
+        pendingReattachRef.current = {
+          oldSourceId: disconnected.sample.table.id,
+          newSourceId: sample.table.id,
+        };
+      }
       registrationSeqByTableId.current.set(sample.table.id, ++registrationSeqRef.current);
       updateSources((prev) => mergeWorkspaceSource(prev, sourceLabel, sample));
       setAnnouncement(
@@ -918,6 +928,54 @@ export function App() {
     },
     [updateQueries, refreshChartRows, updateChartRowsByQuery],
   );
+
+  // A dashboard opened from JSON has no live DuckDB table. If the user then
+  // imports the original file with the same label, replace the disconnected
+  // placeholder and migrate query foreign keys to the newly registered table
+  // id in one commit; charts keep their stable query ids.
+  useEffect(() => {
+    const pending = pendingReattachRef.current;
+    if (!pending) return;
+    const incoming = sourcesRef.current.find(
+      (source) => source.sample.table.id === pending.newSourceId && !source.disconnected,
+    );
+    const disconnected = sourcesRef.current.find(
+      (source) => source.sample.table.id === pending.oldSourceId && source.disconnected,
+    );
+    if (!incoming || !disconnected) return;
+    pendingReattachRef.current = null;
+    const affectedQueryIds = queriesRef.current
+      .filter((query) => query.sourceTableId === pending.oldSourceId)
+      .map((query) => query.id);
+    updateSources((prev) => {
+      const old = prev.find((source) => source.sample.table.id === pending.oldSourceId);
+      return prev
+        .filter((source) => source.sample.table.id !== pending.oldSourceId)
+        .map((source) =>
+          source.sample.table.id === pending.newSourceId && old
+            ? { ...source, typeOverrides: old.typeOverrides }
+            : source,
+        );
+    });
+    updateQueries((prev) =>
+      prev.map((query) =>
+        query.sourceTableId === pending.oldSourceId
+          ? {
+              ...query,
+              sourceTableId: pending.newSourceId,
+              sql: "",
+              previewRows: null,
+              previewColumns: [],
+              diagnostics: null,
+              previewPending: false,
+              previewError: null,
+            }
+          : query,
+      ),
+    );
+    for (const queryId of affectedQueryIds) void refreshQueryPreview(queryId);
+    setAnnouncement("元データを再接続しました。集計を更新しています。");
+  }, [sources, refreshQueryPreview, updateSources, updateQueries]);
 
   const handleOverrideChange = useCallback(
     async (tableId: string, column: string, category: ColumnCategory) => {
@@ -1677,6 +1735,31 @@ export function App() {
         updateQueries(() => imported.queries);
         updateCharts(() => imported.charts);
         updateLayout(() => imported.layout);
+        updateChartRowsByQuery(() => new Map());
+        pendingReattachRef.current = null;
+        // Invalidate every pre-open async continuation. Incrementing rather
+        // than clearing closes the ABA window when the imported document
+        // happens to reuse an old query/chart id and a new refresh starts at
+        // generation 1 again.
+        for (const [id, generation] of queryGenerationRef.current) {
+          queryGenerationRef.current.set(id, generation + 1);
+        }
+        for (const [id, generation] of chartGenerationRef.current) {
+          chartGenerationRef.current.set(id, generation + 1);
+        }
+        for (const [key, generation] of validationGenerationRef.current) {
+          validationGenerationRef.current.set(key, generation + 1);
+        }
+        for (const [key, generation] of previewGenerationRef.current) {
+          previewGenerationRef.current.set(key, generation + 1);
+        }
+        for (const tableId of registrationSeqByTableId.current.keys()) {
+          registrationSeqByTableId.current.set(tableId, ++registrationSeqRef.current);
+        }
+        focusNewChartIdRef.current = null;
+        focusMovedChartIdRef.current = null;
+        focusPendingQueryDeleteRef.current = null;
+        focusPendingChartDeleteRef.current = null;
         setMeta(imported.meta);
         setTheme(imported.theme);
         for (const source of imported.sources) usedIds.add(source.sample.table.id);
