@@ -373,6 +373,13 @@ export function App() {
   // an opened file without a shape change here.
   const [meta, setMeta] = useState<BaseMeta>({ title: "" });
   const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
+  // Forward-compatible fields from an opened dashboard are kept outside the
+  // editable schema slices. They are merged back only at save/export time so
+  // runtime state can never be serialized accidentally.
+  const [documentExtras, setDocumentExtras] = useState<Record<string, unknown>>({});
+  const [queryExtras, setQueryExtras] = useState<Map<string, Record<string, unknown>>>(
+    () => new Map(),
+  );
   // issue #15/F7 (UX review D3): save is the ONLY persistence this app has
   // -- DuckDB-WASM is in-memory/session-scoped, so a reload or closed tab
   // discards every registered table regardless of `dirty`. `dirty`/
@@ -1688,7 +1695,16 @@ export function App() {
     // instead: no download fires, no "saved" is announced.
     let dashboard: ReturnType<typeof toDashboard>;
     try {
-      dashboard = toDashboard({ meta, theme, sources, queries, charts, layout });
+      dashboard = toDashboard({
+        meta,
+        theme,
+        sources,
+        queries,
+        charts,
+        layout,
+        documentExtras,
+        queryExtras,
+      });
     } catch (error) {
       console.error("toDashboard rejected the projected document -- refusing to save:", error);
       setAnnouncement("保存に失敗しました。もう一度お試しください。");
@@ -1711,7 +1727,7 @@ export function App() {
     setDirty(false);
     setLastSavedAt(new Date());
     setAnnouncement(`保存しました: ${filename}`);
-  }, [meta, theme, sources, queries, charts, layout]);
+  }, [meta, theme, sources, queries, charts, layout, documentExtras, queryExtras]);
 
   const handleExport = useCallback(() => {
     const blockReason = canSave({ meta, queries });
@@ -1742,7 +1758,16 @@ export function App() {
       return;
     }
     try {
-      const dashboard = toDashboard({ meta, theme, sources, queries, charts, layout });
+      const dashboard = toDashboard({
+        meta,
+        theme,
+        sources,
+        queries,
+        charts,
+        layout,
+        documentExtras,
+        queryExtras,
+      });
       const verifyFailure = verifyBeforeSave(dashboard);
       if (verifyFailure) {
         setAnnouncement("配布用HTMLを書き出せませんでした。ダッシュボードを確認してください。");
@@ -1764,7 +1789,7 @@ export function App() {
     } catch {
       setAnnouncement("配布用HTMLを書き出せませんでした。もう一度お試しください。");
     }
-  }, [meta, theme, sources, queries, charts, layout]);
+  }, [meta, theme, sources, queries, charts, layout, documentExtras, queryExtras]);
 
   const handleOpenDashboard = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1820,6 +1845,8 @@ export function App() {
         focusPendingChartDeleteRef.current = null;
         setMeta(imported.meta);
         setTheme(imported.theme);
+        setDocumentExtras(imported.documentExtras);
+        setQueryExtras(imported.queryExtras);
         for (const source of imported.sources) usedIds.add(source.sample.table.id);
         // Cleanup starts after the imported snapshot is committed. IDs stay
         // quarantined in `usedIds` while DROP is in flight, so a
@@ -1908,11 +1935,29 @@ export function App() {
   // Comparing against the actual last-seen values instead is immune to
   // that: the second StrictMode invocation sees identical references
   // (nothing changed), so `changed` is correctly `false` both times.
-  const lastPersistedRef = useRef({ meta, theme, sources, queries, charts, layout });
+  const lastPersistedRef = useRef({
+    meta,
+    theme,
+    sources,
+    queries,
+    charts,
+    layout,
+    documentExtras,
+    queryExtras,
+  });
   useEffect(() => {
     if (suppressDirtyAfterOpenRef.current) {
       suppressDirtyAfterOpenRef.current = false;
-      lastPersistedRef.current = { meta, theme, sources, queries, charts, layout };
+      lastPersistedRef.current = {
+        meta,
+        theme,
+        sources,
+        queries,
+        charts,
+        layout,
+        documentExtras,
+        queryExtras,
+      };
       setDirty(false);
       return;
     }
@@ -1923,10 +1968,21 @@ export function App() {
       last.sources !== sources ||
       last.queries !== queries ||
       last.charts !== charts ||
-      last.layout !== layout;
-    lastPersistedRef.current = { meta, theme, sources, queries, charts, layout };
+      last.layout !== layout ||
+      last.documentExtras !== documentExtras ||
+      last.queryExtras !== queryExtras;
+    lastPersistedRef.current = {
+      meta,
+      theme,
+      sources,
+      queries,
+      charts,
+      layout,
+      documentExtras,
+      queryExtras,
+    };
     if (changed) setDirty(true);
-  }, [meta, theme, sources, queries, charts, layout]);
+  }, [meta, theme, sources, queries, charts, layout, documentExtras, queryExtras]);
 
   // issue #15/F7 (UX review): without this, Cmd/Ctrl+S falls through to the
   // browser's native "save page" dialog -- confusing for a user whose

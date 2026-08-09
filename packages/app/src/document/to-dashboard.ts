@@ -11,6 +11,10 @@ import {
 import type { WorkspaceSource } from "../App.js";
 import type { WorkspaceQuery } from "../intake/types.js";
 import { assertNoRuntimeKeys } from "./assert-no-runtime-keys.js";
+import {
+  assertSerializableAdditiveFields,
+  assertSerializableQueryAdditiveFields,
+} from "./additive-fields.js";
 
 export type ToDashboardInput = {
   meta: BaseMeta;
@@ -19,6 +23,8 @@ export type ToDashboardInput = {
   queries: WorkspaceQuery[];
   charts: Chart[];
   layout: Layout;
+  documentExtras?: Record<string, unknown>;
+  queryExtras?: ReadonlyMap<string, Record<string, unknown>>;
 };
 
 /**
@@ -45,8 +51,9 @@ function projectSource(source: WorkspaceSource): Source {
 }
 
 /** `WorkspaceQuery` -> `Query` (issue #15/F7). Named assignment of the 4 schema-known fields only -- every other `WorkspaceQuery` field is runtime-only preview/diagnostics state `assertNoRuntimeKeys`'s deny list also covers. */
-function projectQuery(query: WorkspaceQuery): Query {
+function projectQuery(query: WorkspaceQuery, additiveFields?: Record<string, unknown>): Query {
   return {
+    ...additiveFields,
     id: query.id,
     source: query.sourceTableId,
     sql: query.sql,
@@ -77,15 +84,18 @@ function projectQuery(query: WorkspaceQuery): Query {
  * validation with a second, divergent rule set.
  */
 export function toDashboard(input: ToDashboardInput): Dashboard {
-  const document: Dashboard = {
+  assertSerializableAdditiveFields(input.documentExtras ?? {}, "$.documentExtras");
+  assertSerializableQueryAdditiveFields(input.queryExtras);
+  const knownDocument: Dashboard = {
     version: CURRENT_VERSION,
     meta: input.meta,
     theme: input.theme,
     sources: input.sources.map(projectSource),
-    queries: input.queries.map(projectQuery),
+    queries: input.queries.map((query) => projectQuery(query, input.queryExtras?.get(query.id))),
     charts: input.charts,
     layout: input.layout,
   };
-  assertNoRuntimeKeys(document);
+  assertNoRuntimeKeys(knownDocument);
+  const document = { ...input.documentExtras, ...knownDocument } as Dashboard;
   return document;
 }

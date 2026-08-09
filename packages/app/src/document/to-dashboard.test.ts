@@ -112,6 +112,19 @@ describe("toDashboard", () => {
     });
   });
 
+  it("restores additive root and query fields when saving editor state", () => {
+    const input = {
+      ...minimalInput(),
+      documentExtras: { futureRoot: { enabled: true } },
+      queryExtras: new Map([["q1", { futureQuery: { mode: "v2" } }]]),
+    } as ToDashboardInput;
+
+    const result = toDashboard(input);
+
+    expect(result).toHaveProperty("futureRoot", { enabled: true });
+    expect(result.queries[0]).toHaveProperty("futureQuery", { mode: "v2" });
+  });
+
   // issue #15/F7, V-005 (canary): the single most important property this
   // module exists for -- a real cell value must never reach the output,
   // regardless of how deeply the runtime state nests it.
