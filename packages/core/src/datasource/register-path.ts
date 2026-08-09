@@ -75,7 +75,7 @@ export function rowToPlainObject(row: Iterable<[string, unknown]>): Record<strin
     [...row].map(([key, value]) => {
       if (typeof value !== "bigint") return [key, value];
       const numeric = Number(value);
-      return [key, Number.isFinite(numeric) ? numeric : value.toString()];
+      return [key, Number.isSafeInteger(numeric) ? numeric : value.toString()];
     }),
   );
 }

@@ -427,6 +427,11 @@ describe("toRow", () => {
     expect(toRow({ a: huge })).toEqual({ a: huge.toString() });
   });
 
+  it("keeps a finite but unsafe BigInt as a string to avoid precision loss", () => {
+    const large = 2n ** 60n;
+    expect(toRow({ a: large })).toEqual({ a: large.toString() });
+  });
+
   it("converts a Date to its ISO string", () => {
     const date = new Date("2026-07-23T00:00:00.000Z");
     expect(toRow({ a: date })).toEqual({ a: "2026-07-23T00:00:00.000Z" });
