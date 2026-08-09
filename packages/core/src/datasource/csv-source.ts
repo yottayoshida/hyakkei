@@ -1,10 +1,11 @@
 import { assertByteCeiling } from "./byte-gate.js";
-import { decodeCsvText } from "./encoding.js";
+import { prepareCsvInputAsync } from "./encoding.js";
 import { quoteIdentifier, quoteStringLiteral } from "./identifier.js";
 import {
   describeTable,
   describeVirtualFile,
   throwClassifiedFailure,
+  withVirtualBufferFile,
   withVirtualTextFile,
 } from "./register-path.js";
 import { assertContentShape } from "./sniff.js";
@@ -26,10 +27,15 @@ export async function inspectCsv(ctx: RegisterContext, bytes: Uint8Array): Promi
   assertByteCeiling(bytes);
   assertNotEmpty(bytes);
   assertContentShape(bytes, "csv");
-  const text = decodeCsvText(bytes);
-  const columns = await withVirtualTextFile(ctx.registrar.db, text, "csv", (virtualName) =>
-    describeVirtualFile(ctx.registrar.conn, readCsvAutoCall, virtualName),
-  );
+  const input = await prepareCsvInputAsync(bytes);
+  const columns =
+    input.kind === "buffer"
+      ? await withVirtualBufferFile(ctx.registrar.db, input.bytes, "csv", (virtualName) =>
+          describeVirtualFile(ctx.registrar.conn, readCsvAutoCall, virtualName),
+        )
+      : await withVirtualTextFile(ctx.registrar.db, input.text, "csv", (virtualName) =>
+          describeVirtualFile(ctx.registrar.conn, readCsvAutoCall, virtualName),
+        );
   return { kind: "columns", columns };
 }
 
@@ -71,10 +77,10 @@ export async function registerCsv(
   assertByteCeiling(bytes);
   assertNotEmpty(bytes);
   assertContentShape(bytes, "csv");
-  const text = decodeCsvText(bytes);
+  const input = await prepareCsvInputAsync(bytes);
   const quotedId = quoteIdentifier(tableId);
 
-  await withVirtualTextFile(ctx.registrar.db, text, "csv", async (virtualName) => {
+  const register = async (virtualName: string) => {
     try {
       await ctx.registrar.conn.query(
         `CREATE TABLE ${quotedId} AS SELECT * FROM ${readCsvAutoCall(quoteStringLiteral(virtualName))}`,
@@ -86,7 +92,12 @@ export async function registerCsv(
         "the CSV content could not be parsed",
       );
     }
-  });
+  };
+  if (input.kind === "buffer") {
+    await withVirtualBufferFile(ctx.registrar.db, input.bytes, "csv", register);
+  } else {
+    await withVirtualTextFile(ctx.registrar.db, input.text, "csv", register);
+  }
 
   const { columns, rowCount } = await describeTable(ctx.registrar.conn, tableId);
   return { id: tableId, columns, rowCount };

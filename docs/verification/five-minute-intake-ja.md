@@ -11,4 +11,4 @@
 
 補足: 「配布用HTML」は単一ファイルなので `file://` で開ける。フォルダ形式（`index.html` + `renderer.js` + `dashboard.json`）は `dashboard.json` を相対取得するため、静的HTTPサーバーで確認する。
 
-記録欄: ブラウザ / 画面幅 / 完了秒数 / 迷った箇所 / 誤認した文言 / 合否。
+記録は [実施記録テンプレート](./five-minute-intake-template-ja.md) に残す。未実施の項目を合格扱いにせず、実施者・ビルドSHA・入力ファイルのサイズ/行数まで記録する。

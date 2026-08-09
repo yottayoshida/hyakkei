@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fromDashboard } from "./from-dashboard.js";
+import { toDashboard } from "./to-dashboard.js";
 
 const DOC = {
   version: 1 as const,
@@ -42,5 +43,31 @@ describe("fromDashboard", () => {
     expect(state.sources[0]?.sample.spec).toEqual(DOC.sources[0]);
     expect(state.charts).toEqual(DOC.charts);
     expect(state.layout).toEqual(DOC.layout);
+  });
+
+  it("extracts additive root and query fields for an editor round-trip", () => {
+    const withFutureFields = {
+      ...DOC,
+      futureRoot: { enabled: true },
+      queries: [{ ...DOC.queries[0]!, futureQuery: { mode: "v2" } }],
+    } as unknown as Parameters<typeof fromDashboard>[0];
+
+    const state = fromDashboard(withFutureFields);
+
+    expect(state.documentExtras).toEqual({ futureRoot: { enabled: true } });
+    expect(state.queryExtras).toEqual(new Map([["q1", { futureQuery: { mode: "v2" } }]]));
+  });
+
+  it("keeps additive fields through the complete open-to-save projection", () => {
+    const withFutureFields = {
+      ...DOC,
+      futureRoot: { enabled: true },
+      queries: [{ ...DOC.queries[0]!, futureQuery: { mode: "v2" } }],
+    } as unknown as Parameters<typeof fromDashboard>[0];
+
+    const saved = toDashboard(fromDashboard(withFutureFields));
+
+    expect(saved).toHaveProperty("futureRoot", { enabled: true });
+    expect(saved.queries[0]).toHaveProperty("futureQuery", { mode: "v2" });
   });
 });

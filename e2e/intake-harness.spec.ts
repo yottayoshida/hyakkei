@@ -20,14 +20,18 @@ const fixturePath = (name: string) => join(FIXTURES_DIR, name);
 async function registerFirstSourceAndOpenPanel(
   page: import("@playwright/test").Page,
 ): Promise<void> {
-  await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+  await page
+    .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+    .setInputFiles(fixturePath("06-shift_jis.csv"));
   await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
   await page.getByRole("button", { name: "データを追加" }).click();
 }
 
 /** Registers `05-multi-sheet.xlsx` through the already-open "add source" panel -- the second half of a two-source setup (see `registerFirstSourceAndOpenPanel`). */
 async function registerSecondSourceViaPanel(page: import("@playwright/test").Page): Promise<void> {
-  await page.locator('input[type="file"]').setInputFiles(fixturePath("05-multi-sheet.xlsx"));
+  await page
+    .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+    .setInputFiles(fixturePath("05-multi-sheet.xlsx"));
   await page.getByText("複数のシートがあります").waitFor();
   await page.locator("ul button").first().click();
   await expect(page.locator(".hyakkei-source-card")).toHaveCount(2);
@@ -102,7 +106,9 @@ test.beforeEach(async ({ page }) => {
 
 test.describe("editor shell: file registration", () => {
   test("csv: drop -> workspace shows the real table, no dead-end", async ({ page }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
 
     // issue #11a: registration success auto-enters the workspace (no
     // "確定" click) -- the workspace's own heading is the arrival signal.
@@ -145,7 +151,9 @@ test.describe("editor shell: file registration", () => {
   test("xlsx multi-sheet: SheetPick appears with all 3 sheet names, choosing one registers it and enters the workspace", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("05-multi-sheet.xlsx"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("05-multi-sheet.xlsx"));
 
     await expect(page.getByText("複数のシートがあります")).toBeVisible();
     const sheetButtons = page.locator("ul button");
@@ -162,7 +170,7 @@ test.describe("editor shell: file registration", () => {
   test("an unrecognized file extension fails closed with the format error, staying in onboarding (no 'reading' flash, no workspace entry)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "data.json",
       mimeType: "application/json",
       buffer: Buffer.from("{}"),
@@ -179,7 +187,7 @@ test.describe("editor shell: file registration", () => {
   test("a legacy .xls file is rejected with the specific re-save-as-.xlsx guidance, not the generic unsupported-format copy", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "legacy.xls",
       mimeType: "application/vnd.ms-excel",
       buffer: Buffer.from("not a real xls file"),
@@ -203,7 +211,7 @@ test.describe("editor shell: file registration", () => {
   test("a genuinely empty (0-byte) CSV shows the specific 'empty' copy, not the generic corrupt fallback -- proves toIntakeError's DataSourceError classification survives the real, chunk-split build (issue #54 Stage A)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "empty.csv",
       mimeType: "text/csv",
       buffer: Buffer.from(""),
@@ -244,7 +252,9 @@ test.describe("editor shell: file registration", () => {
 
     const abortedRequest = await abortFirstAssetRequest(page);
 
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
 
     const alert = page.getByRole("alert");
     await expect(alert).toContainText("アプリの読み込みに問題が発生しました");
@@ -304,7 +314,9 @@ test.describe("editor shell: file registration", () => {
     await expect(page.getByLabel("ファイルを選択")).toBeVisible();
 
     const abortedRequest = await abortFirstAssetRequest(page);
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("alert")).toContainText("アプリの読み込みに問題が発生しました");
 
     await page.getByRole("button", { name: "ページを再読み込み" }).click();
@@ -314,7 +326,9 @@ test.describe("editor shell: file registration", () => {
     // first attempt, so this fresh page load's own asset requests go
     // through untouched -- proving the reload (unlike any in-page
     // retry) genuinely recovers.
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
 
     expect(abortedRequest.wasIntercepted(), "the route interception never actually fired").toBe(
@@ -325,7 +339,7 @@ test.describe("editor shell: file registration", () => {
   test("deleting a source drops its table so re-registering the identical file doesn't collide (register() is a plain CREATE TABLE, not CREATE OR REPLACE)", async ({
     page,
   }) => {
-    const fileInput = page.locator('input[type="file"]');
+    const fileInput = page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]');
 
     await fileInput.setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
@@ -381,7 +395,9 @@ test.describe("editor shell: file registration", () => {
       await route.continue();
     });
 
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
 
     // The delayed spinner+cancel only appears past ~400ms (D10 flicker
     // avoidance) -- wait for it rather than clicking immediately.
@@ -415,7 +431,9 @@ test.describe("editor shell: file registration", () => {
   }) => {
     const before = await page.evaluate(() => Object.getOwnPropertyNames(Object.prototype));
 
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("18-proto-column.xlsx"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("18-proto-column.xlsx"));
 
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
 
@@ -562,7 +580,7 @@ test.describe("editor shell: URL registration", () => {
     // disables `UrlPanel`'s own input/button, not `DropZone`, which stays
     // interactive. This drop starts and fully settles a SECOND, unrelated
     // attempt (its own generation) before the URL's failure lands.
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "data.json",
       mimeType: "application/json",
       buffer: Buffer.from("{}"),
@@ -588,7 +606,9 @@ test.describe("editor shell: multiple sources", () => {
   test("a second source registered via the 'データを追加' panel is added alongside the first, without disturbing it", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await expect(page.locator(".hyakkei-source-card")).toHaveCount(1);
 
@@ -602,7 +622,9 @@ test.describe("editor shell: multiple sources", () => {
 
     // A distinct fixture (different sanitized id) -- proves accumulation,
     // not replacement.
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("05-multi-sheet.xlsx"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("05-multi-sheet.xlsx"));
     await page.getByText("複数のシートがあります").waitFor();
     await page.locator("ul button").first().click();
 
@@ -703,7 +725,9 @@ test.describe("editor shell: multiple sources", () => {
   test("the 'データを追加' panel can be closed without registering anything, leaving the existing source untouched", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
 
     const addButton = page.getByRole("button", { name: "データを追加" });
@@ -762,7 +786,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("a mixed-content column auto-detects as 文字, and overriding it to 数値 surfaces the exact uncastable count with a trust-anchor warning (V-001/V-002/V-003)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "mixed.csv",
       mimeType: "text/csv",
       buffer: MIXED_CSV,
@@ -792,7 +816,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("overriding a clean numeric column to 文字 (VARCHAR) succeeds with zero uncastable values -- documented as expected, not a bug (Codex review finding)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "mixed.csv",
       mimeType: "text/csv",
       buffer: MIXED_CSV,
@@ -812,7 +836,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("deleting a source and re-registering the identical file resets the column-type UI to fresh auto-detection -- no stale override/warning survives (V-004/V-021)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "mixed.csv",
       mimeType: "text/csv",
       buffer: MIXED_CSV,
@@ -826,7 +850,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
     await page.getByRole("button", { name: "「mixed.csv」を削除" }).click();
     await expect(page.getByRole("heading", { name: "データ取り込み" })).toBeVisible();
 
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "mixed.csv",
       mimeType: "text/csv",
       buffer: MIXED_CSV,
@@ -847,7 +871,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("overriding two different columns in quick succession applies BOTH overrides to the final preview, neither clobbering the other (Codex review R1/R2: preview race)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "mixed.csv",
       mimeType: "text/csv",
       buffer: MIXED_CSV,
@@ -902,7 +926,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("a genuinely-empty cell is never counted or displayed as a cast failure, distinct from a non-null value that really fails TRY_CAST (V-002)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "null-vs-uncastable.csv",
       mimeType: "text/csv",
       buffer: NULL_VS_UNCASTABLE_CSV,
@@ -940,7 +964,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("overriding a long integer-like id column to 数値 surfaces a precision-loss advisory, distinct from the uncastable-count warning (/code-review Angle D)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "precision.csv",
       mimeType: "text/csv",
       buffer: Buffer.from("name,national_id\nAlice,12345678901234567\nBob,42\n", "utf-8"),
@@ -967,7 +991,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("overriding a decimal amount column to 数値 does not raise a false precision-loss advisory (QA finding: HUGEINT tie-rounding mismatch)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "decimals.csv",
       mimeType: "text/csv",
       buffer: Buffer.from("name,amount\nAlice,1200.5\nBob,999.99\nCarol,非公開\n", "utf-8"),
@@ -998,7 +1022,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("overriding a timestamp-with-offset text column to 日付 surfaces a timezone-discarded advisory (/code-review Angle D)", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "offset.csv",
       mimeType: "text/csv",
       buffer: Buffer.from("name,logged_at\nAlice,2024-03-04T01:00:00+09:00\nBob,非公開\n", "utf-8"),
@@ -1023,7 +1047,7 @@ test.describe("editor shell: column type override (issue 11b)", () => {
   test("overriding an already-date-typed column to 日付 again does not crash validation, even for a value that originally had a UTC offset", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "already-date.csv",
       mimeType: "text/csv",
       buffer: Buffer.from(
@@ -1054,7 +1078,9 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("'このデータを集計' opens a query builder card as a sibling to the source card", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
 
     await expect(page.locator(".hyakkei-query-card")).toHaveCount(0);
@@ -1066,7 +1092,9 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("group-by + sum measure aggregates against real DuckDB-WASM, matching the source data exactly", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
 
@@ -1089,7 +1117,9 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("a filter condition narrows the previewed rows and the matched/total count status", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
 
@@ -1115,7 +1145,9 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("a filter value that doesn't match its column's category excludes all rows without crashing, and is marked invalid", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
 
@@ -1136,7 +1168,9 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("deleting a query removes only its own card, leaving the source card and any other query intact", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
@@ -1191,7 +1225,7 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("overriding a column's type away from 数値 refreshes an existing sum-measure query, replacing its stale result with a visible mismatch warning", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "mixed.csv",
       mimeType: "text/csv",
       buffer: Buffer.from("name,amount\nAlice,1200\nBob,999\nCarol,非公開\n", "utf-8"),
@@ -1228,7 +1262,7 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("a measure whose default alias collides with a REAL column name (via real DuckDB-WASM execution) renders both as distinct, uncorrupted scalar values", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "alias-collision.csv",
       mimeType: "text/csv",
       buffer: Buffer.from("name,count_amount,amount\nAlice,5,10\nAlice,5,20\nBob,7,30\n", "utf-8"),
@@ -1280,7 +1314,7 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("a 'contains' filter for a literal '50%' matches only the row containing that literal text, real DuckDB-WASM LIKE execution", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles({
       name: "like-escape.csv",
       mimeType: "text/csv",
       buffer: Buffer.from(
@@ -1321,7 +1355,9 @@ test.describe("editor shell: query builder (issue 11c)", () => {
   test("a genuine Excel boolean column (auto-detected as 文字) is filterable without throwing, including the query builder's own default new-filter value", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("19-boolean-column.xlsx"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("19-boolean-column.xlsx"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await expect(page.getByLabel("「承認済み」の種類")).toHaveValue("text");
 

@@ -1,6 +1,7 @@
-import type { Dashboard, Source } from "@hyakkei/schema";
+import { Dashboard, type Source } from "@hyakkei/schema";
 import type { WorkspaceSource } from "../App.js";
 import type { ColumnOverride, IntakeSample, WorkspaceQuery } from "../intake/types.js";
+import { extractDashboardAdditiveFields } from "./additive-fields.js";
 
 export type DashboardEditorState = {
   meta: Dashboard["meta"];
@@ -9,6 +10,8 @@ export type DashboardEditorState = {
   queries: WorkspaceQuery[];
   charts: Dashboard["charts"];
   layout: Dashboard["layout"];
+  documentExtras: Record<string, unknown>;
+  queryExtras: Map<string, Record<string, unknown>>;
 };
 
 function sourceLabel(source: Source): string {
@@ -58,6 +61,7 @@ function queryPreviewColumns(query: Dashboard["queries"][number]): string[] {
 }
 
 export function fromDashboard(dashboard: Dashboard): DashboardEditorState {
+  const additive = extractDashboardAdditiveFields(dashboard as unknown as Record<string, unknown>);
   return {
     meta: dashboard.meta,
     theme: dashboard.theme,
@@ -75,5 +79,7 @@ export function fromDashboard(dashboard: Dashboard): DashboardEditorState {
     })),
     charts: dashboard.charts,
     layout: dashboard.layout,
+    documentExtras: additive.documentExtras,
+    queryExtras: additive.queryExtras,
   };
 }

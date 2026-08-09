@@ -15,7 +15,9 @@ test.beforeEach(async ({ page }) => {
 
 /** Registers `06-shift_jis.csv` and builds an aggregated query (部署 group-by + sum(件数)) -- same setup `intake-harness.spec.ts`'s own "group-by + sum measure" test uses, so this reaches the same known 2-row result (住民課: 45, 税務課: 30). */
 async function setUpAggregatedQuery(page: import("@playwright/test").Page): Promise<void> {
-  await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+  await page
+    .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+    .setInputFiles(fixturePath("06-shift_jis.csv"));
   await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
   await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
 
@@ -56,7 +58,9 @@ test.describe("editor shell: chart builder (issue #12)", () => {
   });
 
   test("グラフ化 is disabled until the underlying query has resolved", async ({ page }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
     // Once the query's own (unfiltered) preview resolves, the button becomes enabled.
@@ -324,7 +328,9 @@ test.describe("editor shell: chart builder (issue #12)", () => {
   test("query deletion focuses next, then previous, then the source's add-query control", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
@@ -381,10 +387,10 @@ test.describe("editor shell: chart builder (issue #12)", () => {
 
   test("same-named source delete buttons get stable 1-based ordinals", async ({ page }) => {
     const file = fixturePath("06-shift_jis.csv");
-    await page.locator('input[type="file"]').setInputFiles(file);
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles(file);
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "データを追加" }).click();
-    await page.locator('input[type="file"]').setInputFiles(file);
+    await page.locator('input[type="file"][accept=".csv,.xlsx,.parquet"]').setInputFiles(file);
     await expect(page.locator(".hyakkei-source-card")).toHaveCount(2);
     await expect(
       page.getByRole("button", { name: "「06-shift_jis.csv」（1件目）を削除" }),
@@ -445,7 +451,9 @@ test.describe("editor shell: chart builder (issue #12)", () => {
   test("deleting one of two queries on the same source renumbers the survivor back to no ordinal", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
@@ -535,7 +543,9 @@ test.describe("editor shell: chart builder (issue #12)", () => {
   }) => {
     const before = await page.evaluate(() => Object.getOwnPropertyNames(Object.prototype));
 
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("18-proto-column.xlsx"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("18-proto-column.xlsx"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「18-proto-column.xlsx」を集計" }).click();
     await expect(page.locator(".hyakkei-query-card tbody tr").first()).toBeVisible();

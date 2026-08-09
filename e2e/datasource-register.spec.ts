@@ -117,6 +117,33 @@ test.describe("PR-A2 real DuckDB-WASM round-trip (register-harness.html)", () =>
     });
   }
 
+  test("csv: UTF-8 BOM keeps the first column name clean through buffer registration (EN-2)", async ({
+    page,
+  }) => {
+    const result = await page.evaluate(
+      ({ spec, bytes }) => window.__hyakkeiHarness.registerFile(spec, bytes),
+      {
+        spec: { id: "t_utf8bom", kind: "file", format: "csv", ref: { name: "07-utf8-bom.csv" } },
+        bytes: loadFixtureBytes("07-utf8-bom.csv"),
+      },
+    );
+    expectRegistered(result);
+    expect(result.table.columns.map((c: { name: string }) => c.name)).toEqual([
+      "id",
+      "name",
+      "amount",
+    ]);
+    await expect(
+      page.evaluate(
+        (sql) => window.__hyakkeiHarness.query(sql),
+        'SELECT * FROM "t_utf8bom" ORDER BY id',
+      ),
+    ).resolves.toEqual([
+      { id: 1, name: "サンプル", amount: 1000 },
+      { id: 2, name: "テスト", amount: 2000 },
+    ]);
+  });
+
   // QA Phase 8 finding (Minor m-2): fixture 17 was committed for CS-B3 but
   // no test anywhere exercised it against the real DuckDB register path.
   // Doing so here overturned the ORIGINAL assumption (documented in

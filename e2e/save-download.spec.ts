@@ -98,7 +98,9 @@ test.describe("issue #15/F7: full save flow via the editor UI", () => {
     // values 田中太郎/鈴木花子)/件数(count). The query below only touches
     // 部署+件数 -- 担当者's real names never enter any query, making them a
     // clean canary independent of column-name vs. cell-value ambiguity.
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
 
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
@@ -157,7 +159,9 @@ test.describe("issue #15/F7: full save flow via the editor UI", () => {
   test("配布用HTML is a baked file://-safe viewer with rows and no authoring inputs", async ({
     page,
   }) => {
-    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await page
+      .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+      .setInputFiles(fixturePath("06-shift_jis.csv"));
     await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
     await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
     await page.getByRole("button", { name: "＋ 単位を追加" }).click();
@@ -166,7 +170,11 @@ test.describe("issue #15/F7: full save flow via the editor UI", () => {
     await page.getByLabel("集計する値1: 集計方法").selectOption("sum");
     await expect(page.locator(".hyakkei-query-card tbody tr")).toHaveCount(2);
     await page.getByRole("button", { name: "「06-shift_jis.csv」の集計をグラフ化" }).click();
-    await expect(page.locator(".hyakkei-chart-canvas")).toHaveCount(1);
+    // The authoring view intentionally renders the chart twice: once in the
+    // chart card and once in the unified dashboard-grid preview. The exported
+    // payload remains a single chart; asserting the two authoring canvases
+    // avoids mistaking the preview convergence layer for duplicate data.
+    await expect(page.locator(".hyakkei-chart-canvas")).toHaveCount(2);
     await page.getByLabel("ダッシュボード名").fill("配布用レポート");
 
     const downloadPromise = page.waitForEvent("download");

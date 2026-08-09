@@ -67,7 +67,9 @@ test("issue #69: registering a source and entering the workspace never falsely t
   page,
 }) => {
   await page.goto("/index.html", { waitUntil: "networkidle" });
-  await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+  await page
+    .locator('input[type="file"][accept=".csv,.xlsx,.parquet"]')
+    .setInputFiles(fixturePath("06-shift_jis.csv"));
 
   // The workspace's own heading appears only after a successful
   // registration auto-enters it (issue #11a: no "確定" click needed).
