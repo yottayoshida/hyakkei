@@ -3,6 +3,63 @@ import { startsWith, UTF8_BOM } from "./byte-prefix.js";
 
 const UTF16LE_BOM = new Uint8Array([0xff, 0xfe]);
 const UTF16BE_BOM = new Uint8Array([0xfe, 0xff]);
+const ASYNC_DECODE_CHUNK_BYTES = 1 << 20;
+
+function yieldToBrowser(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function decodeStreaming(bytes: Uint8Array, decoder: TextDecoder): Promise<string> {
+  const parts: string[] = [];
+  for (let offset = 0; offset < bytes.byteLength; offset += ASYNC_DECODE_CHUNK_BYTES) {
+    parts.push(
+      decoder.decode(
+        bytes.subarray(offset, Math.min(offset + ASYNC_DECODE_CHUNK_BYTES, bytes.byteLength)),
+        { stream: true },
+      ),
+    );
+    await yieldToBrowser();
+  }
+  parts.push(decoder.decode());
+  return parts.join("");
+}
+
+export type CsvInput = { kind: "buffer"; bytes: Uint8Array } | { kind: "text"; text: string };
+
+async function validateUtf8(bytes: Uint8Array): Promise<boolean> {
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  try {
+    for (let offset = 0; offset < bytes.byteLength; offset += ASYNC_DECODE_CHUNK_BYTES) {
+      decoder.decode(
+        bytes.subarray(offset, Math.min(offset + ASYNC_DECODE_CHUNK_BYTES, bytes.byteLength)),
+        { stream: true },
+      );
+      await yieldToBrowser();
+    }
+    decoder.decode();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Prepares a CSV for the DuckDB registration path without materializing a
+ * second giant JS string for the common UTF-8 case. The original bytes are
+ * retained by the caller; register-path's buffer helper makes the detached
+ * copy required by DuckDB-WASM.
+ */
+export async function prepareCsvInputAsync(bytes: Uint8Array): Promise<CsvInput> {
+  if (startsWith(bytes, UTF8_BOM)) return { kind: "buffer", bytes };
+  if (startsWith(bytes, UTF16LE_BOM)) {
+    return { kind: "text", text: await decodeStreaming(bytes, new TextDecoder("utf-16le")) };
+  }
+  if (startsWith(bytes, UTF16BE_BOM)) {
+    return { kind: "text", text: await decodeStreaming(bytes, new TextDecoder("utf-16be")) };
+  }
+  if (await validateUtf8(bytes)) return { kind: "buffer", bytes };
+  return { kind: "text", text: iconv.decode(bytes, "Shift_JIS") };
+}
 
 /**
  * O-ENC (csv only — shape enumeration §2d/§4, plan D11): decodes raw bytes
@@ -54,4 +111,17 @@ export function decodeCsvText(bytes: Uint8Array): string {
     // require it when the input is already a typed array, not a string.
     return iconv.decode(bytes, "Shift_JIS");
   }
+}
+
+/**
+ * Browser-facing CSV decoding for large files. The synchronous decoder is
+ * retained for small/unit-test callers, while intake uses this variant so a
+ * 100MB-class UTF-8/UTF-16 file yields between 1MiB chunks instead of holding
+ * the main thread in one TextDecoder call. A fatal UTF-8 probe is performed
+ * incrementally; only genuinely non-UTF encodings fall back to iconv-lite's
+ * synchronous Shift_JIS path.
+ */
+export async function decodeCsvTextAsync(bytes: Uint8Array): Promise<string> {
+  const input = await prepareCsvInputAsync(bytes);
+  return input.kind === "text" ? input.text : new TextDecoder("utf-8").decode(input.bytes);
 }

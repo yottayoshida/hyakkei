@@ -6,20 +6,6 @@ export type QueryAdditiveFields = ReadonlyMap<string, AdditiveObjectFields>;
 const DASHBOARD_KEYS = new Set(Object.keys(Dashboard.properties));
 const QUERY_KEYS = new Set(Object.keys(Query.properties));
 
-function isPlainSerializable(value: unknown): boolean {
-  if (value === null) return true;
-  const type = typeof value;
-  if (type === "string" || type === "boolean") return true;
-  if (type === "number") return Number.isFinite(value);
-  if (type !== "object") return false;
-  if (Array.isArray(value)) return value.every(isPlainSerializable);
-  const prototype = Object.getPrototypeOf(value);
-  return (
-    (prototype === Object.prototype || prototype === null) &&
-    Object.values(value ?? {}).every(isPlainSerializable)
-  );
-}
-
 function copyUnknownFields(value: Record<string, unknown>, knownKeys: ReadonlySet<string>) {
   const extras: AdditiveObjectFields = Object.create(null) as AdditiveObjectFields;
   for (const [key, fieldValue] of Object.entries(value)) {
@@ -47,17 +33,54 @@ export function extractDashboardAdditiveFields(dashboard: Record<string, unknown
 }
 
 export function assertSerializableAdditiveFields(value: unknown, path = "$"): void {
-  if (!isPlainSerializable(value)) {
+  assertSerializable(value, path, new WeakSet<object>());
+}
+
+function assertSerializable(value: unknown, path: string, ancestors: WeakSet<object>): void {
+  if (value === null) return;
+  const type = typeof value;
+  if (type === "string" || type === "boolean") return;
+  if (type === "number" && Number.isFinite(value)) return;
+  if (type !== "object") {
     throw new TypeError(`additive field at ${path} is not JSON-serializable`);
   }
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => assertSerializableAdditiveFields(item, `${path}[${index}]`));
-    return;
+
+  const objectValue = value as object;
+  if (ancestors.has(objectValue)) {
+    throw new TypeError(`additive field at ${path} contains a cycle`);
   }
-  if (value !== null && typeof value === "object") {
-    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-      assertSerializableAdditiveFields(child, `${path}.${key}`);
+  ancestors.add(objectValue);
+  try {
+    const ownNames = Object.getOwnPropertyNames(objectValue);
+    if (Object.getOwnPropertySymbols(objectValue).length > 0) {
+      throw new TypeError(`additive field at ${path} has symbol keys`);
     }
+    if (Array.isArray(value)) {
+      for (let index = 0; index < value.length; index++) {
+        if (!Object.prototype.hasOwnProperty.call(value, index)) {
+          throw new TypeError(`additive field at ${path}[${index}] is a sparse array hole`);
+        }
+        assertSerializable(value[index], `${path}[${index}]`, ancestors);
+      }
+      const unexpectedArrayKeys = ownNames.filter((key) => key !== "length" && !/^\d+$/.test(key));
+      if (unexpectedArrayKeys.length > 0) {
+        throw new TypeError(`additive field at ${path} has non-index array keys`);
+      }
+      return;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new TypeError(`additive field at ${path} is not a plain object`);
+    }
+    for (const key of ownNames) {
+      if (!Object.prototype.propertyIsEnumerable.call(value, key)) {
+        throw new TypeError(`additive field at ${path}.${key} is not enumerable`);
+      }
+      assertSerializable((value as Record<string, unknown>)[key], `${path}.${key}`, ancestors);
+    }
+  } finally {
+    ancestors.delete(objectValue);
   }
 }
 

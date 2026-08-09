@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeCsvText } from "./encoding.js";
+import { decodeCsvText, decodeCsvTextAsync, prepareCsvInputAsync } from "./encoding.js";
 
 function utf8Bytes(text: string): Uint8Array {
   return new TextEncoder().encode(text);
@@ -35,5 +35,25 @@ describe("decodeCsvText", () => {
   it("EN-5/EN-6: does not throw on empty or header-only content (emptiness is the caller's concern, not decode's)", () => {
     expect(decodeCsvText(new Uint8Array(0))).toBe("");
     expect(decodeCsvText(utf8Bytes("id,name\n"))).toBe("id,name\n");
+  });
+
+  it("EN-13: async decoding preserves chunk boundaries without changing UTF-8 output", async () => {
+    const text = "id,name\n" + "1,田中\n".repeat(300_000);
+    await expect(decodeCsvTextAsync(utf8Bytes(text))).resolves.toBe(text);
+  });
+
+  it("EN-14: async preparation keeps valid UTF-8 as bytes for zero-copy DuckDB registration", async () => {
+    const bytes = utf8Bytes("id,name\n1,田中\n");
+    await expect(prepareCsvInputAsync(bytes)).resolves.toEqual({ kind: "buffer", bytes });
+  });
+
+  it("EN-15: async preparation preserves UTF-16 and Shift_JIS fallbacks", async () => {
+    const utf16le = new Uint8Array([0xff, 0xfe, 0x69, 0x00, 0x64, 0x00]);
+    await expect(prepareCsvInputAsync(utf16le)).resolves.toEqual({ kind: "text", text: "id" });
+    const sjisBytes = new Uint8Array([0x95, 0x94, 0x8f, 0x90, 0x2c]);
+    await expect(prepareCsvInputAsync(sjisBytes)).resolves.toEqual({
+      kind: "text",
+      text: "部署,",
+    });
   });
 });
