@@ -19,6 +19,7 @@ import {
   type Dashboard,
   type Layout,
   type LayoutItem,
+  MAX_LAYOUT_H,
 } from "@hyakkei/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardErrorBoundary } from "../dashboard-error-boundary.js";
@@ -390,7 +391,7 @@ function LayoutReorderOverlay({
               ))}
               <button
                 type="button"
-                aria-label="幅を狭くする"
+                aria-label={`「${item.chart}」の幅を狭くする`}
                 onClick={() => onResizeLayout(item.chart, -1, 0)}
                 disabled={item.w <= 1}
                 style={{ minHeight: 44, minWidth: 44 }}
@@ -399,7 +400,7 @@ function LayoutReorderOverlay({
               </button>
               <button
                 type="button"
-                aria-label="幅を広くする"
+                aria-label={`「${item.chart}」の幅を広くする`}
                 onClick={() => onResizeLayout(item.chart, 1, 0)}
                 disabled={item.w >= gridWidth}
                 style={{ minHeight: 44, minWidth: 44 }}
@@ -408,7 +409,7 @@ function LayoutReorderOverlay({
               </button>
               <button
                 type="button"
-                aria-label="高さを低くする"
+                aria-label={`「${item.chart}」の高さを低くする`}
                 onClick={() => onResizeLayout(item.chart, 0, -1)}
                 disabled={item.h <= 1}
                 style={{ minHeight: 44, minWidth: 44 }}
@@ -417,7 +418,8 @@ function LayoutReorderOverlay({
               </button>
               <button
                 type="button"
-                aria-label="高さを高くする"
+                aria-label={`「${item.chart}」の高さを高くする`}
+                disabled={item.h >= MAX_LAYOUT_H}
                 onClick={() => onResizeLayout(item.chart, 0, 1)}
                 style={{ minHeight: 44, minWidth: 44 }}
               >

@@ -283,7 +283,7 @@ describe("AuthoringDashboardPreview", () => {
       editButton.click();
     });
     const widthButton = host.querySelector(
-      'button[aria-label="幅を広くする"]',
+      'button[aria-label="「c1」の幅を広くする"]',
     ) as HTMLButtonElement;
     expect(widthButton).not.toBeNull();
     await act(async () => widthButton.click());

@@ -11,6 +11,8 @@
 // setup csp-containment.spec.ts uses) -- not a synthetic page, so the
 // CSP under test is the one that will actually ship.
 import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { expect, test } from "@playwright/test";
 
 const FIXTURES_DIR = join(import.meta.dirname, "..", "spikes", "excel-fidelity", "fixtures");
@@ -150,5 +152,68 @@ test.describe("issue #15/F7: full save flow via the editor UI", () => {
     expect(parsed.charts).toHaveLength(1);
     expect(parsed.layout.items).toHaveLength(1);
     expect(content.endsWith("\n")).toBe(true);
+  });
+
+  test("配布用HTML is a baked file://-safe viewer with rows and no authoring inputs", async ({
+    page,
+  }) => {
+    await page.locator('input[type="file"]').setInputFiles(fixturePath("06-shift_jis.csv"));
+    await expect(page.getByRole("heading", { name: "データワークスペース" })).toBeVisible();
+    await page.getByRole("button", { name: "「06-shift_jis.csv」を集計" }).click();
+    await page.getByRole("button", { name: "＋ 単位を追加" }).click();
+    await page.getByRole("button", { name: "＋ 値を追加" }).click();
+    await page.getByLabel("集計する値1: 列").selectOption("件数");
+    await page.getByLabel("集計する値1: 集計方法").selectOption("sum");
+    await expect(page.locator(".hyakkei-query-card tbody tr")).toHaveCount(2);
+    await page.getByRole("button", { name: "「06-shift_jis.csv」の集計をグラフ化" }).click();
+    await expect(page.locator(".hyakkei-chart-canvas")).toHaveCount(1);
+    await page.getByLabel("ダッシュボード名").fill("配布用レポート");
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "配布用HTML" }).click();
+    const download = await downloadPromise;
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    if (!downloadPath) return;
+    const fs = await import("node:fs/promises");
+    const html = await fs.readFile(downloadPath, "utf-8");
+    const payload = html.match(
+      /<script type="application\/json" id="hyakkei-export-payload">([\s\S]*?)<\/script>/,
+    )?.[1];
+    expect(payload).toBeDefined();
+    const baked = JSON.parse(payload!) as {
+      sources?: unknown;
+      queries?: unknown;
+      charts: { rows: unknown[] }[];
+    };
+    expect(baked.sources).toBeUndefined();
+    expect(baked.queries).toBeUndefined();
+    expect(baked.charts[0]?.rows.length).toBeGreaterThan(0);
+    expect(html).toContain("hyakkei-chart-canvas");
+    expect(html).toContain("Content-Security-Policy");
+    expect(html).not.toContain("SELECT");
+
+    const exportDir = await fs.mkdtemp(join(tmpdir(), "hyakkei-export-"));
+    const exportPath = join(exportDir, "index.html");
+    await fs.writeFile(exportPath, html, "utf-8");
+    const externalRequests: string[] = [];
+    const pageErrors: string[] = [];
+    const onRequest = (request: import("@playwright/test").Request) => {
+      const url = request.url();
+      if (!url.startsWith("file:") && !url.startsWith("data:") && !url.startsWith("blob:")) {
+        externalRequests.push(url);
+      }
+    };
+    const onPageError = (error: Error) => pageErrors.push(error.message);
+    page.on("request", onRequest);
+    page.on("pageerror", onPageError);
+    await page.goto(pathToFileURL(exportPath).href, { waitUntil: "load" });
+    await expect(page.locator(".hyakkei-tile")).toHaveCount(1);
+    await expect(page.locator(".hyakkei-accessible-data-table")).toHaveCount(1);
+    expect(externalRequests).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    page.off("request", onRequest);
+    page.off("pageerror", onPageError);
+    await fs.rm(exportDir, { recursive: true, force: true });
   });
 });

@@ -59,6 +59,9 @@ importers:
       '@hyakkei/core':
         specifier: workspace:*
         version: link:../core
+      '@hyakkei/export':
+        specifier: workspace:*
+        version: link:../export
       '@hyakkei/schema':
         specifier: workspace:*
         version: link:../schema
@@ -140,6 +143,9 @@ importers:
         specifier: workspace:*
         version: link:../schema
     devDependencies:
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.2
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

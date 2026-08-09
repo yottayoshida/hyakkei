@@ -7,6 +7,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
+    "./bake": "./dist/bake/index.js",
     "./renderer": "./dist/renderer/index.js",
     "./datasource": "./dist/datasource/index.js",
     "./golden-fixtures": "./dist/golden-fixtures/index.js",

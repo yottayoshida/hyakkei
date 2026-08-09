@@ -5,7 +5,18 @@ import {
   type Dashboard,
 } from "@hyakkei/schema";
 
-const FATAL_REFERENCE_KINDS = new Set(["dangling", "out-of-bounds", "missing-column"]);
+// Import is a replacement operation. Any referential warning that could make
+// the editor render two entities into one slot (or compile a source name
+// ambiguously) is therefore fatal here rather than deferred to an advisory
+// badge after the state has already been installed.
+const FATAL_REFERENCE_KINDS = new Set([
+  "dangling",
+  "duplicate",
+  "overlap",
+  "out-of-bounds",
+  "missing-column",
+  "reserved-word",
+]);
 
 export class DashboardReadError extends Error {
   constructor(message: string) {

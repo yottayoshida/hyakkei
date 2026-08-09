@@ -9,14 +9,15 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc --build",
-    "test": "vitest run"
+    "build": "node scripts/build-renderer.mjs && tsc --build",
+    "test": "node scripts/build-renderer.mjs && vitest run"
   },
   "dependencies": {
     "@hyakkei/core": "workspace:*",
     "@hyakkei/schema": "workspace:*"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

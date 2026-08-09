@@ -1,8 +1,8 @@
-import type { LayoutItem } from "@hyakkei/schema";
+import { MAX_LAYOUT_H, type LayoutItem } from "@hyakkei/schema";
 import { packItems } from "./layout-placement.js";
 
 const MIN_TILE_SIZE = 1;
-const MAX_TILE_HEIGHT = 12;
+const MAX_TILE_HEIGHT = MAX_LAYOUT_H;
 
 /** Resizes one tile by integer deltas, then repacks every tile deterministically. */
 export function resizeLayout(
