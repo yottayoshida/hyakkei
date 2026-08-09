@@ -43,7 +43,7 @@ import { canSave } from "./document/can-save.js";
 import { downloadDashboard } from "./document/download-dashboard.js";
 import { downloadFilename } from "./document/download-filename.js";
 import { fromDashboard } from "./document/from-dashboard.js";
-import { downloadSingleFileDashboard } from "./document/export-dashboard.js";
+import { downloadSingleFileHtml } from "./document/export-dashboard.js";
 import { downloadExportFolder } from "./document/download-export-folder.js";
 import { mergeDashboardSource } from "./document/merge-dashboard.js";
 import { readDashboardFile, DashboardReadError } from "./document/read-dashboard.js";
@@ -363,6 +363,15 @@ export function toRow(plain: Record<string, unknown>): Row {
  */
 const PENDING_ROW_STATE: ChartRowState = { status: "pending" };
 
+function PublicDisclaimer() {
+  return (
+    <footer style={{ maxWidth: 960, margin: "0 auto", padding: "16px 24px 24px", fontSize: 12 }}>
+      Hyakkei
+      はコミュニティプロジェクトです。デジタル庁の公式製品ではなく、提携・承認関係もありません。
+    </footer>
+  );
+}
+
 export function App() {
   const [sources, setSources] = useState<WorkspaceSource[]>([]);
   // issue #15/F7: `meta`/`theme` are the two `Dashboard` top-level fields
@@ -397,9 +406,12 @@ export function App() {
   const [exportPending, setExportPending] = useState(false);
   const [exportSizePrompt, setExportSizePrompt] = useState<{
     baked: BakedDashboard;
+    html: string;
     filename: string;
     bytes: number;
   } | null>(null);
+  const [largeExportPending, setLargeExportPending] = useState(false);
+  const largeExportPendingRef = useRef(false);
   // Shell-owned (mirror-review Major 3): every id this session has ever
   // reserved must outlive each individual `IntakeApp` mount ("add source"
   // mounts a fresh instance per attempt), so it lives here, not inside
@@ -1811,10 +1823,10 @@ export function App() {
       const filename = downloadFilename(meta.title, new Date()).replace(/\.json$/i, ".html");
       const exportPlan = planDashboardExport(baked);
       if (exportPlan.exceedsSingleFileLimit) {
-        setExportSizePrompt({ baked, filename, bytes: exportPlan.bytes });
+        setExportSizePrompt({ baked, html: exportPlan.html, filename, bytes: exportPlan.bytes });
         return;
       }
-      downloadSingleFileDashboard(baked, filename);
+      downloadSingleFileHtml(exportPlan.html, filename);
       setAnnouncement(`配布用HTMLを書き出しました: ${filename}`);
     } catch (error) {
       if (error instanceof ExportRowsError) {
@@ -1829,14 +1841,16 @@ export function App() {
 
   const handleLargeExportSingleFile = useCallback(() => {
     if (!exportSizePrompt) return;
-    downloadSingleFileDashboard(exportSizePrompt.baked, exportSizePrompt.filename);
+    downloadSingleFileHtml(exportSizePrompt.html, exportSizePrompt.filename);
     setAnnouncement(`配布用HTMLを書き出しました: ${exportSizePrompt.filename}`);
     setExportSizePrompt(null);
     exportButtonRef.current?.focus();
   }, [exportSizePrompt]);
 
   const handleLargeExportFolderZip = useCallback(async () => {
-    if (!exportSizePrompt) return;
+    if (!exportSizePrompt || largeExportPendingRef.current) return;
+    largeExportPendingRef.current = true;
+    setLargeExportPending(true);
     try {
       const filename = exportSizePrompt.filename.replace(/\.html$/i, ".zip");
       await downloadExportFolder(exportSizePrompt.baked, filename);
@@ -1845,6 +1859,9 @@ export function App() {
       exportButtonRef.current?.focus();
     } catch {
       setAnnouncement("配布用フォルダーZIPを書き出せませんでした。もう一度お試しください。");
+    } finally {
+      largeExportPendingRef.current = false;
+      setLargeExportPending(false);
     }
   }, [exportSizePrompt]);
 
@@ -2121,6 +2138,7 @@ export function App() {
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px 24px" }}>
           <GalleryPanel />
         </div>
+        <PublicDisclaimer />
       </>
     );
   }
@@ -2215,8 +2233,20 @@ export function App() {
           type="button"
           ref={exportButtonRef}
           onClick={handleExport}
-          disabled={saveBlockReason !== null || exportBlocked || exportPending}
-          aria-disabled={saveBlockReason !== null || exportBlocked || exportPending}
+          disabled={
+            saveBlockReason !== null ||
+            exportBlocked ||
+            exportPending ||
+            exportSizePrompt !== null ||
+            largeExportPending
+          }
+          aria-disabled={
+            saveBlockReason !== null ||
+            exportBlocked ||
+            exportPending ||
+            exportSizePrompt !== null ||
+            largeExportPending
+          }
           style={{ minHeight: 44, padding: "0 12px", background: "transparent" }}
         >
           {exportPending ? "書き出し中…" : "配布用HTML"}
@@ -2419,8 +2449,10 @@ export function App() {
           onSingleFile={handleLargeExportSingleFile}
           onFolderZip={() => void handleLargeExportFolderZip()}
           onCancel={handleCancelLargeExport}
+          busy={largeExportPending}
         />
       )}
+      <PublicDisclaimer />
     </div>
   );
 }

@@ -5,6 +5,7 @@ type GallerySample = {
   title: string;
   description: string;
   href: string;
+  source: { publisher: string; tableId: string; url: string };
 };
 
 type GalleryManifest = {
@@ -34,7 +35,11 @@ function parseManifest(value: unknown): GalleryManifest {
         typeof (sample as GallerySample).id === "string" &&
         typeof (sample as GallerySample).title === "string" &&
         typeof (sample as GallerySample).description === "string" &&
-        typeof (sample as GallerySample).href === "string",
+        typeof (sample as GallerySample).href === "string" &&
+        (sample as GallerySample).source &&
+        typeof (sample as GallerySample).source.publisher === "string" &&
+        typeof (sample as GallerySample).source.tableId === "string" &&
+        typeof (sample as GallerySample).source.url === "string",
     )
   ) {
     throw new Error("invalid gallery manifest");
@@ -119,8 +124,16 @@ export function GalleryPanel() {
             }
             return (
               <li key={sample.id}>
-                <a href={href}>{sample.title}</a>
+                <a href={href}>サンプルを見る: {sample.title}</a>
                 <p>{sample.description}</p>
+                <p>
+                  出典: {sample.source.publisher} 表番号 {sample.source.tableId}{" "}
+                  {sample.source.url ? (
+                    <a href={sample.source.url} target="_blank" rel="noreferrer">
+                      公式表を確認
+                    </a>
+                  ) : null}
+                </p>
               </li>
             );
           })}

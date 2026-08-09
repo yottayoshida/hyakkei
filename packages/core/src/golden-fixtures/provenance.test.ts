@@ -10,7 +10,9 @@ describe("golden fixture provenance", () => {
         new URL(`./data/${source.snapshot.split("/").at(-1)}`, import.meta.url),
       );
       const digest = createHash("sha256").update(csv).digest("hex");
-      expect(digest, `${source.sampleId} snapshot hash`).toBe(source.rawCsvSha256);
+      expect(digest, `${source.sampleId} normalized snapshot hash`).toBe(
+        source.normalizedCsvSha256,
+      );
       expect(source.url).toMatch(/^https:\/\/www\.e-stat\.go\.jp\/dbview\?sid=000001020[134]$/);
       expect(source.tableId).toMatch(/^000001020[134]$/);
     }

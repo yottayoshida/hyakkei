@@ -1,6 +1,6 @@
 # ギャラリー公開データ
 
-ギャラリーの3サンプルは、実行時に外部サイトから取得しません。e-Stat の公式表を取得時点で固定し、必要な列・地域だけを UTF-8 CSV に正規化して同梱しています。各 CSV の SHA-256、表番号、公開日時、取得日、変換規則は `packages/core/src/golden-fixtures/data/provenance.json` に記録しています。
+ギャラリーの3サンプルは、実行時に外部サイトから取得しません。e-Stat の公式表を取得時点で固定し、必要な列・地域だけを UTF-8 CSV に正規化して同梱しています。各 **normalized snapshot CSV** の SHA-256、表番号、公開日時、取得日、変換規則は `packages/core/src/golden-fixtures/data/provenance.json` に記録しています。これは画面表示から抽出した同梱データのハッシュであり、e-Statの未加工配布ファイルそのもののハッシュではありません。
 
 | サンプル | e-Stat 表 | 用途 | 同梱スナップショット |
 | --- | --- | --- | --- |

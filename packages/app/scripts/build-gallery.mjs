@@ -26,11 +26,20 @@ export function createGalleryArtifacts(samples, bakeMeta) {
         id: sample.id,
         title: dashboard.meta.title,
         description: dashboard.meta.description,
+        source: sourceLabel(sample.doc),
         href,
       };
     }),
   };
   return { manifest, files };
+}
+
+function sourceLabel(document) {
+  const source = document.sources?.[0];
+  const ref = source?.ref;
+  const tableId = typeof ref?.tableId === "string" ? ref.tableId : "不明";
+  const url = typeof ref?.url === "string" ? ref.url : "";
+  return { publisher: "e-Stat", tableId, url };
 }
 
 export async function writeGalleryArtifacts(outputDir = DEFAULT_OUTPUT_DIR) {

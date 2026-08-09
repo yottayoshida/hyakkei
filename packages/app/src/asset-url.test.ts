@@ -10,10 +10,18 @@ describe("appAssetUrl", () => {
     );
   });
 
+  it("treats an index document base as its containing deployed directory", () => {
+    expect(appAssetUrl("vendor/duckdb-eh.wasm", `${deployedUnderSubpath}index.html`)).toBe(
+      "https://example.github.io/hyakkei/vendor/duckdb-eh.wasm",
+    );
+  });
+
   it.each([
     "/vendor/worker.js",
     "../vendor/worker.js",
     "..\\vendor\\worker.js",
+    "%2e%2e/vendor/worker.js",
+    " https://cdn.example/worker.js",
     "https://cdn.example/worker.js",
     "//cdn.example/worker.js",
   ])("rejects an unsafe app asset path: %s", (path) => {

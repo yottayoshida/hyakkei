@@ -12,7 +12,7 @@
       "publishedAt": "2026-02-20T14:00:00+09:00",
       "surveyYear": "1975年度",
       "snapshot": "data/applications.csv",
-      "rawCsvSha256": "5a7dd6c76b24caba8b8870d588698258cb6574c6e620186739458bc273a80abb"
+      "normalizedCsvSha256": "5a7dd6c76b24caba8b8870d588698258cb6574c6e620186739458bc273a80abb"
     },
     {
       "sampleId": "budget",
@@ -22,7 +22,7 @@
       "publishedAt": "2026-02-20T14:00:00+09:00",
       "surveyYear": "画面表示値",
       "snapshot": "data/budget.csv",
-      "rawCsvSha256": "6c51318752dac32d911a19066cb438e7ecf6611dd0bf46deff1ca18e822ef685"
+      "normalizedCsvSha256": "6c51318752dac32d911a19066cb438e7ecf6611dd0bf46deff1ca18e822ef685"
     },
     {
       "sampleId": "regional",
@@ -32,7 +32,7 @@
       "publishedAt": "2026-02-20T14:00:00+09:00",
       "surveyYear": "画面表示値",
       "snapshot": "data/regional.csv",
-      "rawCsvSha256": "ffcee8357401b35a7d45248aa79a06f55e7d6831938624f94a29ad0224b1ba7f"
+      "normalizedCsvSha256": "ffcee8357401b35a7d45248aa79a06f55e7d6831938624f94a29ad0224b1ba7f"
     }
   ]
 }

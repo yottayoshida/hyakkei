@@ -5,6 +5,7 @@ export type ExportSizeDialogProps = {
   onSingleFile: () => void;
   onFolderZip: () => void;
   onCancel: () => void;
+  busy?: boolean;
 };
 
 export function ExportSizeDialog({
@@ -12,6 +13,7 @@ export function ExportSizeDialog({
   onSingleFile,
   onFolderZip,
   onCancel,
+  busy = false,
 }: ExportSizeDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const folderZipRef = useRef<HTMLButtonElement>(null);
@@ -19,6 +21,7 @@ export function ExportSizeDialog({
     folderZipRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (busy) return;
         event.preventDefault();
         onCancel();
         return;
@@ -27,7 +30,10 @@ export function ExportSizeDialog({
       const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
         'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       );
-      if (!focusable || focusable.length === 0) return;
+      if (!focusable || focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
       const first = focusable[0]!;
       const last = focusable[focusable.length - 1]!;
       if (!dialogRef.current?.contains(document.activeElement)) {
@@ -43,7 +49,7 @@ export function ExportSizeDialog({
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onCancel]);
+  }, [busy, onCancel]);
   const mib = (bytes / (1024 * 1024)).toFixed(1);
   return (
     <div
@@ -52,7 +58,16 @@ export function ExportSizeDialog({
       aria-modal="true"
       aria-labelledby="export-size-dialog-title"
       aria-describedby="export-size-dialog-description"
-      style={{ position: "fixed", inset: 0, display: "grid", placeItems: "center", padding: 16 }}
+      aria-busy={busy}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        display: "grid",
+        placeItems: "center",
+        padding: 16,
+        background: "rgba(23, 32, 51, 0.45)",
+      }}
     >
       <div style={{ maxWidth: 520, padding: 20, background: "#fff", border: "1px solid #6b7280" }}>
         <h2 id="export-size-dialog-title">配布用HTMLのサイズが大きくなっています</h2>
@@ -60,13 +75,13 @@ export function ExportSizeDialog({
           このダッシュボードは約{mib} MiBです。20 MiBを超えるため、配布方法を選んでください。
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button type="button" onClick={onSingleFile}>
+          <button type="button" onClick={onSingleFile} disabled={busy}>
             単一HTMLで書き出す
           </button>
-          <button ref={folderZipRef} type="button" onClick={onFolderZip}>
+          <button ref={folderZipRef} type="button" onClick={onFolderZip} disabled={busy}>
             フォルダーZIPで書き出す
           </button>
-          <button type="button" onClick={onCancel}>
+          <button type="button" onClick={onCancel} disabled={busy}>
             キャンセル
           </button>
         </div>

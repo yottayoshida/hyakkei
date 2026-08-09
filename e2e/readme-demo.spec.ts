@@ -1,5 +1,8 @@
 import { mkdirSync } from "node:fs";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { expect, test } from "@playwright/test";
 
 /**
@@ -41,7 +44,52 @@ test("README quickstart: CSV を読み込み、集計して、グラフを作成
 
   await page.getByRole("button", { name: `「${FILE_NAME}」の集計をグラフ化` }).click();
   await expect(page.locator(".hyakkei-chart-card .hyakkei-chart-canvas")).toBeVisible();
+  await page.getByRole("button", { name: `「${FILE_NAME}」の集計をグラフ化` }).click();
+  await expect(page.locator(".hyakkei-chart-card")).toHaveCount(2);
+  await page.getByRole("button", { name: "並び順を編集" }).click();
+  await page
+    .getByRole("button", { name: /幅を広くする/ })
+    .first()
+    .click();
   await page.getByLabel("ダッシュボード名").fill("受付チャネル別件数");
   await expect(page.getByRole("button", { name: "配布用HTML" })).toBeEnabled();
   await captureQuickstartFrame(page, "03-chart");
+
+  const savePromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "保存" }).click();
+  const saveDownload = await savePromise;
+  const savePath = await saveDownload.path();
+  expect(savePath).not.toBeNull();
+  if (!savePath) return;
+  const savedDashboard = JSON.parse(await readFile(savePath, "utf-8")) as {
+    meta: { title: string };
+  };
+  expect(savedDashboard.meta.title).toBe("受付チャネル別件数");
+  await captureQuickstartFrame(page, "04-saved");
+
+  const exportPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "配布用HTML" }).click();
+  const exportDownload = await exportPromise;
+  const exportPath = await exportDownload.path();
+  expect(exportPath).not.toBeNull();
+  if (!exportPath) return;
+
+  const offlineDir = await mkdtemp(join(tmpdir(), "hyakkei-readme-demo-"));
+  try {
+    const offlinePath = join(offlineDir, "index.html");
+    await writeFile(offlinePath, await readFile(exportPath));
+    const externalRequests: string[] = [];
+    page.on("request", (request) => {
+      const url = request.url();
+      if (!url.startsWith("file:") && !url.startsWith("data:") && !url.startsWith("blob:")) {
+        externalRequests.push(url);
+      }
+    });
+    await page.goto(pathToFileURL(offlinePath).href, { waitUntil: "load" });
+    await expect(page.locator(".hyakkei-tile")).toHaveCount(2);
+    expect(externalRequests).toEqual([]);
+    await captureQuickstartFrame(page, "05-exported-offline");
+  } finally {
+    await rm(offlineDir, { recursive: true, force: true });
+  }
 });

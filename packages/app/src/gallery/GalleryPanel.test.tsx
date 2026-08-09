@@ -30,6 +30,11 @@ describe("GalleryPanel", () => {
               title: "都道府県別人口",
               description: "固定データです。",
               href: "applications.html",
+              source: {
+                publisher: "e-Stat",
+                tableId: "0000010201",
+                url: "https://www.e-stat.go.jp/dbview?sid=0000010201",
+              },
             },
           ],
         }),
@@ -47,7 +52,8 @@ describe("GalleryPanel", () => {
     });
     const artifactUrl = new URL("applications.html", manifestUrl).href;
     const link = host.querySelector(`a[href="${artifactUrl}"]`);
-    expect(link?.textContent).toContain("都道府県別人口");
+    expect(link?.textContent).toContain("サンプルを見る");
+    expect(host.textContent).toContain("表番号 0000010201");
     expect(host.querySelector('[role="alert"]')).toBeNull();
     await unmount();
   });

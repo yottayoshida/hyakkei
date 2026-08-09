@@ -82,4 +82,19 @@ describe("ExportSizeDialog", () => {
     expect(document.activeElement).toBe(buttons[2]);
     await unmount();
   });
+
+  it("blocks every dialog action while a folder ZIP is being generated", async () => {
+    const onCancel = vi.fn();
+    const { host, unmount } = await renderDialog({
+      bytes: 21 * 1024 * 1024,
+      onSingleFile: vi.fn(),
+      onFolderZip: vi.fn(),
+      onCancel,
+      busy: true,
+    });
+    expect([...host.querySelectorAll("button")].every((button) => button.disabled)).toBe(true);
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    expect(onCancel).not.toHaveBeenCalled();
+    await unmount();
+  });
 });
