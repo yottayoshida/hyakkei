@@ -4,7 +4,12 @@
  * Pages project subpath instead of accidentally pointing at the origin root.
  */
 export function appAssetUrl(path: string, base = document.baseURI): string {
-  if (path.startsWith("/") || path.split("/").includes("..") || /^[a-z][a-z\d+.-]*:/i.test(path)) {
+  if (
+    path.startsWith("/") ||
+    path.includes("\\") ||
+    path.split("/").includes("..") ||
+    /^[a-z][a-z\d+.-]*:/i.test(path)
+  ) {
     throw new Error(`Expected a relative app asset path, received: ${path}`);
   }
 

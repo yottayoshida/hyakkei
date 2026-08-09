@@ -13,6 +13,7 @@ describe("appAssetUrl", () => {
   it.each([
     "/vendor/worker.js",
     "../vendor/worker.js",
+    "..\\vendor\\worker.js",
     "https://cdn.example/worker.js",
     "//cdn.example/worker.js",
   ])("rejects an unsafe app asset path: %s", (path) => {
