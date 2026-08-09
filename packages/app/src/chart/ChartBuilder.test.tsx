@@ -72,6 +72,7 @@ function query(overrides: Partial<WorkspaceQuery> = {}): WorkspaceQuery {
     previewColumns: ["category", "sum_amount"],
     diagnostics: null,
     previewPending: false,
+    previewError: null,
     ...overrides,
   };
 }

@@ -23,7 +23,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardErrorBoundary } from "../dashboard-error-boundary.js";
 import { DEFAULT_THEME } from "../document/theme.js";
-import type { ChartRowState } from "../intake/types.js";
+import type { ChartRowState, QueryErrorKind } from "../intake/types.js";
 import { CHART_ROW_LIMIT } from "./chart-encoding.js";
 
 /**
@@ -98,6 +98,20 @@ function anyChartTruncated(charts: Chart[], chartRowsByQuery: Map<string, ChartR
     const state = chart.query ? chartRowsByQuery.get(chart.query) : undefined;
     return state?.status === "ready" && state.truncated;
   });
+}
+
+function chartErrorKind(
+  charts: Chart[],
+  chartRowsByQuery: Map<string, ChartRowState>,
+): QueryErrorKind | null {
+  let hasQueryError = false;
+  for (const chart of charts) {
+    const state = chart.query ? chartRowsByQuery.get(chart.query) : undefined;
+    if (state?.status !== "error") continue;
+    if (state.kind === "oom") return "oom";
+    hasQueryError = true;
+  }
+  return hasQueryError ? "query" : null;
 }
 
 function buildDoc(charts: Chart[], layout: Layout): Dashboard {
@@ -529,6 +543,13 @@ export function AuthoringDashboardPreview({
       </div>
       {resetAnnouncement && <p role="status">{resetAnnouncement}</p>}
       {editModeAnnouncement && <p role="status">{editModeAnnouncement}</p>}
+      {chartErrorKind(charts, chartRowsByQuery) && (
+        <p role="alert" style={{ margin: "4px 0", fontSize: 13, color: "#b91c1c" }}>
+          {chartErrorKind(charts, chartRowsByQuery) === "oom"
+            ? "メモリ不足でグラフを表示できませんでした。データ量を減らして再実行してください。"
+            : "グラフの集計に失敗しました。条件や列の種類を確認して再実行してください。"}
+        </p>
+      )}
       {anyChartTruncated(charts, chartRowsByQuery) && (
         <p role="status" style={{ margin: "4px 0", fontSize: 13, color: "#b45309" }}>
           一部のグラフはデータが多いため、先頭{CHART_ROW_LIMIT.toLocaleString("ja-JP")}

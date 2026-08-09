@@ -36,6 +36,7 @@ function query(overrides: Partial<WorkspaceQuery> = {}): WorkspaceQuery {
     previewColumns: ["a"],
     diagnostics: null,
     previewPending: false,
+    previewError: null,
     ...overrides,
   };
 }

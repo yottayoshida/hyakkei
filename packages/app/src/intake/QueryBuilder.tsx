@@ -567,6 +567,13 @@ export const QueryBuilder = memo(function QueryBuilder({
       </div>
 
       <div role="status" style={{ marginTop: 8, fontSize: 13 }}>
+        {query.previewError && (
+          <p role="alert" style={{ margin: "4px 0", color: "#b91c1c" }}>
+            {query.previewError === "oom"
+              ? "メモリ不足で集計できませんでした。データ量を減らすか、条件を追加して再実行してください。"
+              : "集計を実行できませんでした。条件や列の種類を確認して再実行してください。"}
+          </p>
+        )}
         {query.previewPending && <p style={{ margin: "4px 0" }}>計算中…</p>}
         {!query.previewPending && diagnostics && (
           <p style={{ margin: "4px 0" }}>

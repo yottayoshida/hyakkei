@@ -35,7 +35,7 @@ import {
 } from "./chart/chart-encoding.js";
 import { CHART_DEFAULT_SIZE, nextFreeCell } from "./chart/layout-placement.js";
 import { reorderLayout } from "./chart/layout-reorder.js";
-import { getDuckDBHandleWithLayer } from "./data-layer.js";
+import { getDuckDBHandleWithLayer, getResolvedDataLayer } from "./data-layer.js";
 import { canSave } from "./document/can-save.js";
 import { downloadDashboard } from "./document/download-dashboard.js";
 import { downloadFilename } from "./document/download-filename.js";
@@ -63,6 +63,7 @@ import {
   type QueryDiagnostics,
   type WorkspaceQuery,
 } from "./intake/types.js";
+import { classifyQueryError } from "./intake/query-error.js";
 
 export type DashboardPreviewProps = { dashboard: BakedDashboard };
 
@@ -661,7 +662,7 @@ export function App() {
       // "pending" forever if a future caller ever reaches it without that
       // pre-validation.
       if (!query || query.sql === "" || !source) {
-        setState({ status: "error" });
+        setState({ status: "error", kind: "query" });
         return;
       }
 
@@ -684,7 +685,13 @@ export function App() {
         // Fail-closed (SEC-4): clears to an explicit error state rather than
         // leaving the LAST successful rows on screen, same "silent fail =
         // zero" discipline `refreshQueryPreview`'s own catch below applies.
-        setState({ status: "error" });
+        setState({
+          status: "error",
+          kind: classifyQueryError(
+            error,
+            getResolvedDataLayer()?.datasource.classifyRegisterFailure,
+          ),
+        });
       }
     },
     [updateChartRowsByQuery],
@@ -709,7 +716,9 @@ export function App() {
       const isCurrent = () => queryGenerationRef.current.get(queryId) === generation;
 
       updateQueries((prev) =>
-        prev.map((q) => (q.id === queryId ? { ...q, previewPending: true } : q)),
+        prev.map((q) =>
+          q.id === queryId ? { ...q, previewPending: true, previewError: null } : q,
+        ),
       );
 
       // Read via the refs (same reasoning as `handleOverrideChange`'s own
@@ -811,7 +820,15 @@ export function App() {
         updateQueries((prev) =>
           prev.map((q) =>
             q.id === queryId
-              ? { ...q, sql, previewRows, previewColumns, diagnostics, previewPending: false }
+              ? {
+                  ...q,
+                  sql,
+                  previewRows,
+                  previewColumns,
+                  diagnostics,
+                  previewPending: false,
+                  previewError: null,
+                }
               : q,
           ),
         );
@@ -861,6 +878,10 @@ export function App() {
                     previewColumns: [],
                     diagnostics: null,
                     previewPending: false,
+                    previewError: classifyQueryError(
+                      error,
+                      getResolvedDataLayer()?.datasource.classifyRegisterFailure,
+                    ),
                   }
                 : q,
             ),
@@ -875,7 +896,13 @@ export function App() {
             );
             updateChartRowsByQuery((prev) => {
               const next = new Map(prev);
-              next.set(queryId, { status: "error" });
+              next.set(queryId, {
+                status: "error",
+                kind: classifyQueryError(
+                  error,
+                  getResolvedDataLayer()?.datasource.classifyRegisterFailure,
+                ),
+              });
               return next;
             });
           }
@@ -1287,6 +1314,7 @@ export function App() {
           previewColumns: [],
           diagnostics: null,
           previewPending: false,
+          previewError: null,
         },
       ]);
       // A fresh query's "all empty" builderState still resolves to a real

@@ -19,6 +19,9 @@ import type { AggregateFn, BuilderState, Source } from "@hyakkei/schema";
  */
 export type AppErrorKind = DataSourceErrorKind | "data-layer-load" | "legacy-xls";
 
+/** Query execution failures are intentionally narrower than raw DuckDB errors. */
+export type QueryErrorKind = "oom" | "query";
+
 export type IntakeError = {
   kind: AppErrorKind;
   reason: NetworkBlockedReason | undefined;
@@ -127,7 +130,7 @@ export function friendlyColumnLabel(column: string, query: WorkspaceQuery): stri
 export type ChartRowState =
   | { status: "pending" }
   | { status: "ready"; rows: Row[]; truncated: boolean }
-  | { status: "error" };
+  | { status: "error"; kind: QueryErrorKind };
 
 /**
  * An orthogonal diagnostic on top of the pass/fail cast outcome (/code-review
@@ -240,6 +243,8 @@ export type WorkspaceQuery = {
   previewColumns: string[];
   diagnostics: QueryDiagnostics | null;
   previewPending: boolean;
+  /** Safe, UI-facing classification of the latest preview failure. */
+  previewError: QueryErrorKind | null;
 };
 
 /**

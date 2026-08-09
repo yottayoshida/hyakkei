@@ -68,7 +68,7 @@ describe("toRowsByQuery", () => {
     const map = new Map<string, ChartRowState>([
       ["q1", { status: "ready", rows: [{ a: 1 }], truncated: false }],
       ["q2", { status: "pending" }],
-      ["q3", { status: "error" }],
+      ["q3", { status: "error", kind: "query" }],
     ]);
     expect(toRowsByQuery(map)).toEqual({ q1: [{ a: 1 }], q2: [], q3: [] });
   });
@@ -218,7 +218,9 @@ describe("AuthoringDashboardPreview", () => {
 
   // V-021 counterpart: same overlay, for a failed query.
   it('overlays state:"error" onto a chart whose query failed', async () => {
-    const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "error" }]]);
+    const chartRowsByQuery = new Map<string, ChartRowState>([
+      ["q1", { status: "error", kind: "query" }],
+    ]);
     const { unmount: cleanup } = await renderInJsdom(
       <AuthoringDashboardPreview
         charts={[CHART_A]}
@@ -229,6 +231,22 @@ describe("AuthoringDashboardPreview", () => {
     );
     const model = patchSpy.mock.calls[0]![1];
     expect(model.charts[0].state).toBe("error");
+    await cleanup();
+  });
+
+  it("shows a safe memory-specific alert for a failed chart query", async () => {
+    const chartRowsByQuery = new Map<string, ChartRowState>([["q1", { status: "error", kind: "oom" }]]);
+    const { host, unmount: cleanup } = await renderInJsdom(
+      <AuthoringDashboardPreview
+        charts={[CHART_A]}
+        layout={LAYOUT}
+        chartRowsByQuery={chartRowsByQuery}
+        onReorderLayout={NOOP_REORDER}
+      />,
+    );
+
+    expect(host.textContent).toContain("メモリ不足でグラフを表示できませんでした");
+    expect(host.textContent).not.toContain("Out of Memory Error");
     await cleanup();
   });
 

@@ -306,6 +306,7 @@ function workspaceSource(sourceLabel: string, intakeSample: IntakeSample) {
     validation: new Map(),
     previewRows: null,
     previewPending: false,
+    previewError: null,
   };
 }
 
