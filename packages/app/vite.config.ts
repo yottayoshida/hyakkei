@@ -23,6 +23,9 @@ import { defineConfig } from "vite";
 // index.html's dynamicImports are separate manifest fields, so the two
 // entries sharing a chunk via Rollup dedup cannot be conflated).
 export default defineConfig({
+  // A relative base keeps generated script/preload references valid when the
+  // static app is published beneath a GitHub Pages repository subpath.
+  base: "./",
   plugins: [react()],
   build: {
     manifest: true,

@@ -1,5 +1,13 @@
 # Hyakkei design docs — start here
 
+## 使い始める
+
+- [ライブデモ](https://yottayoshida.github.io/hyakkei/) — `main` の CI 成功後に GitHub Pages へ公開されるブラウザ版
+- [60秒クイックスタート](../README.md#60秒クイックスタート) — CSV の取り込み、集計、グラフ化、配布用 HTML の保存
+- [テンプレート作成ガイド](./template-authoring.md) — `dashboard.json` を再利用できる雛形にする手順
+
+データはブラウザ内で処理されます。保存・公開前には、ファイル名・列名・集計条件と、配布用 HTML に含まれる集計済みデータを確認してください。
+
 New to the project? Read in this order:
 
 1. **[PRD.md](./PRD.md)** — *why* this exists and *for whom*. Problem, users, scope, non-goals, risks. If you read one document, read this.

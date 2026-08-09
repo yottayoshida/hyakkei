@@ -1,4 +1,5 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
+import { appAssetUrl } from "../asset-url.js";
 import { configureContainment } from "./containment.js";
 
 /**
@@ -9,10 +10,18 @@ import { configureContainment } from "./containment.js";
  * static-hosting deployment targets this project supports can't provide
  * (ADR-0005).
  */
-const MANUAL_BUNDLES = {
-  mvp: { mainModule: "./duckdb-mvp.wasm", mainWorker: "/vendor/duckdb-browser-mvp.worker.js" },
-  eh: { mainModule: "./duckdb-eh.wasm", mainWorker: "/vendor/duckdb-browser-eh.worker.js" },
-};
+function manualBundles() {
+  return {
+    mvp: {
+      mainModule: appAssetUrl("vendor/duckdb-mvp.wasm"),
+      mainWorker: appAssetUrl("vendor/duckdb-browser-mvp.worker.js"),
+    },
+    eh: {
+      mainModule: appAssetUrl("vendor/duckdb-eh.wasm"),
+      mainWorker: appAssetUrl("vendor/duckdb-browser-eh.worker.js"),
+    },
+  };
+}
 
 /**
  * Phase 3 PoC finding: a `Worker` pointed at a nonexistent/unreachable
@@ -64,7 +73,7 @@ export interface DuckDBHandle {
  * explicit statement, not the automatic-loading path that flag gates.
  */
 export async function createDuckDB(): Promise<DuckDBHandle> {
-  const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
+  const bundle = await duckdb.selectBundle(manualBundles());
   // `mainWorker` is typed nullable (duckdb-wasm's general `SelectedBundle`
   // shape allows a worker-less target) but both `MANUAL_BUNDLES` entries
   // above always declare one — this can only be null if duckdb-wasm's own
@@ -95,7 +104,7 @@ export async function createDuckDB(): Promise<DuckDBHandle> {
   // DuckDB appends `/<engine-version>/wasm_<bundle>/parquet.duckdb_
   // extension.wasm` onto this base itself — verified empirically, this
   // script does not need to know which bundle (eh/mvp) is active.
-  await conn.query(`SET custom_extension_repository='${window.location.origin}/vendor/extensions'`);
+  await conn.query(`SET custom_extension_repository='${appAssetUrl("vendor/extensions")}'`);
   await conn.query(`LOAD parquet`);
 
   await configureContainment(conn);

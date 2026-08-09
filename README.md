@@ -10,7 +10,22 @@ Just as ukiyo-e prints brought art to everyone in Edo-period Japan, Hyakkei aims
 
 ## Status
 
-Early design phase. Nothing to run yet. Design documents — PRD, roadmap, architecture, and decision records — live in [`docs/`](./docs/README.md).
+ブラウザで CSV / Excel を読み込み、集計・グラフ化して、配布用の静的 HTML を書き出せます。公開版は [GitHub Pages のライブデモ](https://yottayoshida.github.io/hyakkei/) で試せます（`main` の CI が成功した後に更新されます）。設計資料は [`docs/`](./docs/README.md) にあります。
+
+## 60秒クイックスタート
+
+1. [ライブデモ](https://yottayoshida.github.io/hyakkei/) を開き、CSV または `.xlsx` を選びます。
+2. 「このデータを集計」を選び、**単位**（例: 地域）と **値**（例: 件数の合計）を追加します。
+3. 「グラフ化」で種類を選び、ダッシュボード名を入力します。
+4. 「配布用HTML」を選ぶと、受け取った人がブラウザだけで開けるファイルを保存できます。
+
+![CSV取り込みから集計・グラフ化までの短い操作例](./docs/assets/hyakkei-quickstart.gif)
+
+この手順は個人情報を含まない固定 CSV を使う [Playwright テスト](./e2e/readme-demo.spec.ts) でも毎回確認しています。繰り返し使う構成は [テンプレート作成ガイド](./docs/template-authoring.md) を参照してください。
+
+## プライバシーと公開時の注意
+
+Hyakkei はアカウントや独自サーバーを使いません。読み込んだデータはブラウザ内で処理され、Hyakkei 運営へ送信されません。保存する `dashboard.json` には元データのセル値は含まれませんが、ファイル名・シート名・列名・集計条件（SQL）・グラフ設定は含まれます。公開前に、それらに見せたくない情報がないか確認してください。配布用 HTML には表示用に集計済みの行が含まれるため、共有範囲を必ず確認してください。
 
 ## Vision
 
