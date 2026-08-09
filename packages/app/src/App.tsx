@@ -6,6 +6,7 @@
 // (#11b/#11c/#12-16); this shell owns onboarding->workspace transition,
 // accumulated `sources[]`, and the sample dashboard preview.
 import { mount, normalizeBaked, unmount, type Row } from "@hyakkei/core/renderer";
+import { bake } from "@hyakkei/core/bake";
 // `import type` only (issue #54/#11a bundle isolation): a value import from
 // `@hyakkei/core/datasource` would statically pull duckdb/exceljs/iconv into
 // this entry chunk. Every runtime call to a column-types builder goes
@@ -35,10 +36,15 @@ import {
 } from "./chart/chart-encoding.js";
 import { CHART_DEFAULT_SIZE, nextFreeCell } from "./chart/layout-placement.js";
 import { reorderLayout } from "./chart/layout-reorder.js";
-import { getDuckDBHandleWithLayer } from "./data-layer.js";
+import { resizeLayout } from "./chart/layout-resize.js";
+import { getDuckDBHandleWithLayer, getResolvedDataLayer } from "./data-layer.js";
 import { canSave } from "./document/can-save.js";
 import { downloadDashboard } from "./document/download-dashboard.js";
 import { downloadFilename } from "./document/download-filename.js";
+import { fromDashboard } from "./document/from-dashboard.js";
+import { downloadSingleFileDashboard } from "./document/export-dashboard.js";
+import { mergeDashboardSource } from "./document/merge-dashboard.js";
+import { readDashboardFile, DashboardReadError } from "./document/read-dashboard.js";
 import { SAVE_NARRATIVE_EXCLUDED, SAVE_NARRATIVE_INCLUDED } from "./document/save-narrative.js";
 import { DEFAULT_THEME } from "./document/theme.js";
 import { toDashboard } from "./document/to-dashboard.js";
@@ -63,6 +69,7 @@ import {
   type QueryDiagnostics,
   type WorkspaceQuery,
 } from "./intake/types.js";
+import { classifyQueryError } from "./intake/query-error.js";
 
 export type DashboardPreviewProps = { dashboard: BakedDashboard };
 
@@ -156,6 +163,8 @@ export type WorkspaceSource = {
   validation: Map<string, ColumnValidationState>;
   previewRows: PreviewRow[] | null;
   previewPending: boolean;
+  /** Imported dashboard source awaiting the user's original data file. */
+  disconnected?: boolean;
 };
 
 /**
@@ -178,19 +187,7 @@ export function mergeWorkspaceSource(
   sourceLabel: string,
   sample: IntakeSample,
 ): WorkspaceSource[] {
-  return prev.some((existing) => existing.sample.table.id === sample.table.id)
-    ? prev
-    : [
-        ...prev,
-        {
-          sourceLabel,
-          sample,
-          typeOverrides: [],
-          validation: new Map(),
-          previewRows: null,
-          previewPending: false,
-        },
-      ];
+  return mergeDashboardSource(prev, sourceLabel, sample);
 }
 
 /**
@@ -323,11 +320,23 @@ function refocusAfterConfirmCancel(attribute: string, value: string): void {
   window.setTimeout(() => findDataAttributeElement(attribute, value)?.focus(), 0);
 }
 
+function maxSafeSequence(ids: readonly string[], prefix: string): number {
+  let max = 0;
+  for (const id of ids) {
+    const suffix = id.startsWith(prefix) ? Number(id.slice(prefix.length)) : NaN;
+    if (Number.isSafeInteger(suffix) && suffix > max) max = suffix;
+  }
+  return max;
+}
+
 function toJsonPrimitive(value: unknown): JsonPrimitive {
   if (value === null || value === undefined) return null;
   if (typeof value === "string" || typeof value === "boolean") return value;
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "bigint") {
+    const numeric = Number(value);
+    return Number.isSafeInteger(numeric) ? numeric : value.toString();
+  }
   if (value instanceof Date) return value.toISOString();
   return String(value);
 }
@@ -363,7 +372,7 @@ export function App() {
   // rather than a bare constant so PR-2b's `fromDashboard` can set it from
   // an opened file without a shape change here.
   const [meta, setMeta] = useState<BaseMeta>({ title: "" });
-  const [theme] = useState<Theme>(DEFAULT_THEME);
+  const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
   // issue #15/F7 (UX review D3): save is the ONLY persistence this app has
   // -- DuckDB-WASM is in-memory/session-scoped, so a reload or closed tab
   // discards every registered table regardless of `dirty`. `dirty`/
@@ -385,8 +394,12 @@ export function App() {
   // -- `useState`'s returned value carries the same one-time-created,
   // referentially-stable object without that restriction.
   const [usedIds] = useState<Set<string>>(() => new Set());
+  const pendingReattachRef = useRef<{ oldSourceId: string; newSourceId: string } | null>(null);
+  const suppressDirtyAfterOpenRef = useRef(false);
+  const cleanupTableIdsRef = useRef<Set<string>>(new Set());
 
   const workspaceHeadingRef = useRef<HTMLHeadingElement>(null);
+  const openFileInputRef = useRef<HTMLInputElement>(null);
   // /simplify (Altitude): a real ref, not a DOM `id` string matched across
   // files -- the previous version relied on `IntakeApp.tsx` keeping a
   // literal `id="hyakkei-onboard-heading"` attribute in sync with this
@@ -510,6 +523,17 @@ export function App() {
 
   const handleSourceComplete = useCallback(
     (sourceLabel: string, sample: IntakeSample) => {
+      const disconnected = sourcesRef.current.find(
+        (source) => source.disconnected && source.sourceLabel === sourceLabel,
+      );
+      if (disconnected && disconnected.sample.table.id !== sample.table.id) {
+        pendingReattachRef.current = {
+          oldSourceId: disconnected.sample.table.id,
+          newSourceId: sample.table.id,
+        };
+      } else {
+        pendingReattachRef.current = null;
+      }
       registrationSeqByTableId.current.set(sample.table.id, ++registrationSeqRef.current);
       updateSources((prev) => mergeWorkspaceSource(prev, sourceLabel, sample));
       setAnnouncement(
@@ -661,7 +685,7 @@ export function App() {
       // "pending" forever if a future caller ever reaches it without that
       // pre-validation.
       if (!query || query.sql === "" || !source) {
-        setState({ status: "error" });
+        setState({ status: "error", kind: "query" });
         return;
       }
 
@@ -684,7 +708,13 @@ export function App() {
         // Fail-closed (SEC-4): clears to an explicit error state rather than
         // leaving the LAST successful rows on screen, same "silent fail =
         // zero" discipline `refreshQueryPreview`'s own catch below applies.
-        setState({ status: "error" });
+        setState({
+          status: "error",
+          kind: classifyQueryError(
+            error,
+            getResolvedDataLayer()?.datasource.classifyRegisterFailure,
+          ),
+        });
       }
     },
     [updateChartRowsByQuery],
@@ -709,7 +739,9 @@ export function App() {
       const isCurrent = () => queryGenerationRef.current.get(queryId) === generation;
 
       updateQueries((prev) =>
-        prev.map((q) => (q.id === queryId ? { ...q, previewPending: true } : q)),
+        prev.map((q) =>
+          q.id === queryId ? { ...q, previewPending: true, previewError: null } : q,
+        ),
       );
 
       // Read via the refs (same reasoning as `handleOverrideChange`'s own
@@ -811,7 +843,15 @@ export function App() {
         updateQueries((prev) =>
           prev.map((q) =>
             q.id === queryId
-              ? { ...q, sql, previewRows, previewColumns, diagnostics, previewPending: false }
+              ? {
+                  ...q,
+                  sql,
+                  previewRows,
+                  previewColumns,
+                  diagnostics,
+                  previewPending: false,
+                  previewError: null,
+                }
               : q,
           ),
         );
@@ -861,6 +901,10 @@ export function App() {
                     previewColumns: [],
                     diagnostics: null,
                     previewPending: false,
+                    previewError: classifyQueryError(
+                      error,
+                      getResolvedDataLayer()?.datasource.classifyRegisterFailure,
+                    ),
                   }
                 : q,
             ),
@@ -875,7 +919,13 @@ export function App() {
             );
             updateChartRowsByQuery((prev) => {
               const next = new Map(prev);
-              next.set(queryId, { status: "error" });
+              next.set(queryId, {
+                status: "error",
+                kind: classifyQueryError(
+                  error,
+                  getResolvedDataLayer()?.datasource.classifyRegisterFailure,
+                ),
+              });
               return next;
             });
           }
@@ -884,6 +934,54 @@ export function App() {
     },
     [updateQueries, refreshChartRows, updateChartRowsByQuery],
   );
+
+  // A dashboard opened from JSON has no live DuckDB table. If the user then
+  // imports the original file with the same label, replace the disconnected
+  // placeholder and migrate query foreign keys to the newly registered table
+  // id in one commit; charts keep their stable query ids.
+  useEffect(() => {
+    const pending = pendingReattachRef.current;
+    if (!pending) return;
+    const incoming = sourcesRef.current.find(
+      (source) => source.sample.table.id === pending.newSourceId && !source.disconnected,
+    );
+    const disconnected = sourcesRef.current.find(
+      (source) => source.sample.table.id === pending.oldSourceId && source.disconnected,
+    );
+    if (!incoming || !disconnected) return;
+    pendingReattachRef.current = null;
+    const affectedQueryIds = queriesRef.current
+      .filter((query) => query.sourceTableId === pending.oldSourceId)
+      .map((query) => query.id);
+    updateSources((prev) => {
+      const old = prev.find((source) => source.sample.table.id === pending.oldSourceId);
+      return prev
+        .filter((source) => source.sample.table.id !== pending.oldSourceId)
+        .map((source) =>
+          source.sample.table.id === pending.newSourceId && old
+            ? { ...source, typeOverrides: old.typeOverrides }
+            : source,
+        );
+    });
+    updateQueries((prev) =>
+      prev.map((query) =>
+        query.sourceTableId === pending.oldSourceId
+          ? {
+              ...query,
+              sourceTableId: pending.newSourceId,
+              sql: "",
+              previewRows: null,
+              previewColumns: [],
+              diagnostics: null,
+              previewPending: false,
+              previewError: null,
+            }
+          : query,
+      ),
+    );
+    for (const queryId of affectedQueryIds) void refreshQueryPreview(queryId);
+    setAnnouncement("元データを再接続しました。集計を更新しています。");
+  }, [sources, refreshQueryPreview, updateSources, updateQueries]);
 
   const handleOverrideChange = useCallback(
     async (tableId: string, column: string, category: ColumnCategory) => {
@@ -1018,7 +1116,12 @@ export function App() {
             nextValidation.set(column, { status: "failed" });
             // No preview attempt follows (see below) -- clear the flag here
             // so it doesn't stay stuck suppressing markers indefinitely.
-            return { ...source, validation: nextValidation, previewPending: false };
+            return {
+              ...source,
+              validation: nextValidation,
+              previewRows: null,
+              previewPending: false,
+            };
           }),
         );
         // Validation itself failed -- the preview re-cast below would fail
@@ -1044,9 +1147,10 @@ export function App() {
       // Its own try/catch, independent of validation's above: a failure
       // here must never overwrite the validation status just committed
       // (/code-review, confirmed conflation bug) -- on failure this
-      // silently leaves the previous previewRows in place, the same
-      // "abandon, don't corrupt" discipline `handleSourceDelete`'s own
-      // best-effort DROP TABLE already uses.
+      // Fail closed: leaving the previous previewRows in place would show
+      // values produced under the old override beside the new override.
+      // The explicit null keeps the UI honest while retaining the source
+      // card and its validation outcome.
       try {
         if (!isPreviewCurrent()) return;
         const source = sourcesRef.current.find((s) => s.sample.table.id === tableId);
@@ -1109,7 +1213,9 @@ export function App() {
         if (isPreviewCurrent()) {
           updateSources((current) =>
             current.map((s) =>
-              s.sample.table.id === tableId ? { ...s, previewPending: false } : s,
+              s.sample.table.id === tableId
+                ? { ...s, previewRows: null, previewPending: false }
+                : s,
             ),
           );
         }
@@ -1208,7 +1314,7 @@ export function App() {
         // in DuckDB's in-memory catalog, not worth blocking the user's delete
         // action to report.
         await conn.query(`DROP TABLE IF EXISTS ${layer.datasource.quoteIdentifier(tableId)}`);
-        usedIds.delete(tableId);
+        if (!cleanupTableIdsRef.current.has(tableId)) usedIds.delete(tableId);
       } catch {
         // best-effort cleanup
       } finally {
@@ -1287,6 +1393,7 @@ export function App() {
           previewColumns: [],
           diagnostics: null,
           previewPending: false,
+          previewError: null,
         },
       ]);
       // A fresh query's "all empty" builderState still resolves to a real
@@ -1470,6 +1577,18 @@ export function App() {
     [updateLayout],
   );
 
+  const handleResizeLayout = useCallback(
+    (chartId: string, deltaW: number, deltaH: number) => {
+      const gridWidth = GRID_WIDTHS[layoutRef.current.grid];
+      const prevItems = layoutRef.current.items;
+      const nextItems = resizeLayout(prevItems, chartId, deltaW, deltaH, gridWidth);
+      if (nextItems === prevItems) return;
+      updateLayout((prev) => ({ ...prev, items: nextItems }));
+      setAnnouncement("グラフの大きさを変更しました。");
+    },
+    [updateLayout],
+  );
+
   // Moves focus to a newly-added chart card once it has actually mounted
   // (UX review, Phase 8, Major finding C-6) -- same "wait for the DOM this
   // id refers to exist, then focus it" timing as the source/onboarding
@@ -1534,6 +1653,18 @@ export function App() {
   // than threading a `saveBlockReason` ref through both the render path
   // and the callback's closure.
   const saveBlockReason = canSave({ meta, queries });
+  const exportBlocked = charts.some((chart) => {
+    if (!chart.query) return false;
+    const query = queries.find((candidate) => candidate.id === chart.query);
+    const source = query
+      ? sources.find(
+          (candidate) =>
+            candidate.sample.table.id === query.sourceTableId && !candidate.disconnected,
+        )
+      : undefined;
+    const rowState = chartRowsByQuery.get(chart.query);
+    return !query || !source || rowState?.status !== "ready" || rowState.truncated;
+  });
   const handleSave = useCallback(() => {
     const blockReason = canSave({ meta, queries });
     if (blockReason) {
@@ -1582,6 +1713,185 @@ export function App() {
     setAnnouncement(`保存しました: ${filename}`);
   }, [meta, theme, sources, queries, charts, layout]);
 
+  const handleExport = useCallback(() => {
+    const blockReason = canSave({ meta, queries });
+    if (blockReason) {
+      setAnnouncement(
+        blockReason === "empty-title"
+          ? "タイトルを入力してください。"
+          : "まだ準備中の集計があります。",
+      );
+      return;
+    }
+    const exportNotReady = charts.some((chart) => {
+      if (!chart.query) return false;
+      const query = queriesRef.current.find((candidate) => candidate.id === chart.query);
+      const source = query
+        ? sourcesRef.current.find(
+            (candidate) =>
+              candidate.sample.table.id === query.sourceTableId && !candidate.disconnected,
+          )
+        : undefined;
+      const rowState = chartRowsByQueryRef.current.get(chart.query);
+      return !query || !source || rowState?.status !== "ready" || rowState.truncated;
+    });
+    if (exportNotReady) {
+      setAnnouncement(
+        "配布用HTMLを書き出すには、元データを接続してグラフの計算を完了してください。",
+      );
+      return;
+    }
+    try {
+      const dashboard = toDashboard({ meta, theme, sources, queries, charts, layout });
+      const verifyFailure = verifyBeforeSave(dashboard);
+      if (verifyFailure) {
+        setAnnouncement("配布用HTMLを書き出せませんでした。ダッシュボードを確認してください。");
+        return;
+      }
+      const generatedAt = new Date().toISOString();
+      const rowsByQuery: Record<string, Row[]> = Object.create(null);
+      for (const [queryId, state] of chartRowsByQueryRef.current) {
+        rowsByQuery[queryId] = state.status === "ready" ? state.rows : [];
+      }
+      const baked = bake(dashboard, rowsByQuery, {
+        generatedAt,
+        sourceDataAsOf: generatedAt.slice(0, 10),
+        hyakkeiVersion: "0.1.0",
+      });
+      const filename = downloadFilename(meta.title, new Date()).replace(/\.json$/i, ".html");
+      downloadSingleFileDashboard(baked, filename);
+      setAnnouncement(`配布用HTMLを書き出しました: ${filename}`);
+    } catch {
+      setAnnouncement("配布用HTMLを書き出せませんでした。もう一度お試しください。");
+    }
+  }, [meta, theme, sources, queries, charts, layout]);
+
+  const handleOpenDashboard = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      if (
+        dirty &&
+        !window.confirm(
+          "未保存の変更があります。ダッシュボードを開くと現在の編集内容は置き換わります。続けますか？",
+        )
+      ) {
+        return;
+      }
+      try {
+        const dashboard = await readDashboardFile(file);
+        const imported = fromDashboard(dashboard);
+        const oldLiveTableIds = sourcesRef.current
+          .filter((source) => !source.disconnected)
+          .map((source) => source.sample.table.id);
+        suppressDirtyAfterOpenRef.current = true;
+        // The state slices are committed from one validated snapshot. React
+        // batches this event's updates, so a malformed/partial document can
+        // never leave a half-imported workspace on screen.
+        updateSources(() => imported.sources);
+        updateQueries(() => imported.queries);
+        updateCharts(() => imported.charts);
+        updateLayout(() => imported.layout);
+        updateChartRowsByQuery(() => new Map());
+        pendingReattachRef.current = null;
+        // Invalidate every pre-open async continuation. Incrementing rather
+        // than clearing closes the ABA window when the imported document
+        // happens to reuse an old query/chart id and a new refresh starts at
+        // generation 1 again.
+        for (const [id, generation] of queryGenerationRef.current) {
+          queryGenerationRef.current.set(id, generation + 1);
+        }
+        for (const [id, generation] of chartGenerationRef.current) {
+          chartGenerationRef.current.set(id, generation + 1);
+        }
+        for (const [key, generation] of validationGenerationRef.current) {
+          validationGenerationRef.current.set(key, generation + 1);
+        }
+        for (const [key, generation] of previewGenerationRef.current) {
+          previewGenerationRef.current.set(key, generation + 1);
+        }
+        for (const tableId of registrationSeqByTableId.current.keys()) {
+          registrationSeqByTableId.current.set(tableId, ++registrationSeqRef.current);
+        }
+        focusNewChartIdRef.current = null;
+        focusMovedChartIdRef.current = null;
+        focusPendingQueryDeleteRef.current = null;
+        focusPendingChartDeleteRef.current = null;
+        setMeta(imported.meta);
+        setTheme(imported.theme);
+        for (const source of imported.sources) usedIds.add(source.sample.table.id);
+        // Cleanup starts after the imported snapshot is committed. IDs stay
+        // quarantined in `usedIds` while DROP is in flight, so a
+        // delete/re-register cannot create a new table with the old name and
+        // race this cleanup query. A newly-live source with the same id is
+        // skipped defensively too.
+        for (const tableId of new Set(oldLiveTableIds)) cleanupTableIdsRef.current.add(tableId);
+        void (async () => {
+          try {
+            const {
+              layer,
+              handle: { conn },
+            } = await getDuckDBHandleWithLayer();
+            for (const tableId of new Set(oldLiveTableIds)) {
+              const current = sourcesRef.current.find(
+                (source) => source.sample.table.id === tableId,
+              );
+              if (current && !current.disconnected) continue;
+              await conn.query(`DROP TABLE IF EXISTS ${layer.datasource.quoteIdentifier(tableId)}`);
+              const stillLive = sourcesRef.current.some(
+                (source) => source.sample.table.id === tableId && !source.disconnected,
+              );
+              if (!stillLive) usedIds.delete(tableId);
+            }
+          } catch {
+            // Opening remains successful even when best-effort cleanup fails.
+          } finally {
+            for (const tableId of new Set(oldLiveTableIds))
+              cleanupTableIdsRef.current.delete(tableId);
+          }
+        })();
+        queryIdSeqRef.current = Math.max(
+          queryIdSeqRef.current,
+          maxSafeSequence(
+            imported.queries.map((query) => query.id),
+            "query_",
+          ),
+        );
+        chartIdSeqRef.current = Math.max(
+          chartIdSeqRef.current,
+          maxSafeSequence(
+            imported.charts.map((chart) => chart.id),
+            "chart_",
+          ),
+        );
+        setPanelOpen(false);
+        setDirty(false);
+        setLastSavedAt(null);
+        setAnnouncement(
+          imported.sources.length > 0
+            ? `「${file.name}」を開きました。元データを再接続すると集計を実行できます。`
+            : `「${file.name}」を開きました。`,
+        );
+      } catch (error) {
+        setAnnouncement(
+          error instanceof DashboardReadError
+            ? error.message
+            : "ダッシュボードファイルを読み込めませんでした。",
+        );
+      }
+    },
+    [
+      dirty,
+      updateSources,
+      updateQueries,
+      updateCharts,
+      updateLayout,
+      updateChartRowsByQuery,
+      usedIds,
+    ],
+  );
+
   // Marks the document dirty on any change to a persistable slice --
   // deliberately NOT threaded through each individual handler (12+ of
   // them), since "did any of these 6 values change since the last render"
@@ -1600,6 +1910,12 @@ export function App() {
   // (nothing changed), so `changed` is correctly `false` both times.
   const lastPersistedRef = useRef({ meta, theme, sources, queries, charts, layout });
   useEffect(() => {
+    if (suppressDirtyAfterOpenRef.current) {
+      suppressDirtyAfterOpenRef.current = false;
+      lastPersistedRef.current = { meta, theme, sources, queries, charts, layout };
+      setDirty(false);
+      return;
+    }
     const last = lastPersistedRef.current;
     const changed =
       last.meta !== meta ||
@@ -1662,6 +1978,22 @@ export function App() {
     return (
       <>
         {announcementRegion}
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
+          <button
+            type="button"
+            onClick={() => openFileInputRef.current?.click()}
+            style={{ minHeight: 44, padding: "0 16px", background: "transparent" }}
+          >
+            作業ファイルを開く
+          </button>
+          <input
+            ref={openFileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleOpenDashboard}
+            style={{ display: "none" }}
+          />
+        </div>
         <IntakeApp
           mode="onboard"
           usedIds={usedIds}
@@ -1723,6 +2055,20 @@ export function App() {
             fontSize: 16,
           }}
         />
+        <button
+          type="button"
+          onClick={() => openFileInputRef.current?.click()}
+          style={{ minHeight: 44, padding: "0 12px", background: "transparent" }}
+        >
+          開く
+        </button>
+        <input
+          ref={openFileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleOpenDashboard}
+          style={{ display: "none" }}
+        />
         {/* Label stays the short "保存" (UX design's own header mockup
             renders it as `[ 保存 ]`) -- "作業ファイル" names the PURPOSE
             this button is fixed to for M3's later "公開用に書き出す" (F8)
@@ -1743,6 +2089,15 @@ export function App() {
           }}
         >
           保存
+        </button>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={saveBlockReason !== null || exportBlocked}
+          aria-disabled={saveBlockReason !== null || exportBlocked}
+          style={{ minHeight: 44, padding: "0 12px", background: "transparent" }}
+        >
+          配布用HTML
         </button>
       </div>
 
@@ -1790,6 +2145,7 @@ export function App() {
           layout={layout}
           chartRowsByQuery={chartRowsByQuery}
           onReorderLayout={handleReorderLayout}
+          onResizeLayout={handleResizeLayout}
         />
       ) : (
         <>
@@ -1817,7 +2173,15 @@ export function App() {
       )}
 
       {sources.map(
-        ({ sourceLabel, sample, typeOverrides, validation, previewRows, previewPending }) => (
+        ({
+          sourceLabel,
+          sample,
+          typeOverrides,
+          validation,
+          previewRows,
+          previewPending,
+          disconnected,
+        }) => (
           <div key={sample.table.id}>
             <RegisteredSummary
               sourceLabel={sourceLabel}
@@ -1826,6 +2190,7 @@ export function App() {
               validation={validation}
               previewRows={previewRows}
               previewPending={previewPending}
+              disconnected={disconnected}
               // The SAME stable callback reference passed to every card,
               // unchanged across renders (/simplify Efficiency finding --
               // `sources.map(...)` previously allocated a fresh closure per

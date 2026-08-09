@@ -61,7 +61,7 @@ describe("ChartPreview", () => {
 
   it("shows an alert and never calls mount() when rowState is error", async () => {
     const { host, unmount } = await renderInJsdom(
-      <ChartPreview chart={CHART} rowState={{ status: "error" }} />,
+      <ChartPreview chart={CHART} rowState={{ status: "error", kind: "query" }} />,
     );
     expect(host.querySelector('[role="alert"]')).not.toBeNull();
     expect(mountSpy).not.toHaveBeenCalled();

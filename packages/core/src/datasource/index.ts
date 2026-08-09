@@ -18,7 +18,7 @@ export * from "./query-sql.js";
 // DataSource API surface. `rowToPlainObject` is the exception: a future
 // editor/preview (PR-B) reading registered rows back into JS needs it to
 // avoid reintroducing the `.toJSON()` `__proto__`-drop bug this PR found.
-export { rowToPlainObject } from "./register-path.js";
+export { classifyRegisterFailure, rowToPlainObject } from "./register-path.js";
 // `quoteIdentifier` is PR-B's second addition to this exception list: the
 // intake harness issues its own `DROP TABLE IF EXISTS <id>` when a user
 // redoes a registration (register.ts's `CREATE TABLE` is not `CREATE OR

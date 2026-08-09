@@ -1,7 +1,35 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { EXPORT_PACKAGE_VERSION } from "./index.js";
+import {
+  buildExportFolder,
+  buildSingleFileDashboardHtml,
+  EXPORT_PACKAGE_VERSION,
+} from "./index.js";
+
+const DASHBOARD = {
+  version: 1 as const,
+  meta: {
+    title: "安全な </script>",
+    generatedAt: "2026-08-09T00:00:00.000Z",
+    sourceDataAsOf: "2026-08-09",
+    hyakkeiVersion: "0.1.0",
+  },
+  theme: {
+    tokens: "@digital-go-jp/design-tokens@2.0.1" as const,
+    palette: "guidebook-blue" as const,
+  },
+  charts: [
+    {
+      id: "chart_1",
+      type: "bar" as const,
+      encoding: { x: "label", y: "value" },
+      options: { title: "件数" },
+      rows: [{ label: "A", value: 2 }],
+    },
+  ],
+  layout: { grid: "guidebook-12col" as const, items: [] },
+};
 
 describe("export package scaffold", () => {
   it("resolves the core package dependency across the workspace boundary", () => {
@@ -35,5 +63,26 @@ describe("packages/export never depends on packages/app", () => {
       ...pkg.peerDependencies,
     };
     expect(Object.keys(allDeps)).not.toContain("@hyakkei/app");
+  });
+});
+
+describe("single-file packaging", () => {
+  it("escapes embedded HTML terminators and emits a baked static viewer", () => {
+    const html = buildSingleFileDashboardHtml(DASHBOARD);
+    const payload = html.match(
+      /<script type="application\/json" id="hyakkei-export-payload">([\s\S]*?)<\/script>/,
+    )?.[1];
+    expect(payload).toBeDefined();
+    const baked = JSON.parse(payload!) as Record<string, unknown>;
+    expect(html).not.toContain('</script>";alert');
+    expect(html).toContain("hyakkei-tile");
+    expect(html).toContain("hyakkei-chart-canvas");
+    expect(baked).not.toHaveProperty("sources");
+    expect(baked).not.toHaveProperty("queries");
+    expect(JSON.stringify(baked)).not.toContain("SELECT");
+    const folder = buildExportFolder(DASHBOARD);
+    expect(Object.keys(folder)).toEqual(["index.html", "renderer.js", "dashboard.json"]);
+    expect(folder["index.html"]).not.toContain("hyakkei-export-payload");
+    expect(folder["renderer.js"]).toContain("dashboard.json");
   });
 });

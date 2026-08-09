@@ -19,11 +19,12 @@ import {
   type Dashboard,
   type Layout,
   type LayoutItem,
+  MAX_LAYOUT_H,
 } from "@hyakkei/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardErrorBoundary } from "../dashboard-error-boundary.js";
 import { DEFAULT_THEME } from "../document/theme.js";
-import type { ChartRowState } from "../intake/types.js";
+import type { ChartRowState, QueryErrorKind } from "../intake/types.js";
 import { CHART_ROW_LIMIT } from "./chart-encoding.js";
 
 /**
@@ -78,6 +79,7 @@ export type AuthoringDashboardPreviewProps = {
   chartRowsByQuery: Map<string, ChartRowState>;
   /** issue #14: reorders `layout.items` (array-index move + full repack). */
   onReorderLayout: (fromIndex: number, toIndex: number) => void;
+  onResizeLayout?: (chartId: string, deltaW: number, deltaH: number) => void;
 };
 
 /**
@@ -100,6 +102,20 @@ function anyChartTruncated(charts: Chart[], chartRowsByQuery: Map<string, ChartR
   });
 }
 
+function chartErrorKind(
+  charts: Chart[],
+  chartRowsByQuery: Map<string, ChartRowState>,
+): QueryErrorKind | null {
+  let hasQueryError = false;
+  for (const chart of charts) {
+    const state = chart.query ? chartRowsByQuery.get(chart.query) : undefined;
+    if (state?.status !== "error") continue;
+    if (state.kind === "oom") return "oom";
+    hasQueryError = true;
+  }
+  return hasQueryError ? "query" : null;
+}
+
 function buildDoc(charts: Chart[], layout: Layout): Dashboard {
   return {
     version: 1,
@@ -112,7 +128,7 @@ function buildDoc(charts: Chart[], layout: Layout): Dashboard {
   };
 }
 
-type GridProps = Omit<AuthoringDashboardPreviewProps, "onReorderLayout">;
+type GridProps = Omit<AuthoringDashboardPreviewProps, "onReorderLayout" | "onResizeLayout">;
 
 /**
  * The component whose OWN effect calls `patch()` -- split out from
@@ -164,6 +180,7 @@ type LayoutReorderOverlayProps = {
   items: LayoutItem[];
   gridWidth: number;
   onReorderLayout: (fromIndex: number, toIndex: number) => void;
+  onResizeLayout: (chartId: string, deltaW: number, deltaH: number) => void;
 };
 
 /**
@@ -186,7 +203,12 @@ type LayoutReorderOverlayProps = {
  * `getBoundingClientRect()` comparisons (via `slotRefs`) work regardless of
  * `pointer-events` and don't depend on what's rendered on top.
  */
-function LayoutReorderOverlay({ items, gridWidth, onReorderLayout }: LayoutReorderOverlayProps) {
+function LayoutReorderOverlay({
+  items,
+  gridWidth,
+  onReorderLayout,
+  onResizeLayout,
+}: LayoutReorderOverlayProps) {
   const [dragFromChartId, setDragFromChartId] = useState<string | null>(null);
   const [dragOverChartId, setDragOverChartId] = useState<string | null>(null);
   // Keyed by chart id, NOT array index (fixed after an actual bug found
@@ -367,6 +389,42 @@ function LayoutReorderOverlay({ items, gridWidth, onReorderLayout }: LayoutReord
                   {label}
                 </button>
               ))}
+              <button
+                type="button"
+                aria-label={`「${item.chart}」の幅を狭くする`}
+                onClick={() => onResizeLayout(item.chart, -1, 0)}
+                disabled={item.w <= 1}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                幅−
+              </button>
+              <button
+                type="button"
+                aria-label={`「${item.chart}」の幅を広くする`}
+                onClick={() => onResizeLayout(item.chart, 1, 0)}
+                disabled={item.w >= gridWidth}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                幅＋
+              </button>
+              <button
+                type="button"
+                aria-label={`「${item.chart}」の高さを低くする`}
+                onClick={() => onResizeLayout(item.chart, 0, -1)}
+                disabled={item.h <= 1}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                高さ−
+              </button>
+              <button
+                type="button"
+                aria-label={`「${item.chart}」の高さを高くする`}
+                disabled={item.h >= MAX_LAYOUT_H}
+                onClick={() => onResizeLayout(item.chart, 0, 1)}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                高さ＋
+              </button>
               {/* Pointer-only drag handle (WCAG 2.5.7): the two buttons
                   above already satisfy "keyboard operable" (2.1.1) and
                   "non-dragging single-pointer alternative" (2.5.7) on their
@@ -420,6 +478,7 @@ export function AuthoringDashboardPreview({
   layout,
   chartRowsByQuery,
   onReorderLayout,
+  onResizeLayout = () => {},
 }: AuthoringDashboardPreviewProps) {
   // UX review (Phase 2, silent-wrong-render recovery): patch()'s failure
   // modes are internal-state bugs (a stale/wrong reuse), not throws -- the
@@ -529,6 +588,13 @@ export function AuthoringDashboardPreview({
       </div>
       {resetAnnouncement && <p role="status">{resetAnnouncement}</p>}
       {editModeAnnouncement && <p role="status">{editModeAnnouncement}</p>}
+      {chartErrorKind(charts, chartRowsByQuery) && (
+        <p role="alert" style={{ margin: "4px 0", fontSize: 13, color: "#b91c1c" }}>
+          {chartErrorKind(charts, chartRowsByQuery) === "oom"
+            ? "メモリ不足でグラフを表示できませんでした。データ量を減らして再実行してください。"
+            : "グラフの集計に失敗しました。条件や列の種類を確認して再実行してください。"}
+        </p>
+      )}
       {anyChartTruncated(charts, chartRowsByQuery) && (
         <p role="status" style={{ margin: "4px 0", fontSize: 13, color: "#b45309" }}>
           一部のグラフはデータが多いため、先頭{CHART_ROW_LIMIT.toLocaleString("ja-JP")}
@@ -558,6 +624,7 @@ export function AuthoringDashboardPreview({
               items={layout.items}
               gridWidth={GRID_WIDTHS[layout.grid]}
               onReorderLayout={onReorderLayout}
+              onResizeLayout={onResizeLayout}
             />
           )}
         </div>

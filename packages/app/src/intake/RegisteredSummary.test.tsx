@@ -71,6 +71,15 @@ describe("RegisteredSummary", () => {
     expect((selects[2] as HTMLSelectElement).disabled).toBe(true);
   });
 
+  it("shows a reconnect warning for a source imported without its original data", async () => {
+    const { host } = await renderInJsdom(
+      <RegisteredSummary
+        {...baseProps({ disconnected: true, sample: { ...sample(), rows: [] } })}
+      />,
+    );
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("元データが未接続です");
+  });
+
   it("calls onOverrideChange with (tableId, column, category) when a select changes", async () => {
     const onOverrideChange = vi.fn();
     const { host } = await renderInJsdom(

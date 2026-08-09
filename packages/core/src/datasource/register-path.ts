@@ -72,7 +72,11 @@ export function columnMetaFromArrowTable(table: arrow.Table): ColumnMeta[] {
  */
 export function rowToPlainObject(row: Iterable<[string, unknown]>): Record<string, unknown> {
   return Object.fromEntries(
-    [...row].map(([key, value]) => [key, typeof value === "bigint" ? Number(value) : value]),
+    [...row].map(([key, value]) => {
+      if (typeof value !== "bigint") return [key, value];
+      const numeric = Number(value);
+      return [key, Number.isSafeInteger(numeric) ? numeric : value.toString()];
+    }),
   );
 }
 

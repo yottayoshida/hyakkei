@@ -17,6 +17,7 @@ function query(sql: string) {
     previewColumns: [],
     diagnostics: null,
     previewPending: false,
+    previewError: null,
   } satisfies WorkspaceQuery;
 }
 

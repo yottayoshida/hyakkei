@@ -306,6 +306,7 @@ function workspaceSource(sourceLabel: string, intakeSample: IntakeSample) {
     validation: new Map(),
     previewRows: null,
     previewPending: false,
+    previewError: null,
   };
 }
 
@@ -419,6 +420,16 @@ describe("toRow", () => {
 
   it("converts a BigInt to a Number (defensive -- rowToPlainObject already does this upstream)", () => {
     expect(toRow({ a: 42n })).toEqual({ a: 42 });
+  });
+
+  it("keeps a BigInt as a string when numeric conversion is non-finite", () => {
+    const huge = 10n ** 400n;
+    expect(toRow({ a: huge })).toEqual({ a: huge.toString() });
+  });
+
+  it("keeps a finite but unsafe BigInt as a string to avoid precision loss", () => {
+    const large = 2n ** 60n;
+    expect(toRow({ a: large })).toEqual({ a: large.toString() });
   });
 
   it("converts a Date to its ISO string", () => {

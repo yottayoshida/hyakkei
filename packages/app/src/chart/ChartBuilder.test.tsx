@@ -72,6 +72,7 @@ function query(overrides: Partial<WorkspaceQuery> = {}): WorkspaceQuery {
     previewColumns: ["category", "sum_amount"],
     diagnostics: null,
     previewPending: false,
+    previewError: null,
     ...overrides,
   };
 }
@@ -610,7 +611,12 @@ describe("ChartBuilder", () => {
       "shows no nudge while rowState.status is %s",
       async (status) => {
         const { host } = await renderInJsdom(
-          <ChartBuilder {...baseProps({ chart: pieChart(), rowState: { status } })} />,
+          <ChartBuilder
+            {...baseProps({
+              chart: pieChart(),
+              rowState: status === "error" ? { status, kind: "query" } : { status },
+            })}
+          />,
         );
         expect(host.textContent).not.toContain("円グラフは分類が");
       },

@@ -13,6 +13,9 @@ build/
 # hand-written *.d.ts stubs in the same directory are source.
 packages/schema/src/generated/*.js
 
+# @hyakkei/export: generated shared renderer bundle (the .d.ts contract is tracked)
+packages/export/src/generated/renderer-code.ts
+
 # Test artifacts
 test-results/
 playwright-report/

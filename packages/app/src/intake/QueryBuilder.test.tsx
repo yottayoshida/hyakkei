@@ -66,6 +66,7 @@ function query(overrides: Partial<WorkspaceQuery> = {}): WorkspaceQuery {
     previewColumns: [],
     diagnostics: null,
     previewPending: false,
+    previewError: null,
     ...overrides,
   };
 }
@@ -90,6 +91,16 @@ describe("QueryBuilder", () => {
     expect(host.querySelectorAll("select[aria-label^='条件']")).toHaveLength(0);
     expect(host.querySelectorAll("select[aria-label^='集計の単位']")).toHaveLength(0);
     expect(host.querySelectorAll("select[aria-label^='集計する値']")).toHaveLength(0);
+  });
+
+  it("shows a safe memory-specific message when the query preview ran out of memory", async () => {
+    const { host } = await renderInJsdom(
+      <QueryBuilder {...baseProps({ query: query({ previewError: "oom" }) })} />,
+    );
+
+    expect(host.querySelector('[role="alert"]')).not.toBeNull();
+    expect(host.textContent).toContain("メモリ不足で集計できませんでした");
+    expect(host.textContent).not.toContain("Out of Memory Error");
   });
 
   it("excludes an 'other'-categoried column from the filter/group-by column list (issue 11c category gate)", async () => {
