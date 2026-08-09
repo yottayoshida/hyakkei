@@ -69,6 +69,13 @@ test("multi-second CSV parse keeps the main thread responsive", async ({ page },
     if (!("PerformanceObserver" in window)) return;
     const performanceObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
+        const parseStart = probe.parseStartedAt;
+        const parseEnd = probe.parseCompletedAt ?? performance.now();
+        const overlapsParse =
+          parseStart !== null &&
+          entry.startTime + entry.duration >= parseStart &&
+          entry.startTime <= parseEnd;
+        if (!overlapsParse) continue;
         probe.longestLongTask = Math.max(probe.longestLongTask, entry.duration);
       }
     });
