@@ -320,6 +320,15 @@ function refocusAfterConfirmCancel(attribute: string, value: string): void {
   window.setTimeout(() => findDataAttributeElement(attribute, value)?.focus(), 0);
 }
 
+function maxSafeSequence(ids: readonly string[], prefix: string): number {
+  let max = 0;
+  for (const id of ids) {
+    const suffix = id.startsWith(prefix) ? Number(id.slice(prefix.length)) : NaN;
+    if (Number.isSafeInteger(suffix) && suffix > max) max = suffix;
+  }
+  return max;
+}
+
 function toJsonPrimitive(value: unknown): JsonPrimitive {
   if (value === null || value === undefined) return null;
   if (typeof value === "string" || typeof value === "boolean") return value;
@@ -1839,16 +1848,20 @@ export function App() {
               cleanupTableIdsRef.current.delete(tableId);
           }
         })();
-        const numericQueryIds = imported.queries
-          .map((query) => /^query_(\d+)$/.exec(query.id)?.[1])
-          .filter((value): value is string => value !== undefined)
-          .map(Number);
-        queryIdSeqRef.current = Math.max(queryIdSeqRef.current, ...numericQueryIds, 0);
-        const numericChartIds = imported.charts
-          .map((chart) => /^chart_(\d+)$/.exec(chart.id)?.[1])
-          .filter((value): value is string => value !== undefined)
-          .map(Number);
-        chartIdSeqRef.current = Math.max(chartIdSeqRef.current, ...numericChartIds, 0);
+        queryIdSeqRef.current = Math.max(
+          queryIdSeqRef.current,
+          maxSafeSequence(
+            imported.queries.map((query) => query.id),
+            "query_",
+          ),
+        );
+        chartIdSeqRef.current = Math.max(
+          chartIdSeqRef.current,
+          maxSafeSequence(
+            imported.charts.map((chart) => chart.id),
+            "chart_",
+          ),
+        );
         setPanelOpen(false);
         setDirty(false);
         setLastSavedAt(null);
