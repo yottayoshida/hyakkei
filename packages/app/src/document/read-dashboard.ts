@@ -1,4 +1,9 @@
-import { formatParseFailure, parseDashboard, validateDashboardReferences, type Dashboard } from "@hyakkei/schema";
+import {
+  formatParseFailure,
+  parseDashboard,
+  validateDashboardReferences,
+  type Dashboard,
+} from "@hyakkei/schema";
 
 const FATAL_REFERENCE_KINDS = new Set(["dangling", "out-of-bounds", "missing-column"]);
 
@@ -15,7 +20,9 @@ export function readDashboardText(text: string): Dashboard {
   try {
     value = JSON.parse(text);
   } catch {
-    throw new DashboardReadError("ダッシュボードファイルを読み込めませんでした。JSON形式を確認してください。");
+    throw new DashboardReadError(
+      "ダッシュボードファイルを読み込めませんでした。JSON形式を確認してください。",
+    );
   }
 
   const parsed = parseDashboard(value);

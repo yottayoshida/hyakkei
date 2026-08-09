@@ -73,7 +73,9 @@ describe("RegisteredSummary", () => {
 
   it("shows a reconnect warning for a source imported without its original data", async () => {
     const { host } = await renderInJsdom(
-      <RegisteredSummary {...baseProps({ disconnected: true, sample: { ...sample(), rows: [] } })} />,
+      <RegisteredSummary
+        {...baseProps({ disconnected: true, sample: { ...sample(), rows: [] } })}
+      />,
     );
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("元データが未接続です");
   });
