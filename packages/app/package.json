@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/copy-duckdb-vendor.mjs && node scripts/copy-duckdb-extension.mjs && vite",
-    "build": "node scripts/copy-duckdb-vendor.mjs && node scripts/copy-duckdb-extension.mjs && tsc --build && vite build",
+    "build": "node scripts/copy-duckdb-vendor.mjs && node scripts/copy-duckdb-extension.mjs && tsc --build && vite build && node scripts/build-gallery.mjs",
     "test": "vitest run"
   },
   "dependencies": {
