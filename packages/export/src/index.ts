@@ -27,9 +27,12 @@ function documentHtml(dashboard: BakedDashboard, externalRenderer: boolean): str
   const script = externalRenderer
     ? '<script src="./renderer.js"></script>'
     : `<script>${EXPORT_RENDERER_JS}</script>`;
+  const payloadScript = externalRenderer
+    ? ""
+    : `<script type="application/json" id="${PAYLOAD_ID}">${payload}</script>`;
   const title = escapeText(String(dashboard.meta.title));
   const policy = `default-src 'none'; style-src 'unsafe-inline'; script-src 'self' '${RENDERER_HASH}'; connect-src 'self'; img-src data:; object-src 'none'`;
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="${policy}"><title>${title}</title><style>${style()}</style></head><body><main id="app"><h1>${title}</h1><div id="dashboard"></div></main><script type="application/json" id="${PAYLOAD_ID}">${payload}</script>${script}</body></html>`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="${policy}"><title>${title}</title><style>${style()}</style></head><body><main id="app"><h1>${title}</h1><div id="dashboard"></div></main>${payloadScript}${script}</body></html>`;
 }
 
 export function buildSingleFileDashboardHtml(dashboard: BakedDashboard): string {
@@ -37,10 +40,9 @@ export function buildSingleFileDashboardHtml(dashboard: BakedDashboard): string 
 }
 
 export function buildExportFolder(dashboard: BakedDashboard): Record<string, string> {
-  // Keep the JSON alongside the ready-to-open index as a canonical archival
-  // copy. The index intentionally embeds the same snapshot instead of
-  // fetching it: browsers commonly block `fetch("./dashboard.json")` from a
-  // `file://` URL, while the folder must remain usable without a web server.
+  // The folder is the static-host variant: index requests renderer.js and
+  // renderer.js fetches the canonical dashboard.json exactly once. The
+  // single-file builder above remains the file://-friendly variant.
   return {
     "index.html": documentHtml(dashboard, true),
     "renderer.js": `${EXPORT_RENDERER_JS}\n`,

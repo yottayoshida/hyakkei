@@ -384,7 +384,7 @@ export function App() {
   const [usedIds] = useState<Set<string>>(() => new Set());
   const pendingReattachRef = useRef<{ oldSourceId: string; newSourceId: string } | null>(null);
   const suppressDirtyAfterOpenRef = useRef(false);
-  const sourceMutationSeqRef = useRef(0);
+  const cleanupTableIdsRef = useRef<Set<string>>(new Set());
 
   const workspaceHeadingRef = useRef<HTMLHeadingElement>(null);
   const openFileInputRef = useRef<HTMLInputElement>(null);
@@ -511,7 +511,6 @@ export function App() {
 
   const handleSourceComplete = useCallback(
     (sourceLabel: string, sample: IntakeSample) => {
-      sourceMutationSeqRef.current += 1;
       const disconnected = sourcesRef.current.find(
         (source) => source.disconnected && source.sourceLabel === sourceLabel,
       );
@@ -1293,7 +1292,6 @@ export function App() {
         refocusAfterConfirmCancel("data-delete-source-for", tableId);
         return;
       }
-      sourceMutationSeqRef.current += 1;
       try {
         const {
           layer,
@@ -1304,7 +1302,7 @@ export function App() {
         // in DuckDB's in-memory catalog, not worth blocking the user's delete
         // action to report.
         await conn.query(`DROP TABLE IF EXISTS ${layer.datasource.quoteIdentifier(tableId)}`);
-        usedIds.delete(tableId);
+        if (!cleanupTableIdsRef.current.has(tableId)) usedIds.delete(tableId);
       } catch {
         // best-effort cleanup
       } finally {
@@ -1775,25 +1773,6 @@ export function App() {
         const oldLiveTableIds = sourcesRef.current
           .filter((source) => !source.disconnected)
           .map((source) => source.sample.table.id);
-        const openMutationSeq = sourceMutationSeqRef.current;
-        // Opening a file replaces the in-memory workspace. Drop old live
-        // tables best-effort so repeated opens do not retain user data or
-        // consume DuckDB memory after the React state has moved on.
-        if (oldLiveTableIds.length > 0) {
-          try {
-            const {
-              layer,
-              handle: { conn },
-            } = await getDuckDBHandleWithLayer();
-            for (const tableId of new Set(oldLiveTableIds)) {
-              if (sourceMutationSeqRef.current !== openMutationSeq) break;
-              await conn.query(`DROP TABLE IF EXISTS ${layer.datasource.quoteIdentifier(tableId)}`);
-              usedIds.delete(tableId);
-            }
-          } catch {
-            // File opening remains atomic even when best-effort cleanup fails.
-          }
-        }
         suppressDirtyAfterOpenRef.current = true;
         // The state slices are committed from one validated snapshot. React
         // batches this event's updates, so a malformed/partial document can
@@ -1830,6 +1809,36 @@ export function App() {
         setMeta(imported.meta);
         setTheme(imported.theme);
         for (const source of imported.sources) usedIds.add(source.sample.table.id);
+        // Cleanup starts after the imported snapshot is committed. IDs stay
+        // quarantined in `usedIds` while DROP is in flight, so a
+        // delete/re-register cannot create a new table with the old name and
+        // race this cleanup query. A newly-live source with the same id is
+        // skipped defensively too.
+        for (const tableId of new Set(oldLiveTableIds)) cleanupTableIdsRef.current.add(tableId);
+        void (async () => {
+          try {
+            const {
+              layer,
+              handle: { conn },
+            } = await getDuckDBHandleWithLayer();
+            for (const tableId of new Set(oldLiveTableIds)) {
+              const current = sourcesRef.current.find(
+                (source) => source.sample.table.id === tableId,
+              );
+              if (current && !current.disconnected) continue;
+              await conn.query(`DROP TABLE IF EXISTS ${layer.datasource.quoteIdentifier(tableId)}`);
+              const stillLive = sourcesRef.current.some(
+                (source) => source.sample.table.id === tableId && !source.disconnected,
+              );
+              if (!stillLive) usedIds.delete(tableId);
+            }
+          } catch {
+            // Opening remains successful even when best-effort cleanup fails.
+          } finally {
+            for (const tableId of new Set(oldLiveTableIds))
+              cleanupTableIdsRef.current.delete(tableId);
+          }
+        })();
         const numericQueryIds = imported.queries
           .map((query) => /^query_(\d+)$/.exec(query.id)?.[1])
           .filter((value): value is string => value !== undefined)
