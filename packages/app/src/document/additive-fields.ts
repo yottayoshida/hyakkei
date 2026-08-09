@@ -6,6 +6,11 @@ export type QueryAdditiveFields = ReadonlyMap<string, AdditiveObjectFields>;
 const DASHBOARD_KEYS = new Set(Object.keys(Dashboard.properties));
 const QUERY_KEYS = new Set(Object.keys(Query.properties));
 
+function isCanonicalArrayIndex(key: string): boolean {
+  const index = Number(key);
+  return Number.isInteger(index) && index >= 0 && index < 2 ** 32 - 1 && String(index) === key;
+}
+
 function copyUnknownFields(value: Record<string, unknown>, knownKeys: ReadonlySet<string>) {
   const extras: AdditiveObjectFields = Object.create(null) as AdditiveObjectFields;
   for (const [key, fieldValue] of Object.entries(value)) {
@@ -62,7 +67,9 @@ function assertSerializable(value: unknown, path: string, ancestors: WeakSet<obj
         }
         assertSerializable(value[index], `${path}[${index}]`, ancestors);
       }
-      const unexpectedArrayKeys = ownNames.filter((key) => key !== "length" && !/^\d+$/.test(key));
+      const unexpectedArrayKeys = ownNames.filter(
+        (key) => key !== "length" && !isCanonicalArrayIndex(key),
+      );
       if (unexpectedArrayKeys.length > 0) {
         throw new TypeError(`additive field at ${path} has non-index array keys`);
       }
