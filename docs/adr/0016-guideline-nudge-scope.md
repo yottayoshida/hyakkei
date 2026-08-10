@@ -25,6 +25,12 @@
 >
 > One risk arrives with the URLs. Nothing renders `citation.url` today — `ChartBuilder.tsx` prints `label` only, deliberately, because the primary deployment target is air-gapped — so a hostile value would be inert. The moment anything wraps it in an `<a href>`, it is a sink; the `https://`-only check is there so that day starts from a narrower place, not because it is sufficient on its own.
 >
+> **Read-forward note (2026-08-10, [ADR-0021](./0021-gallery-samples-are-separate-from-golden-fixtures.md))**: **the "no new fixture directory" decision recorded here is superseded.** This ADR settled PRD §7's "100% of nudge rules pass on all gallery templates" by reusing what existed — the three `GOLDEN_SAMPLES` would serve as the gallery, so no separate set of samples was created. That held while those fixtures carried invented data: chart types chosen for renderer coverage and rows written to fit them are equally serviceable as a shop window when nobody can check the numbers.
+>
+> It stopped holding when PR #151 replaced the rows with fixed snapshots of three official e-Stat tables and left the chart types where coverage had put them. The published gallery then showed a pie summing three percentages and one 万円 figure, an area chart whose x axis was prefectures, a line chart joining 男性 to 女性, and a bar chart placing 全国 (11194) beside 沖縄県 (104). Every gate stayed green, including this file's acceptance test — the only rule with a runtime predicate fires above 6 pie slices and that pie had four.
+>
+> The two requirements are genuinely different: a rendering pin wants whatever data makes each of the 7 chart types render, and a public example wants whatever chart type the data actually supports. ADR-0021 splits them. `packages/core/src/gallery-samples/` holds what is published and runs this same nudge acceptance in its own roundtrip test; `golden-fixtures/` returns to invented data and keeps the coverage job. **The acceptance requirement in this ADR is unchanged and now applies to both.**
+>
 > Original text below is unedited.
 
 ## Context

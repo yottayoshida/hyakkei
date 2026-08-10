@@ -1,39 +1,29 @@
 {
   "version": 1,
   "meta": {
-    "title": "地域データ分析（財政基盤）",
+    "title": "地域データ分析（人口動態）",
     "locale": "ja",
-    "description": "e-Statの行政基盤表から、都道府県の財政力・経常収支比率・投資的経費と人口1人当たり歳出を示すダッシュボード。",
-    "updatedAt": "2026-02-20",
-    "sourceNote": "e-Stat 表番号0000010204（Ｄ 行政基盤）、regional.csv の画面表示値。財政力指数は指数、その他は％または千円。",
-    "summary": "全国の財政力指数は0.506、経常収支比率は85.3%。人口一人当たり歳出決算総額は全国243.7千円、北海道306.2千円、宮城県221.5千円です。"
+    "description": "地域別の人口密度・高齢化率と人口規模を示すダッシュボード。",
+    "updatedAt": "2026-07-09",
+    "sourceNote": "企画課「地域別人口統計」（regions_population.csv）。人口密度は1平方キロメートルあたりの人数、高齢化率は65歳以上人口の比率です。",
+    "summary": "人口は港北地区が210,000人で最大、次いで湾岸地区152,000人、中央地区48,000人、山間地区19,000人。人口密度と高齢化率は逆相関の傾向にあり、密度5,510人の地区で高齢化率21.1%、密度620人の地区で38.5%となっている。"
   },
   "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-neutral" },
   "sources": [
     {
-      "id": "administrative",
+      "id": "regions",
       "kind": "file",
       "format": "csv",
-      "ref": {
-        "name": "regional.csv",
-        "encoding": "UTF-8",
-        "url": "https://www.e-stat.go.jp/dbview?sid=0000010204",
-        "tableId": "0000010204",
-        "surveyYear": "画面表示値"
-      }
+      "ref": { "name": "regions_population.csv" }
     }
   ],
   "queries": [
     {
       "id": "q-density",
-      "source": "administrative",
-      "sql": "SELECT fiscal_power_index AS density, current_balance_ratio AS agingRate, investment_expense_ratio AS markerSize FROM administrative"
+      "source": "regions",
+      "sql": "SELECT density, aging_rate AS agingRate, population / 5000 AS markerSize FROM regions"
     },
-    {
-      "id": "q-population",
-      "source": "administrative",
-      "sql": "SELECT prefecture AS name, per_capita_expenditure AS population FROM administrative"
-    }
+    { "id": "q-population", "source": "regions", "sql": "SELECT name, population FROM regions" }
   ],
   "charts": [
     {
@@ -41,16 +31,16 @@
       "type": "scatter",
       "encoding": { "x": "density", "y": "agingRate", "size": "markerSize" },
       "query": "q-density",
-      "altText": "都道府県ごとの財政力指数と経常収支比率を示します。",
-      "options": { "title": "財政力指数と経常収支比率" }
+      "altText": "地区ごとの人口密度と高齢化率の関係を示し、人口密度5510人の地区で高齢化率21.1%です。",
+      "options": { "title": "人口密度と高齢化率" }
     },
     {
       "id": "regional-population",
       "type": "bar",
       "encoding": { "x": "name", "y": "population" },
       "query": "q-population",
-      "altText": "都道府県ごとの人口1人当たり歳出決算総額を比較します。",
-      "options": { "title": "人口1人当たり歳出決算総額（千円）" }
+      "altText": "地域別人口を比較し、港北地区が210000人で最多です。",
+      "options": { "title": "地域別人口" }
     }
   ],
   "layout": {

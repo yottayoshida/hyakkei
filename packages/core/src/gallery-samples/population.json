@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "都道府県別人口（1975年度）",
+    "locale": "ja",
+    "description": "e-Stat の社会・人口統計体系から、1975年度の総人口と男女別内訳を読み取るダッシュボード。",
+    "updatedAt": "2026-02-20",
+    "sourceNote": "e-Stat 表番号0000010201（Ａ 人口・世帯）、調査年1975年度。単位は万人。掲載は全国と4都府県のみで、全国はその4都府県の合計ではなく47都道府県の総計です。",
+    "summary": "1975年度の全国総人口は11194万人。掲載した4都府県では東京都1167万人が最も多く、大阪府828万人、神奈川県640万人、沖縄県104万人と続きます。全国の内訳は男性5509万人、女性5685万人です。"
+  },
+  "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-blue" },
+  "sources": [
+    {
+      "id": "population",
+      "kind": "file",
+      "format": "csv",
+      "ref": {
+        "name": "population.csv",
+        "encoding": "UTF-8",
+        "url": "https://www.e-stat.go.jp/dbview?sid=0000010201",
+        "tableId": "0000010201",
+        "surveyYear": "1975年度"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-by-prefecture",
+      "source": "population",
+      "sql": "SELECT \"地域\", \"#A011000_総人口（万人）\" AS \"総人口（万人）\" FROM population WHERE \"地域\" <> '全国'"
+    },
+    {
+      "id": "q-national",
+      "source": "population",
+      "sql": "SELECT \"#A011000_総人口（万人）\" AS \"総人口（万人）\" FROM population WHERE \"地域\" = '全国'"
+    },
+    {
+      "id": "q-sex-breakdown",
+      "source": "population",
+      "sql": "SELECT \"地域\", \"#A011000_総人口（万人）\" AS \"総人口（万人）\", \"#A0110001_総人口（男）（万人）\" AS \"男性（万人）\", \"#A0110002_総人口（女）（万人）\" AS \"女性（万人）\" FROM population"
+    }
+  ],
+  "charts": [
+    {
+      "id": "population-by-prefecture",
+      "type": "bar",
+      "encoding": { "x": "地域", "y": "総人口（万人）" },
+      "query": "q-by-prefecture",
+      "altText": "掲載した4都府県の総人口を比べた棒グラフです。東京都の1167万人が最も多く、大阪府828万人、神奈川県640万人、沖縄県104万人と続きます。全国計は桁が2つ違うため、この棒グラフには含めず右の数値で示しています。",
+      "options": { "title": "都府県別の総人口（万人）" }
+    },
+    {
+      "id": "population-national",
+      "type": "stat",
+      "encoding": { "value": "総人口（万人）" },
+      "query": "q-national",
+      "altText": "1975年度の全国の総人口が11194万人であることを示す数値です。",
+      "options": { "title": "全国の総人口（万人）" }
+    },
+    {
+      "id": "population-sex-breakdown",
+      "type": "table",
+      "encoding": { "columns": ["地域", "総人口（万人）", "男性（万人）", "女性（万人）"] },
+      "query": "q-sex-breakdown",
+      "altText": "全国と4都府県について、総人口と男女別の人口を並べた表です。単位はいずれも万人で、全国では女性5685万人が男性5509万人を上回ります。",
+      "options": { "title": "総人口と男女別の内訳（万人）" }
+    }
+  ],
+  "layout": {
+    "grid": "guidebook-12col",
+    "items": [
+      { "chart": "population-by-prefecture", "x": 0, "y": 0, "w": 8, "h": 4 },
+      { "chart": "population-national", "x": 8, "y": 0, "w": 4, "h": 4 },
+      { "chart": "population-sex-breakdown", "x": 0, "y": 4, "w": 12, "h": 4 }
+    ]
+  }
+}

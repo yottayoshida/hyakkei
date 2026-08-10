@@ -1,44 +1,26 @@
 {
   "version": 1,
   "meta": {
-    "title": "都道府県別経済基盤（e-Stat）",
+    "title": "予算執行実績（第１四半期）",
     "locale": "ja",
-    "description": "e-Statの経済基盤表から、都道府県の産業構成・耕地面積・土地生産性を比較するダッシュボード。",
-    "updatedAt": "2026-02-20",
-    "sourceNote": "e-Stat 表番号0000010203（Ｃ 経済基盤）、budget.csv の画面表示値。割合は％、土地生産性は万円。",
-    "summary": "全国の第二次産業事業所構成比は22.69%、第三次産業は76.89%。都道府県別では宮城県の第二次産業構成比が17.96%、北海道が13.44%です。"
+    "description": "第１四半期の予算執行率・費目別内訳・明細を示すダッシュボード。",
+    "updatedAt": "2026-07-05",
+    "sourceNote": "財政課「予算執行状況調」第１四半期分（budget_2026_q1.csv）。金額の単位は千円。執行率は第１四半期末時点の支出済額を当初予算額で除した値です。",
+    "summary": "第１四半期末の執行率は49.8%（4月18.5%、5月34.2%からの推移）。費目別の予算額は人件費4,200千円、委託費3,100千円、物件費1,800千円、その他900千円で、人件費が最大の費目。支出済額は人件費2,075千円、委託費1,490千円、物件費823千円。"
   },
   "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-orange" },
   "sources": [
     {
-      "id": "economic",
+      "id": "budget",
       "kind": "file",
       "format": "csv",
-      "ref": {
-        "name": "budget.csv",
-        "encoding": "UTF-8",
-        "url": "https://www.e-stat.go.jp/dbview?sid=0000010203",
-        "tableId": "0000010203",
-        "surveyYear": "画面表示値"
-      }
+      "ref": { "name": "budget_2026_q1.csv", "encoding": "shift_jis" }
     }
   ],
   "queries": [
-    {
-      "id": "q-rate",
-      "source": "economic",
-      "sql": "SELECT prefecture AS month, secondaryIndustryShare AS rate FROM economic ORDER BY prefecture"
-    },
-    {
-      "id": "q-breakdown",
-      "source": "economic",
-      "sql": "SELECT indicator AS item, value AS amount FROM economic WHERE prefecture = '全国'"
-    },
-    {
-      "id": "q-detail",
-      "source": "economic",
-      "sql": "SELECT prefecture AS item, secondaryIndustryShare AS budget, tertiaryIndustryShare AS actual FROM economic"
-    }
+    { "id": "q-rate", "source": "budget", "sql": "SELECT month, rate FROM budget ORDER BY month" },
+    { "id": "q-breakdown", "source": "budget", "sql": "SELECT item, amount FROM budget" },
+    { "id": "q-detail", "source": "budget", "sql": "SELECT item, budget, actual FROM budget" }
   ],
   "charts": [
     {
@@ -46,24 +28,24 @@
       "type": "area",
       "encoding": { "x": "month", "y": "rate" },
       "query": "q-rate",
-      "altText": "都道府県別の第2次産業事業所構成比を比較します。",
-      "options": { "title": "第2次産業事業所構成比（％）" }
+      "altText": "第1四半期の執行率の推移を示し、4月18.5%から6月49.8%へ上昇しています。",
+      "options": { "title": "執行率推移（％）" }
     },
     {
       "id": "budget-breakdown",
       "type": "pie",
       "encoding": { "category": "item", "value": "amount" },
       "query": "q-breakdown",
-      "altText": "全国の経済基盤指標を比較します。",
-      "options": { "title": "全国の経済基盤指標", "legend": { "show": true, "position": "right" } }
+      "altText": "費目別予算額を比較し、人件費4200千円が最多です。",
+      "options": { "title": "費目別内訳", "legend": { "show": true, "position": "right" } }
     },
     {
       "id": "budget-detail",
       "type": "table",
       "encoding": { "columns": ["item", "budget", "actual"] },
       "query": "q-detail",
-      "altText": "都道府県ごとの第2次産業と第3次産業の構成比を表で示します。",
-      "options": { "title": "都道府県別産業構成" }
+      "altText": "第1四半期の費目別予算額と支出済額を表で示し、人件費は予算4200千円、支出済2075千円です。",
+      "options": { "title": "第１四半期 明細" }
     }
   ],
   "layout": {

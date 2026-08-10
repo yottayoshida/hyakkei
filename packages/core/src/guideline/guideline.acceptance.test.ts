@@ -1,7 +1,12 @@
 // PRD §7 acceptance ("100% of nudge rules pass on all gallery templates,
-// CI check") and this PR's ADR-0016: the 3 existing GOLDEN_SAMPLES
-// (applications/budget/regional) already serve as the "gallery" -- no new
-// fixture directory is created for this.
+// CI check") and this PR's ADR-0016. That ADR settled this by reusing what
+// existed -- "the 3 existing GOLDEN_SAMPLES (applications/budget/regional)
+// already serve as the gallery, no new fixture directory is created for this"
+// -- which held while the fixtures carried invented data. ADR-0021 splits the
+// two: the published gallery is `../gallery-samples/` and runs this same
+// acceptance in its own roundtrip test. These fixtures stay under the rule as
+// well, since a rendering pin that trips a nudge is still an example nobody
+// should copy.
 import { describe, expect, it } from "vitest";
 import { lookupRows } from "../renderer/render-model.js";
 import { GOLDEN_SAMPLES } from "../golden-fixtures/sample-dashboards.js";

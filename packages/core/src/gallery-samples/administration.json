@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "都道府県別行政基盤（1975年度）",
+    "locale": "ja",
+    "description": "e-Stat の社会・人口統計体系から、1975年度の財政指標と人口1人当たり歳出を読み取るダッシュボード。",
+    "updatedAt": "2026-02-20",
+    "sourceNote": "e-Stat 表番号0000010204（Ｄ 行政基盤）、調査年1975年度。財政力指数は無名数、経常収支比率と投資的経費の割合は％、歳出決算総額は千円で、単位が異なるため同じ軸には並べていません。掲載は全国と4道県のみです。",
+    "summary": "1975年度の人口1人当たり歳出決算総額は全国243.7千円。掲載した4道県では北海道306.2千円が最も多く、青森県291.5千円、岩手県287.9千円、宮城県221.5千円と続きます。財政力指数は全国0.506に対し、4道県は0.253から0.500の範囲にあります。"
+  },
+  "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-neutral" },
+  "sources": [
+    {
+      "id": "administration",
+      "kind": "file",
+      "format": "csv",
+      "ref": {
+        "name": "administration.csv",
+        "encoding": "UTF-8",
+        "url": "https://www.e-stat.go.jp/dbview?sid=0000010204",
+        "tableId": "0000010204",
+        "surveyYear": "1975年度"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-per-capita-expenditure",
+      "source": "administration",
+      "sql": "SELECT \"地域\", \"#D0330103_人口1人当たり歳出決算総額（千円）\" AS \"人口1人当たり歳出決算総額（千円）\" FROM administration WHERE \"地域\" <> '全国'"
+    },
+    {
+      "id": "q-fiscal-indicators",
+      "source": "administration",
+      "sql": "SELECT \"地域\", \"#D0110101_財政力指数\" AS \"財政力指数\", \"#D01401_経常収支比率（％）\" AS \"経常収支比率（％）\", \"#D0140201_投資的経費の割合（％）\" AS \"投資的経費の割合（％）\", \"#D0330103_人口1人当たり歳出決算総額（千円）\" AS \"1人当たり歳出（千円）\" FROM administration"
+    }
+  ],
+  "charts": [
+    {
+      "id": "administration-per-capita",
+      "type": "bar",
+      "encoding": { "x": "地域", "y": "人口1人当たり歳出決算総額（千円）" },
+      "query": "q-per-capita-expenditure",
+      "altText": "掲載した4道県の人口1人当たり歳出決算総額を比べた棒グラフです。北海道306.2千円が最も多く、青森県291.5千円、岩手県287.9千円、宮城県221.5千円と続きます。全国の243.7千円は個別の道県ではないため、この棒グラフには含めず下の表に示しています。",
+      "options": { "title": "人口1人当たり歳出決算総額（千円）" }
+    },
+    {
+      "id": "administration-fiscal-indicators",
+      "type": "table",
+      "encoding": {
+        "columns": [
+          "地域",
+          "財政力指数",
+          "経常収支比率（％）",
+          "投資的経費の割合（％）",
+          "1人当たり歳出（千円）"
+        ]
+      },
+      "query": "q-fiscal-indicators",
+      "altText": "全国と4道県について、財政力指数・経常収支比率・投資的経費の割合・人口1人当たり歳出決算総額を並べた表です。指数・％・千円と単位が異なるため、グラフではなく表で示しています。",
+      "options": { "title": "財政指標と1人当たり歳出" }
+    }
+  ],
+  "layout": {
+    "grid": "guidebook-12col",
+    "items": [
+      { "chart": "administration-per-capita", "x": 0, "y": 0, "w": 12, "h": 4 },
+      { "chart": "administration-fiscal-indicators", "x": 0, "y": 4, "w": 12, "h": 4 }
+    ]
+  }
+}
