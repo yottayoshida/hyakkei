@@ -33,10 +33,20 @@ test("hosted demo exposes the verified gallery without third-party requests", as
   );
   expect(hrefs).toEqual(
     expect.arrayContaining([
-      expect.stringMatching(/\/gallery\/applications\.html$/),
-      expect.stringMatching(/\/gallery\/budget\.html$/),
-      expect.stringMatching(/\/gallery\/regional\.html$/),
+      expect.stringMatching(/\/gallery\/population\.html$/),
+      expect.stringMatching(/\/gallery\/economy\.html$/),
+      expect.stringMatching(/\/gallery\/administration\.html$/),
     ]),
   );
+
+  // Each published artifact must name the survey year it froze. The table id
+  // alone does not let a reader check anything: the same e-Stat URL serves 50
+  // survey years, and the gallery shipped for a day citing three of them
+  // without saying which.
+  for (const href of hrefs) {
+    const artifact = await page.request.get(href!);
+    expect(artifact.ok(), `${href} is served`).toBe(true);
+    expect(await artifact.text(), `${href} states its survey year`).toContain("1975年度");
+  }
   expect(thirdPartyRequests, `unexpected requests: ${thirdPartyRequests.join(", ")}`).toEqual([]);
 });

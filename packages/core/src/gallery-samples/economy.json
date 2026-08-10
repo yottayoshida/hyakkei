@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "都道府県別経済基盤（1975年度）",
+    "locale": "ja",
+    "description": "e-Stat の社会・人口統計体系から、1975年度の産業構成と土地生産性を読み取るダッシュボード。",
+    "updatedAt": "2026-02-20",
+    "sourceNote": "e-Stat 表番号0000010203（Ｃ 経済基盤）、調査年1975年度。構成比と耕地面積比率は％、土地生産性は万円で、単位が異なるため同じ軸には並べていません。掲載は全国と4道県のみです。",
+    "summary": "1975年度の第2次産業事業所数構成比は全国22.69%。掲載した4道県では宮城県17.96%が最も高く、岩手県16.47%、北海道13.44%、青森県13.21%と続きます。土地生産性は青森県171.8万円が最も高く、北海道62.7万円が最も低くなっています。"
+  },
+  "theme": { "tokens": "@digital-go-jp/design-tokens@2.0.1", "palette": "guidebook-green" },
+  "sources": [
+    {
+      "id": "economy",
+      "kind": "file",
+      "format": "csv",
+      "ref": {
+        "name": "economy.csv",
+        "encoding": "UTF-8",
+        "url": "https://www.e-stat.go.jp/dbview?sid=0000010203",
+        "tableId": "0000010203",
+        "surveyYear": "1975年度"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-secondary-share",
+      "source": "economy",
+      "sql": "SELECT \"地域\", \"#C02102_第2次産業事業所数構成比（％）\" AS \"第2次産業事業所数構成比（％）\" FROM economy WHERE \"地域\" <> '全国'"
+    },
+    {
+      "id": "q-indicators",
+      "source": "economy",
+      "sql": "SELECT \"地域\", \"#C02102_第2次産業事業所数構成比（％）\" AS \"第2次産業（％）\", \"#C02103_第3次産業事業所数構成比（％）\" AS \"第3次産業（％）\", \"#C04105_耕地面積比率（％）\" AS \"耕地面積比率（％）\", \"#C04106_土地生産性（万円）\" AS \"土地生産性（万円）\" FROM economy"
+    }
+  ],
+  "charts": [
+    {
+      "id": "economy-secondary-share",
+      "type": "bar",
+      "encoding": { "x": "地域", "y": "第2次産業事業所数構成比（％）" },
+      "query": "q-secondary-share",
+      "altText": "掲載した4道県の第2次産業事業所数構成比を比べた棒グラフです。宮城県17.96%が最も高く、岩手県16.47%、北海道13.44%、青森県13.21%と続きます。全国の22.69%は個別の道県ではないため、この棒グラフには含めず下の表に示しています。",
+      "options": { "title": "第2次産業事業所数構成比（％）" }
+    },
+    {
+      "id": "economy-indicators",
+      "type": "table",
+      "encoding": {
+        "columns": [
+          "地域",
+          "第2次産業（％）",
+          "第3次産業（％）",
+          "耕地面積比率（％）",
+          "土地生産性（万円）"
+        ]
+      },
+      "query": "q-indicators",
+      "altText": "全国と4道県について、産業構成比・耕地面積比率・土地生産性を並べた表です。単位が％と万円で異なるため、グラフではなく表で示しています。",
+      "options": { "title": "産業構成と土地生産性" }
+    }
+  ],
+  "layout": {
+    "grid": "guidebook-12col",
+    "items": [
+      { "chart": "economy-secondary-share", "x": 0, "y": 0, "w": 12, "h": 4 },
+      { "chart": "economy-indicators", "x": 0, "y": 4, "w": 12, "h": 4 }
+    ]
+  }
+}

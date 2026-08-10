@@ -11,6 +11,7 @@
     "./renderer": "./dist/renderer/index.js",
     "./datasource": "./dist/datasource/index.js",
     "./golden-fixtures": "./dist/golden-fixtures/index.js",
+    "./gallery-samples": "./dist/gallery-samples/index.js",
     "./guideline": "./dist/guideline/index.js"
   },
   "scripts": {
