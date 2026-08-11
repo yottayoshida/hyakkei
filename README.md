@@ -10,6 +10,10 @@ Just as ukiyo-e prints brought art to everyone in Edo-period Japan, Hyakkei aims
 
 ## Status
 
+**Development is paused, with no date set for resuming it.**
+
+What exists works and is documented accurately: the hosted demo runs, the editor loads CSV and Excel files entirely in the browser, and an exported HTML file opens offline with no network requests. There is no tagged release — this is pre-release work, and the roadmap below is unfinished. The open issues record known gaps rather than scheduled work, and both issues and pull requests may go unanswered while the pause lasts.
+
 ブラウザで CSV / Excel を読み込み、集計・グラフ化して、配布用の静的 HTML を書き出せます。公開版は [GitHub Pages のライブデモ](https://yottayoshida.github.io/hyakkei/) で試せます（`main` の CI が成功した後に更新されます）。設計資料は [`docs/`](./docs/README.md) にあります。
 
 ## 60秒クイックスタート
